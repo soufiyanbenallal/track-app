@@ -97,8 +97,8 @@ const Dashboard: React.FC = () => {
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Tableau de bord</h1>
-        <p className="text-muted-foreground">Gérez votre temps de travail et suivez vos projets</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Tableau de bord</h1>
+        <p className="text-gray-600 dark:text-gray-400">Gérez votre temps de travail et suivez vos projets</p>
       </div>
 
       {/* Stats Grid */}
@@ -106,52 +106,52 @@ const Dashboard: React.FC = () => {
         <Card className="relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-primary/80" />
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
               Temps total aujourd'hui
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground">{formatTime(stats.todayTime)}</div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Heures</p>
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{formatTime(stats.todayTime)}</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide">Heures</p>
           </CardContent>
         </Card>
 
         <Card className="relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 to-green-600" />
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
               Tâches terminées
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground">{stats.completedTasks}</div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Tâches</p>
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.completedTasks}</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide">Tâches</p>
           </CardContent>
         </Card>
 
         <Card className="relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-blue-600" />
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
               Projets actifs
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground">{stats.activeProjects}</div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Projets</p>
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.activeProjects}</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide">Projets</p>
           </CardContent>
         </Card>
 
         <Card className="relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-purple-600" />
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
               Productivité
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground">{stats.productivity}%</div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">%</p>
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.productivity}%</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide">%</p>
           </CardContent>
         </Card>
       </div>
@@ -160,24 +160,24 @@ const Dashboard: React.FC = () => {
       <Card className="relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-green-500 to-yellow-500" />
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Suivi du temps</CardTitle>
-          <p className="text-muted-foreground">
+          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">Suivi du temps</CardTitle>
+          <p className="text-gray-600 dark:text-gray-400">
             {state.isTracking ? 'Suivi en cours' : 'Prêt à commencer'}
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
           {state.isTracking && state.currentTask && (
-            <div className="bg-muted/50 border border-border rounded-lg p-6 text-center relative">
+            <div className="bg-gray-100/50 border border-gray-200 rounded-lg p-6 text-center relative dark:bg-gray-800/50 dark:border-gray-700">
               <div className="absolute top-4 left-4 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <h3 className="font-semibold text-foreground mb-2">Tâche en cours</h3>
-              <p className="text-lg text-muted-foreground mb-2">{state.currentTask.description}</p>
-              <p className="text-sm text-muted-foreground mb-4">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Tâche en cours</h3>
+              <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">{state.currentTask.description}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                 Projet: {selectedProject?.name || 'Projet inconnu'}
               </p>
               <div className="flex items-center justify-center gap-3">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Temps écoulé:</span>
-                <span className="text-2xl font-mono font-bold text-primary bg-background px-4 py-2 rounded-md border">
+                <Clock className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                <span className="text-sm text-gray-600 dark:text-gray-400">Temps écoulé:</span>
+                <span className="text-2xl font-mono font-bold text-blue-600 bg-white px-4 py-2 rounded-md border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
                   {formatElapsedTime()}
                 </span>
               </div>
@@ -211,14 +211,14 @@ const Dashboard: React.FC = () => {
 
       {/* Task Form Modal */}
       {isFormVisible && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle>Nouvelle tâche</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Projet</label>
+                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Projet</label>
                 <ProjectManager
                   selectedProject={selectedProject}
                   onProjectSelect={setSelectedProject}
@@ -226,7 +226,7 @@ const Dashboard: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
+                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   Description de la tâche
                 </label>
                 <textarea
@@ -234,7 +234,7 @@ const Dashboard: React.FC = () => {
                   onChange={(e) => setTaskDescription(e.target.value)}
                   placeholder="Décrivez ce que vous allez faire..."
                   rows={3}
-                  className="w-full p-3 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                  className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-400"
                 />
               </div>
 
