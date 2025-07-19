@@ -21,7 +21,7 @@
 }
 
 .filters-section {
-  background: white;
+  background: #181e24;
   border-radius: 12px;
   padding: 1.5rem;
   margin-bottom: 2rem;
@@ -35,7 +35,7 @@
 }
 
 .tasks-section {
-  background: white;
+  background: #181e24;
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);

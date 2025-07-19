@@ -76,7 +76,8 @@ interface TrackingContextType {
 
 const TrackingContext = createContext<TrackingContextType | undefined>(undefined);
 
-export function TrackingProvider({ children }: { children: React.ReactNode }) {
+// Component for Fast Refresh compatibility
+function TrackingProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(trackingReducer, initialState);
 
   const startTracking = useCallback((description: string, projectId: string) => {
@@ -137,23 +138,39 @@ export function TrackingProvider({ children }: { children: React.ReactNode }) {
   // Listen for Electron events
   useEffect(() => {
     if (window.electronAPI) {
-      window.electronAPI.onStartTracking(() => {
+      const handleStartTracking = () => {
         // This will be handled by the UI components
-      });
+      };
 
-      window.electronAPI.onStopTracking(() => {
+      const handleStopTracking = () => {
         stopTracking();
-      });
+      };
 
-      window.electronAPI.onUserIdle(() => {
+      const handleUserIdle = () => {
         dispatch({ type: 'SET_IDLE', payload: true });
-      });
+      };
 
-      window.electronAPI.onUserActive(() => {
+      const handleUserActive = () => {
         dispatch({ type: 'SET_IDLE', payload: false });
-      });
+      };
+
+      // Add event listeners
+      window.electronAPI.onStartTracking(handleStartTracking);
+      window.electronAPI.onStopTracking(handleStopTracking);
+      window.electronAPI.onUserIdle(handleUserIdle);
+      window.electronAPI.onUserActive(handleUserActive);
+
+      // Cleanup function to remove event listeners
+      return () => {
+        if (window.electronAPI) {
+          window.electronAPI.removeStartTracking(handleStartTracking);
+          window.electronAPI.removeStopTracking(handleStopTracking);
+          window.electronAPI.removeUserIdle(handleUserIdle);
+          window.electronAPI.removeUserActive(handleUserActive);
+        }
+      };
     }
-  }, [stopTracking]);
+  }, []); // Empty dependency array to run only once
 
   const value: TrackingContextType = {
     state,
@@ -169,10 +186,14 @@ export function TrackingProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useTracking() {
+// Hook for Fast Refresh compatibility
+function useTracking() {
   const context = useContext(TrackingContext);
   if (context === undefined) {
     throw new Error('useTracking must be used within a TrackingProvider');
   }
   return context;
-} 
+}
+
+// Export both functions at the end for better Fast Refresh compatibility
+export { TrackingProvider, useTracking }; 

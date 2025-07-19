@@ -42,6 +42,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onUserActive: (callback: () => void) => {
     ipcRenderer.on('user-active', callback);
+  },
+  
+  // Event cleanup
+  removeStartTracking: (callback: () => void) => {
+    ipcRenderer.removeListener('start-tracking', callback);
+  },
+  removeStopTracking: (callback: () => void) => {
+    ipcRenderer.removeListener('stop-tracking', callback);
+  },
+  removeUserIdle: (callback: () => void) => {
+    ipcRenderer.removeListener('user-idle', callback);
+  },
+  removeUserActive: (callback: () => void) => {
+    ipcRenderer.removeListener('user-active', callback);
   }
 });
 
@@ -70,6 +84,10 @@ declare global {
       onStopTracking: (callback: () => void) => void;
       onUserIdle: (callback: () => void) => void;
       onUserActive: (callback: () => void) => void;
+      removeStartTracking: (callback: () => void) => void;
+      removeStopTracking: (callback: () => void) => void;
+      removeUserIdle: (callback: () => void) => void;
+      removeUserActive: (callback: () => void) => void;
     };
   }
 } 

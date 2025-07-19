@@ -21,7 +21,8 @@ const defaultSettings: Settings = {
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-export function SettingsProvider({ children }: { children: React.ReactNode }) {
+// Component for Fast Refresh compatibility
+function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
 
   useEffect(() => {
@@ -92,10 +93,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useSettings() {
+// Hook for Fast Refresh compatibility
+function useSettings() {
   const context = useContext(SettingsContext);
   if (context === undefined) {
     throw new Error('useSettings must be used within a SettingsProvider');
   }
   return context;
-} 
+}
+
+// Export both functions at the end for better Fast Refresh compatibility
+export { SettingsProvider, useSettings }; 
