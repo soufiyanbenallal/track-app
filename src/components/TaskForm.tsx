@@ -1,4 +1,7 @@
 import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 interface TaskFormProps {
   onSubmit: (description: string) => void;
@@ -16,10 +19,10 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="task-form">
-      <div className="form-group">
-        <label htmlFor="task-description">Description de la tâche</label>
-        <textarea
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="task-description">Description de la tâche</Label>
+        <Textarea
           id="task-description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -29,13 +32,13 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
         />
       </div>
       
-      <div className="form-actions">
-        <button type="button" className="btn btn-secondary" onClick={onCancel}>
+      <div className="flex gap-3 justify-end">
+        <Button type="button" variant="outline" onClick={onCancel}>
           Annuler
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={!description.trim()}>
+        </Button>
+        <Button type="submit" disabled={!description.trim()}>
           Démarrer
-        </button>
+        </Button>
       </div>
     </form>
   );

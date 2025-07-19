@@ -1,4 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { Search, Edit, Trash2, Download, Calendar, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Loading } from '@/components/ui/loading';
 
 interface Task {
   id: string;
@@ -39,7 +52,7 @@ const Reports: React.FC = () => {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'tasks' | 'reports'>('tasks');
+  const [activeTab, setActiveTab] = useState('tasks');
   
   const [filters, setFilters] = useState({
     projectId: '',
@@ -251,366 +264,395 @@ const Reports: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-dark-900 text-gray-100 p-4">
+    <div className="min-h-screen bg-background p-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-100 mb-2">Rapports & Journal</h1>
-        <p className="text-gray-400 text-sm">Gérez vos tâches et générez des rapports</p>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">Rapports & Journal</h1>
+        <p className="text-muted-foreground">Gérez vos tâches et générez des rapports</p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex space-x-1 mb-6 bg-dark-800 rounded-lg p-1">
-        <button
-          onClick={() => setActiveTab('tasks')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'tasks'
-              ? 'bg-primary-600 text-white'
-              : 'text-gray-400 hover:text-gray-200'
-          }`}
-        >
-          Tâches
-        </button>
-        <button
-          onClick={() => setActiveTab('reports')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'reports'
-              ? 'bg-primary-600 text-white'
-              : 'text-gray-400 hover:text-gray-200'
-          }`}
-        >
-          Rapports
-        </button>
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="tasks">Tâches</TabsTrigger>
+          <TabsTrigger value="reports">Rapports</TabsTrigger>
+        </TabsList>
 
-      {activeTab === 'tasks' ? (
-        /* Tasks Tab */
-        <div className="space-y-6">
+        <TabsContent value="tasks" className="space-y-6">
           {/* Filters */}
-          <div className="bg-dark-800 rounded-lg p-4 border border-dark-700">
-            <h3 className="text-lg font-medium text-gray-100 mb-4">Filtres</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Recherche</label>
-                <input
-                  type="text"
-                  placeholder="Rechercher par description..."
-                  value={filters.search}
-                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                  className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Projet</label>
-                <select
-                  value={filters.projectId}
-                  onChange={(e) => setFilters({ ...filters, projectId: e.target.value })}
-                  className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">Tous les projets</option>
-                  {projects.map(project => (
-                    <option key={project.id} value={project.id}>{project.name}</option>
-                  ))}
-                </select>
-              </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Filtres</CardTitle>
+              <CardDescription>Filtrez vos tâches selon vos besoins</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="search">Recherche</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="search"
+                      placeholder="Rechercher par description..."
+                      value={filters.search}
+                      onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="project">Projet</Label>
+                  <Select value={filters.projectId} onValueChange={(value) => setFilters({ ...filters, projectId: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tous les projets" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Tous les projets</SelectItem>
+                      {projects.map(project => (
+                        <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Date de début</label>
-                <input
-                  type="date"
-                  value={filters.startDate}
-                  onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Date de fin</label>
-                <input
-                  type="date"
-                  value={filters.endDate}
-                  onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Statut de paiement</label>
-                <select
-                  value={filters.isPaid === undefined ? '' : filters.isPaid.toString()}
-                  onChange={(e) => setFilters({ 
-                    ...filters, 
-                    isPaid: e.target.value === '' ? undefined : e.target.value === 'true' 
-                  })}
-                  className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">Tous</option>
-                  <option value="true">Payé</option>
-                  <option value="false">Non payé</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Statut de complétion</label>
-                <select
-                  value={filters.isCompleted === undefined ? '' : filters.isCompleted.toString()}
-                  onChange={(e) => setFilters({ 
-                    ...filters, 
-                    isCompleted: e.target.value === '' ? undefined : e.target.value === 'true' 
-                  })}
-                  className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">Tous</option>
-                  <option value="true">Terminé</option>
-                  <option value="false">En cours</option>
-                </select>
-              </div>
-
-              <div className="flex items-center">
-                <label className="flex items-center text-sm font-medium text-gray-300">
-                  <input
-                    type="checkbox"
-                    checked={filters.isArchived}
-                    onChange={(e) => setFilters({ ...filters, isArchived: e.target.checked })}
-                    className="mr-2 h-4 w-4 text-primary-600 focus:ring-primary-500 border-dark-600 rounded bg-dark-700"
+                <div className="space-y-2">
+                  <Label htmlFor="startDate">Date de début</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={filters.startDate}
+                    onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
                   />
-                  Inclure archivés
-                </label>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="endDate">Date de fin</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={filters.endDate}
+                    onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="paymentStatus">Statut de paiement</Label>
+                  <Select 
+                    value={filters.isPaid === undefined ? '' : filters.isPaid.toString()} 
+                    onValueChange={(value) => setFilters({ 
+                      ...filters, 
+                      isPaid: value === '' ? undefined : value === 'true' 
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tous" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Tous</SelectItem>
+                      <SelectItem value="true">Payé</SelectItem>
+                      <SelectItem value="false">Non payé</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="completionStatus">Statut de complétion</Label>
+                  <Select 
+                    value={filters.isCompleted === undefined ? '' : filters.isCompleted.toString()} 
+                    onValueChange={(value) => setFilters({ 
+                      ...filters, 
+                      isCompleted: value === '' ? undefined : value === 'true' 
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tous" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Tous</SelectItem>
+                      <SelectItem value="true">Terminé</SelectItem>
+                      <SelectItem value="false">En cours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="archived"
+                    checked={filters.isArchived}
+                    onCheckedChange={(checked) => setFilters({ ...filters, isArchived: checked as boolean })}
+                  />
+                  <Label htmlFor="archived">Inclure archivés</Label>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Tasks List */}
-          <div className="bg-dark-800 rounded-lg border border-dark-700">
-            {loading ? (
-              <div className="p-8 text-center text-gray-400">Chargement...</div>
-            ) : filteredTasks.length === 0 ? (
-              <div className="p-8 text-center text-gray-400">Aucune tâche trouvée</div>
-            ) : (
-              <div className="divide-y divide-dark-700">
-                {filteredTasks.map((task) => (
-                  <div key={task.id} className="p-4 hover:bg-dark-750 transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div 
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: task.projectColor }}
-                          ></div>
-                          <span className="text-sm font-medium text-gray-300">{task.projectName}</span>
-                          <div className="flex gap-2">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              task.isPaid 
-                                ? 'bg-green-900 text-green-300' 
-                                : 'bg-red-900 text-red-300'
-                            }`}>
-                              {task.isPaid ? 'Payé' : 'Non payé'}
-                            </span>
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              task.isCompleted 
-                                ? 'bg-blue-900 text-blue-300' 
-                                : 'bg-yellow-900 text-yellow-300'
-                            }`}>
-                              {task.isCompleted ? 'Terminé' : 'En cours'}
-                            </span>
+          <Card>
+            <CardHeader>
+              <CardTitle>Tâches</CardTitle>
+              <CardDescription>Liste de toutes vos tâches</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loading text="Chargement..." />
+                </div>
+              ) : filteredTasks.length === 0 ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-muted-foreground">Aucune tâche trouvée</div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredTasks.map((task) => (
+                    <Card key={task.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 space-y-4">
+                            <div className="flex items-center gap-3">
+                              <div 
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: task.projectColor }}
+                              />
+                              <span className="font-medium text-sm">{task.projectName}</span>
+                              <div className="flex gap-2">
+                                <Badge variant={task.isPaid ? "default" : "secondary"}>
+                                  {task.isPaid ? (
+                                    <>
+                                      <CheckCircle className="w-3 h-3 mr-1" />
+                                      Payé
+                                    </>
+                                  ) : (
+                                    <>
+                                      <XCircle className="w-3 h-3 mr-1" />
+                                      Non payé
+                                    </>
+                                  )}
+                                </Badge>
+                                <Badge variant={task.isCompleted ? "default" : "outline"}>
+                                  {task.isCompleted ? "Terminé" : "En cours"}
+                                </Badge>
+                              </div>
+                            </div>
+                            
+                            <h3 className="font-medium">{task.description}</h3>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4" />
+                                <span>Début: {formatDate(task.startTime)}</span>
+                              </div>
+                              {task.endTime && (
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="w-4 h-4" />
+                                  <span>Fin: {formatDate(task.endTime)}</span>
+                                </div>
+                              )}
+                              {task.duration && (
+                                <div className="flex items-center gap-2">
+                                  <Clock className="w-4 h-4" />
+                                  <span>Durée: {formatDuration(task.duration)}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2 ml-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditTask(task)}
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Modifier
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteTask(task.id)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Supprimer
+                            </Button>
                           </div>
                         </div>
-                        
-                        <h3 className="text-gray-100 font-medium mb-2">{task.description}</h3>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-400">
-                          <div>
-                            <span className="font-medium">Début:</span> {formatDate(task.startTime)}
-                          </div>
-                          {task.endTime && (
-                            <div>
-                              <span className="font-medium">Fin:</span> {formatDate(task.endTime)}
-                            </div>
-                          )}
-                          {task.duration && (
-                            <div>
-                              <span className="font-medium">Durée:</span> {formatDuration(task.duration)}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-2 ml-4">
-                        <button
-                          onClick={() => handleEditTask(task)}
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
-                        >
-                          Modifier
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-                        >
-                          Supprimer
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        /* Reports Tab */
-        <div className="space-y-6">
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="reports" className="space-y-6">
           {/* Date Range */}
-          <div className="bg-dark-800 rounded-lg p-4 border border-dark-700">
-            <h3 className="text-lg font-medium text-gray-100 mb-4">Période</h3>
-            <div className="flex gap-4 items-end">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Date de début</label>
-                <input
-                  type="date"
-                  value={dateRange.startDate}
-                  onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-                  className="px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
+          <Card>
+            <CardHeader>
+              <CardTitle>Période</CardTitle>
+              <CardDescription>Sélectionnez la période pour votre rapport</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4 items-end">
+                <div className="space-y-2">
+                  <Label htmlFor="reportStartDate">Date de début</Label>
+                  <Input
+                    id="reportStartDate"
+                    type="date"
+                    value={dateRange.startDate}
+                    onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reportEndDate">Date de fin</Label>
+                  <Input
+                    id="reportEndDate"
+                    type="date"
+                    value={dateRange.endDate}
+                    onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+                  />
+                </div>
+                <Button onClick={exportToCSV} disabled={!reportData}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Exporter CSV
+                </Button>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Date de fin</label>
-                <input
-                  type="date"
-                  value={dateRange.endDate}
-                  onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-                  className="px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-              <button
-                onClick={exportToCSV}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-md transition-colors"
-              >
-                Exporter CSV
-              </button>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Summary Cards */}
           {reportData && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-dark-800 rounded-lg p-4 border border-dark-700 text-center">
-                <h3 className="text-sm font-medium text-gray-400 mb-2">Total</h3>
-                <p className="text-2xl font-bold text-gray-100">{formatHours(reportData.totalHours)}</p>
-                <p className="text-xs text-gray-500">Heures totales</p>
-              </div>
-              <div className="bg-dark-800 rounded-lg p-4 border border-dark-700 text-center">
-                <h3 className="text-sm font-medium text-gray-400 mb-2">Payé</h3>
-                <p className="text-2xl font-bold text-green-400">{formatHours(reportData.paidHours)}</p>
-                <p className="text-xs text-gray-500">Heures payées</p>
-              </div>
-              <div className="bg-dark-800 rounded-lg p-4 border border-dark-700 text-center">
-                <h3 className="text-sm font-medium text-gray-400 mb-2">Non payé</h3>
-                <p className="text-2xl font-bold text-red-400">{formatHours(reportData.unpaidHours)}</p>
-                <p className="text-xs text-gray-500">Heures non payées</p>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total</CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatHours(reportData.totalHours)}</div>
+                  <p className="text-xs text-muted-foreground">Heures totales</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Payé</CardTitle>
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">{formatHours(reportData.paidHours)}</div>
+                  <p className="text-xs text-muted-foreground">Heures payées</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Non payé</CardTitle>
+                  <XCircle className="h-4 w-4 text-red-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">{formatHours(reportData.unpaidHours)}</div>
+                  <p className="text-xs text-muted-foreground">Heures non payées</p>
+                </CardContent>
+              </Card>
             </div>
           )}
 
           {/* Project Breakdown */}
           {reportData && (
-            <div className="bg-dark-800 rounded-lg border border-dark-700">
-              <div className="p-4 border-b border-dark-700">
-                <h3 className="text-lg font-medium text-gray-100">Répartition par projet</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-dark-750">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Projet</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Heures totales</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Heures payées</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Heures non payées</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Pourcentage</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-dark-700">
-                    {reportData.projectBreakdown.map((project, index) => (
-                      <tr key={index} className="hover:bg-dark-750">
-                        <td className="px-4 py-3 text-sm text-gray-100">{project.projectName}</td>
-                        <td className="px-4 py-3 text-sm text-gray-100">{formatHours(project.hours)}</td>
-                        <td className="px-4 py-3 text-sm text-green-400">{formatHours(project.paidHours)}</td>
-                        <td className="px-4 py-3 text-sm text-red-400">{formatHours(project.unpaidHours)}</td>
-                        <td className="px-4 py-3 text-sm text-gray-100">{((project.hours / reportData.totalHours) * 100).toFixed(1)}%</td>
+            <Card>
+              <CardHeader>
+                <CardTitle>Répartition par projet</CardTitle>
+                <CardDescription>Détail des heures par projet</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-3 px-4 font-medium">Projet</th>
+                        <th className="text-left py-3 px-4 font-medium">Heures totales</th>
+                        <th className="text-left py-3 px-4 font-medium">Heures payées</th>
+                        <th className="text-left py-3 px-4 font-medium">Heures non payées</th>
+                        <th className="text-left py-3 px-4 font-medium">Pourcentage</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                    </thead>
+                    <tbody>
+                      {reportData.projectBreakdown.map((project, index) => (
+                        <tr key={index} className="border-b hover:bg-muted/50">
+                          <td className="py-3 px-4">{project.projectName}</td>
+                          <td className="py-3 px-4">{formatHours(project.hours)}</td>
+                          <td className="py-3 px-4 text-green-600">{formatHours(project.paidHours)}</td>
+                          <td className="py-3 px-4 text-red-600">{formatHours(project.unpaidHours)}</td>
+                          <td className="py-3 px-4">{((project.hours / reportData.totalHours) * 100).toFixed(1)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
           )}
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
 
-      {/* Edit Task Modal */}
-      {showEditModal && editingTask && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-dark-800 rounded-lg p-6 w-full max-w-md border border-dark-700">
-            <h3 className="text-lg font-medium text-gray-100 mb-4">Modifier la tâche</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
-                <textarea
-                  value={editForm.description}
-                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  rows={3}
-                />
-              </div>
-              
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={editForm.isPaid}
-                  onChange={(e) => setEditForm({ ...editForm, isPaid: e.target.checked })}
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-dark-600 rounded bg-dark-700"
-                />
-                <label className="ml-2 text-sm text-gray-300">Payé</label>
-              </div>
-              
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={editForm.isCompleted}
-                  onChange={(e) => setEditForm({ ...editForm, isCompleted: e.target.checked })}
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-dark-600 rounded bg-dark-700"
-                />
-                <label className="ml-2 text-sm text-gray-300">Terminé</label>
-              </div>
-              
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={editForm.isArchived}
-                  onChange={(e) => setEditForm({ ...editForm, isArchived: e.target.checked })}
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-dark-600 rounded bg-dark-700"
-                />
-                <label className="ml-2 text-sm text-gray-300">Archivé</label>
-              </div>
+      {/* Edit Task Dialog */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier la tâche</DialogTitle>
+            <DialogDescription>
+              Modifiez les détails de cette tâche
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="editDescription">Description</Label>
+              <Textarea
+                id="editDescription"
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                rows={3}
+              />
             </div>
             
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-md transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleUpdateTask}
-                className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm rounded-md transition-colors"
-              >
-                Sauvegarder
-              </button>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="editPaid"
+                checked={editForm.isPaid}
+                onCheckedChange={(checked) => setEditForm({ ...editForm, isPaid: checked as boolean })}
+              />
+              <Label htmlFor="editPaid">Payé</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="editCompleted"
+                checked={editForm.isCompleted}
+                onCheckedChange={(checked) => setEditForm({ ...editForm, isCompleted: checked as boolean })}
+              />
+              <Label htmlFor="editCompleted">Terminé</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="editArchived"
+                checked={editForm.isArchived}
+                onCheckedChange={(checked) => setEditForm({ ...editForm, isArchived: checked as boolean })}
+              />
+              <Label htmlFor="editArchived">Archivé</Label>
             </div>
           </div>
-        </div>
-      )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleUpdateTask}>
+              Sauvegarder
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

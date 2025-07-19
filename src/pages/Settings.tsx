@@ -1,7 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import ProjectManager from '../components/ProjectManager';
-import './Settings.css';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { 
+  Clock, 
+  MessageSquare, 
+  ExternalLink, 
+  Database, 
+  CheckCircle, 
+  XCircle, 
+  AlertCircle,
+  Settings as SettingsIcon
+} from 'lucide-react';
 
 const Settings: React.FC = () => {
   const { settings, updateSettings, testNotionConnection, getNotionDatabases } = useSettings();
@@ -67,172 +83,182 @@ const Settings: React.FC = () => {
     }
   };
 
-  const getConnectionStatusClass = () => {
+  const getConnectionStatusIcon = () => {
     switch (connectionStatus) {
       case 'success':
-        return 'status-success';
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
       case 'error':
-        return 'status-error';
+        return <XCircle className="w-4 h-4 text-red-500" />;
       default:
-        return 'status-idle';
+        return <AlertCircle className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
   return (
-    <div className="settings">
-      <div className="settings-header">
-        <h1 className="settings-title">Paramètres</h1>
-        <p className="settings-subtitle">Configurez votre application de suivi du temps</p>
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+          <SettingsIcon className="w-8 h-8" />
+          Paramètres
+        </h1>
+        <p className="text-muted-foreground">Configurez votre application de suivi du temps</p>
       </div>
 
-      <div className="settings-content">
-        <div className="settings-section">
-          <h2>Paramètres généraux</h2>
-          
-          <div className="settings-grid">
-            <div className="setting-item">
-              <h3>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <polyline points="12,6 12,12 16,14"/>
-                </svg>
-                Temps d'inactivité
-              </h3>
-              <p>Le suivi sera automatiquement mis en pause après cette durée d'inactivité</p>
-              <div className="setting-control">
-                <input
+      {/* General Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Paramètres généraux</CardTitle>
+          <CardDescription>Configurez le comportement de base de l'application</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-muted-foreground" />
+                <Label className="text-base font-medium">Temps d'inactivité</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Le suivi sera automatiquement mis en pause après cette durée d'inactivité
+              </p>
+              <div className="flex items-center gap-2">
+                <Input
                   type="number"
                   min="1"
                   max="60"
                   value={idleTimeout}
                   onChange={(e) => setIdleTimeout(parseInt(e.target.value) || 5)}
+                  className="w-20"
                 />
-                <span>minutes</span>
+                <span className="text-sm text-muted-foreground">minutes</span>
               </div>
             </div>
 
-            <div className="setting-item">
-              <h3>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                Synchronisation automatique
-              </h3>
-              <p>Synchronise automatiquement les tâches terminées avec Notion</p>
-              <div className="setting-control">
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    checked={autoSync}
-                    onChange={(e) => setAutoSync(e.target.checked)}
-                  />
-                  <span className="toggle-slider"></span>
-                </label>
-                <span>{autoSync ? 'Activé' : 'Désactivé'}</span>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-muted-foreground" />
+                <Label className="text-base font-medium">Synchronisation automatique</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Synchronise automatiquement les tâches terminées avec Notion
+              </p>
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={autoSync}
+                  onCheckedChange={setAutoSync}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {autoSync ? 'Activé' : 'Désactivé'}
+                </span>
               </div>
             </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        <div className="settings-section">
-          <h2>Intégration Notion</h2>
-          
-          <div className="settings-grid">
-            <div className="setting-item">
-              <h3>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                  <polyline points="10,17 15,12 10,7"/>
-                  <line x1="15" y1="12" x2="3" y2="12"/>
-                </svg>
-                Clé API Notion
-              </h3>
-              <p>Votre clé API pour l'intégration avec Notion</p>
-              <div className="setting-control">
-                <input
+      {/* Notion Integration */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Intégration Notion</CardTitle>
+          <CardDescription>Connectez votre application à Notion pour synchroniser vos données</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <Label className="text-base font-medium">Clé API Notion</Label>
+              <p className="text-sm text-muted-foreground">
+                Votre clé API pour l'intégration avec Notion
+              </p>
+              <div className="flex gap-2">
+                <Input
                   type="password"
                   value={notionApiKey}
                   onChange={(e) => setNotionApiKey(e.target.value)}
                   placeholder="Entrez votre clé API Notion"
                 />
-                <button className="btn btn-secondary btn-sm" onClick={() => window.open('https://www.notion.so/my-integrations', '_blank')}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open('https://www.notion.so/my-integrations', '_blank')}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
                   Obtenir
-                </button>
+                </Button>
               </div>
             </div>
 
-            <div className="setting-item">
-              <h3>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                  <circle cx="9" cy="9" r="2"/>
-                  <path d="M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-                </svg>
-                ID de l'espace de travail
-              </h3>
-              <p>L'ID de votre espace de travail Notion</p>
-              <div className="setting-control">
-                <input
-                  type="text"
-                  value={notionWorkspaceId}
-                  onChange={(e) => setNotionWorkspaceId(e.target.value)}
-                  placeholder="Entrez l'ID de votre espace de travail"
-                />
-              </div>
+            <div className="space-y-4">
+              <Label className="text-base font-medium">ID de l'espace de travail</Label>
+              <p className="text-sm text-muted-foreground">
+                L'ID de votre espace de travail Notion
+              </p>
+              <Input
+                type="text"
+                value={notionWorkspaceId}
+                onChange={(e) => setNotionWorkspaceId(e.target.value)}
+                placeholder="Entrez l'ID de votre espace de travail"
+              />
             </div>
           </div>
 
-          <div className="setting-control" style={{ marginTop: 'var(--spacing-lg)' }}>
-            <button 
-              className="btn btn-secondary"
+          <Separator />
+
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
               onClick={handleTestNotionConnection}
               disabled={testingConnection || !notionApiKey}
             >
               {testingConnection ? 'Test en cours...' : 'Tester la connexion'}
-            </button>
-            <div className={`connection-status ${connectionStatus === 'success' ? 'connected' : connectionStatus === 'error' ? 'disconnected' : 'idle'}`}>
-              <div className="status-indicator"></div>
-              {getConnectionStatusText()}
+            </Button>
+            <div className="flex items-center gap-2">
+              {getConnectionStatusIcon()}
+              <span className="text-sm text-muted-foreground">
+                {getConnectionStatusText()}
+              </span>
             </div>
           </div>
 
           {notionDatabases.length > 0 && (
-            <div className="setting-item" style={{ marginTop: 'var(--spacing-lg)' }}>
-              <h3>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14,2 14,8 20,8"/>
-                </svg>
-                Bases de données disponibles
-              </h3>
-              <p>Bases de données Notion accessibles</p>
-              <div style={{ marginTop: 'var(--spacing-md)' }}>
-                {notionDatabases.map((db, index) => (
-                  <div key={index} style={{ 
-                    padding: 'var(--spacing-sm)', 
-                    background: 'var(--bg-tertiary)', 
-                    borderRadius: 'var(--radius-sm)',
-                    marginBottom: 'var(--spacing-xs)',
-                    fontSize: '0.875rem'
-                  }}>
-                    {db.title}
-                  </div>
-                ))}
+            <>
+              <Separator />
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Database className="w-5 h-5 text-muted-foreground" />
+                  <Label className="text-base font-medium">Bases de données disponibles</Label>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Bases de données Notion accessibles
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {notionDatabases.map((db, index) => (
+                    <Badge key={index} variant="secondary" className="justify-start">
+                      {db.title}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-            </div>
+            </>
           )}
-        </div>
+        </CardContent>
+      </Card>
 
-        <div className="settings-section">
-          <h2>Gestion des projets</h2>
+      {/* Project Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Gestion des projets</CardTitle>
+          <CardDescription>Créez et gérez vos projets de suivi du temps</CardDescription>
+        </CardHeader>
+        <CardContent>
           <ProjectManager />
-        </div>
+        </CardContent>
+      </Card>
 
-        <div className="settings-actions">
-          <button className="btn btn-primary" onClick={handleSaveSettings}>
-            Sauvegarder les paramètres
-          </button>
-        </div>
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <Button onClick={handleSaveSettings} size="lg">
+          Sauvegarder les paramètres
+        </Button>
       </div>
     </div>
   );

@@ -6,15 +6,14 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
-import './App.css';
 
 function App() {
   return (
-    <SettingsProvider>
-      <TrackingProvider>
-        <div className="app">
+    <TrackingProvider>
+      <SettingsProvider>
+        <div className="flex h-screen bg-background dark">
           <Sidebar />
-          <main className="main-content">
+          <main className="flex-1 overflow-auto">
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/reports" element={<Reports />} />
@@ -22,8 +21,8 @@ function App() {
             </Routes>
           </main>
         </div>
-      </TrackingProvider>
-    </SettingsProvider>
+      </SettingsProvider>
+    </TrackingProvider>
   );
 }
 

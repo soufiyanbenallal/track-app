@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import './ProjectManager.css';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Edit, Trash2, Database } from 'lucide-react';
+import { Loading } from '@/components/ui/loading';
 
 interface Project {
   id: string;
@@ -111,128 +118,163 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectSelect, select
   ];
 
   if (loading) {
-    return <div className="loading">Chargement des projets...</div>;
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loading text="Chargement des projets..." />
+      </div>
+    );
   }
 
   return (
-    <div className="project-manager">
-      <div className="project-header">
-        <h3>Projets</h3>
-        <button 
-          className="btn btn-primary btn-sm"
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Projets</h3>
+        <Button 
+          size="sm"
           onClick={() => setShowForm(true)}
         >
+          <Plus className="w-4 h-4 mr-2" />
           Nouveau projet
-        </button>
+        </Button>
       </div>
 
-      {showForm && (
-        <div className="project-form-modal">
-          <div className="modal-content">
-            <h3>{editingProject ? 'Modifier le projet' : 'Nouveau projet'}</h3>
-            
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Nom du projet</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Nom du projet"
-                  required
-                />
-              </div>
+      {/* Project Form Dialog */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingProject ? 'Modifier le projet' : 'Nouveau projet'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingProject ? 'Modifiez les détails du projet' : 'Créez un nouveau projet de suivi'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="projectName">Nom du projet</Label>
+              <Input
+                id="projectName"
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Nom du projet"
+                required
+              />
+            </div>
 
-              <div className="form-group">
-                <label>Couleur</label>
-                <div className="color-picker">
-                  {colorOptions.map(color => (
-                    <button
-                      key={color}
-                      type="button"
-                      className={`color-option ${formData.color === color ? 'selected' : ''}`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setFormData({ ...formData, color })}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>ID de base de données Notion (optionnel)</label>
-                <input
-                  type="text"
-                  value={formData.notionDatabaseId}
-                  onChange={(e) => setFormData({ ...formData, notionDatabaseId: e.target.value })}
-                  placeholder="ID de la base de données Notion"
-                />
-              </div>
-
-              <div className="form-actions">
-                <button type="button" className="btn btn-secondary" onClick={resetForm}>
-                  Annuler
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingProject ? 'Modifier' : 'Créer'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      <div className="projects-list">
-        {projects.length === 0 ? (
-          <div className="empty-state">
-            <p>Aucun projet créé</p>
-            <button 
-              className="btn btn-primary"
-              onClick={() => setShowForm(true)}
-            >
-              Créer votre premier projet
-            </button>
-          </div>
-        ) : (
-          projects.map(project => (
-            <div 
-              key={project.id} 
-              className={`project-item ${selectedProject?.id === project.id ? 'selected' : ''}`}
-              onClick={() => onProjectSelect?.(project)}
-            >
-              <div className="project-info">
-                <div 
-                  className="project-color" 
-                  style={{ backgroundColor: project.color }}
-                ></div>
-                <div className="project-details">
-                  <h4>{project.name}</h4>
-                  {project.notionDatabaseId && (
-                    <small>Connecté à Notion</small>
-                  )}
-                </div>
-              </div>
-              
-              <div className="project-actions">
-                <button 
-                  className="btn btn-secondary btn-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEdit(project);
-                  }}
-                >
-                  Modifier
-                </button>
-                <button 
-                  className="btn btn-danger btn-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(project.id);
-                  }}
-                >
-                  Supprimer
-                </button>
+            <div className="space-y-2">
+              <Label>Couleur</Label>
+              <div className="grid grid-cols-5 gap-2">
+                {colorOptions.map(color => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${
+                      formData.color === color 
+                        ? 'border-foreground scale-110' 
+                        : 'border-border hover:border-foreground/50'
+                    }`}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setFormData({ ...formData, color })}
+                  />
+                ))}
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notionDatabaseId">ID de base de données Notion (optionnel)</Label>
+              <Input
+                id="notionDatabaseId"
+                type="text"
+                value={formData.notionDatabaseId}
+                onChange={(e) => setFormData({ ...formData, notionDatabaseId: e.target.value })}
+                placeholder="ID de la base de données Notion"
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={resetForm}>
+                Annuler
+              </Button>
+              <Button type="submit">
+                {editingProject ? 'Modifier' : 'Créer'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Projects List */}
+      <div className="space-y-3">
+        {projects.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-8">
+              <p className="text-muted-foreground mb-4">Aucun projet créé</p>
+              <Button onClick={() => setShowForm(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Créer votre premier projet
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          projects.map(project => (
+            <Card 
+              key={project.id} 
+              className={`cursor-pointer transition-all hover:shadow-md ${
+                selectedProject?.id === project.id 
+                  ? 'ring-2 ring-primary bg-primary/5' 
+                  : ''
+              }`}
+              onClick={() => onProjectSelect?.(project)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: project.color }}
+                    />
+                    <div>
+                      <h4 className="font-medium">{project.name}</h4>
+                      {project.notionDatabaseId && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <Database className="w-3 h-3 text-muted-foreground" />
+                          <Badge variant="secondary" className="text-xs">
+                            Connecté à Notion
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(project);
+                      }}
+                    >
+                      <Edit className="w-3 h-3 mr-1" />
+                      Modifier
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(project.id);
+                      }}
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" />
+                      Supprimer
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           ))
         )}
       </div>
