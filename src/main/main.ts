@@ -42,15 +42,21 @@ class TrackApp {
 
   private createWindow(): void {
     this.mainWindow = new BrowserWindow({
-      width: 1200,
-      height: 800,
+      width: 1000,
+      height: 700,
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
         preload: join(__dirname, 'preload.js')
       },
       titleBarStyle: 'hiddenInset',
-      show: false
+      show: false,
+      resizable: true,
+      movable: true,
+      minimizable: true,
+      maximizable: true,
+      frame: false,
+      transparent: false
     });
 
     if (process.env.NODE_ENV === 'development') {
@@ -82,7 +88,19 @@ class TrackApp {
   private updateTrayMenu(): void {
     if (!this.tray) return;
 
+    // Get current time
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('fr-FR', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+
     const contextMenu = Menu.buildFromTemplate([
+      {
+        label: `🕐 ${timeString}`,
+        enabled: false
+      },
+      { type: 'separator' },
       {
         label: 'Démarrer le suivi',
         click: () => {
@@ -197,6 +215,11 @@ class TrackApp {
     this.idleDetector.onActive(() => {
       this.mainWindow?.webContents.send('user-active');
     });
+
+    // Update tray menu every minute to keep time current
+    setInterval(() => {
+      this.updateTrayMenu();
+    }, 60000); // Update every minute
   }
 }
 
