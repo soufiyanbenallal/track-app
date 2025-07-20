@@ -10,11 +10,11 @@ interface LayoutProps {
 }
 
 const navigation = [
-  { name: 'Tableau de bord', href: '/', icon: Clock },
-  { name: 'Tâches', href: '/tasks', icon: ListTodo },
-  { name: 'Projets', href: '/projects', icon: FolderOpen },
-  { name: 'Rapports', href: '/reports', icon: BarChart3 },
-  { name: 'Paramètres', href: '/settings', icon: Settings },
+  { name: 'Dashboard', href: '/', icon: Clock },
+  { name: 'Tasks', href: '/tasks', icon: ListTodo },
+  { name: 'Projects', href: '/projects', icon: FolderOpen },
+  { name: 'Reports', href: '/reports', icon: BarChart3 },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export default function Layout({ children }: LayoutProps) {
@@ -36,7 +36,7 @@ export default function Layout({ children }: LayoutProps) {
             <div className="bg-primary/10 rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-primary">
-                  En cours de suivi
+                  Currently tracking
                 </span>
                 <button
                   onClick={() => stopTracking()}
@@ -60,7 +60,7 @@ export default function Layout({ children }: LayoutProps) {
               className="w-full inline-flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
               <Play className="mr-2 h-4 w-4" />
-              Démarrer le suivi
+              Start tracking
             </button>
           </div>
         )}

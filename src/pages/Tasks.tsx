@@ -46,12 +46,12 @@ export default function Tasks() {
   const handleCreateTask = async () => {
     try {
       if (projects.length === 0) {
-        alert('Aucun projet disponible. Veuillez créer un projet d\'abord.');
+        alert('No projects available. Please create a project first.');
         return;
       }
 
       if (!newTask.description.trim()) {
-        alert('Veuillez entrer une description pour la tâche');
+        alert('Please enter a description for the task');
         return;
       }
 
@@ -72,7 +72,7 @@ export default function Tasks() {
       refreshTasks(filters);
     } catch (error) {
       console.error('Error creating task:', error);
-      alert('Erreur lors de la création de la tâche');
+      alert('Error creating task');
     }
   };
 
@@ -89,7 +89,7 @@ export default function Tasks() {
   const handleUpdateTask = async () => {
     try {
       if (!editingTask.description.trim()) {
-        alert('Veuillez entrer une description pour la tâche');
+        alert('Please enter a description for the task');
         return;
       }
 
@@ -103,12 +103,12 @@ export default function Tasks() {
       refreshTasks(filters);
     } catch (error) {
       console.error('Error updating task:', error);
-      alert('Erreur lors de la modification de la tâche');
+      alert('Error updating task');
     }
   };
 
   const handleDeleteTask = async (taskId: number) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+    if (!confirm('Are you sure you want to delete this task?')) {
       return;
     }
 
@@ -117,7 +117,7 @@ export default function Tasks() {
       refreshTasks(filters);
     } catch (error) {
       console.error('Error deleting task:', error);
-      alert('Erreur lors de la suppression de la tâche');
+      alert('Error deleting task');
     }
   };
 
@@ -134,9 +134,9 @@ export default function Tasks() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Tâches</h1>
+          <h1 className="text-3xl font-bold text-foreground">Tasks</h1>
           <p className="text-muted-foreground">
-            Gérez et suivez vos tâches de travail
+            Manage and track your work tasks
           </p>
         </div>
         
@@ -145,7 +145,7 @@ export default function Tasks() {
           className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
         >
           <Plus className="mr-2 h-4 w-4" />
-          Nouvelle tâche
+          New task
         </button>
       </div>
 
@@ -154,7 +154,7 @@ export default function Tasks() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-card p-6 rounded-lg border border-border w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-foreground">Nouvelle tâche</h2>
+              <h2 className="text-lg font-semibold text-foreground">New task</h2>
               <button
                 onClick={() => setShowCreateDialog(false)}
                 className="text-muted-foreground hover:text-foreground"
@@ -166,7 +166,7 @@ export default function Tasks() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Projet
+                  Project
                 </label>
                 {projects.length > 0 ? (
                   <select
@@ -182,7 +182,7 @@ export default function Tasks() {
                   </select>
                 ) : (
                   <div className="w-full px-4 py-2 border border-input rounded-md bg-background text-muted-foreground">
-                    Aucun projet disponible. Veuillez créer un projet d'abord.
+                    No projects available. Please create a project first.
                   </div>
                 )}
               </div>
@@ -194,7 +194,7 @@ export default function Tasks() {
                 <textarea
                   value={newTask.description}
                   onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Description de la tâche..."
+                  placeholder="Task description..."
                   className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                   rows={3}
                 />
@@ -209,7 +209,7 @@ export default function Tasks() {
                   className="rounded border-input"
                 />
                 <label htmlFor="is_paid" className="text-sm text-foreground">
-                  Marquer comme payé
+                  Mark as paid
                 </label>
               </div>
             </div>
@@ -219,14 +219,14 @@ export default function Tasks() {
                 onClick={() => setShowCreateDialog(false)}
                 className="px-4 py-2 border border-border rounded-md hover:bg-accent transition-colors"
               >
-                Annuler
+                Cancel
               </button>
               <button
                 onClick={handleCreateTask}
                 disabled={projects.length === 0}
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Créer
+                Create
               </button>
             </div>
           </div>
@@ -238,7 +238,7 @@ export default function Tasks() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-card p-6 rounded-lg border border-border w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-foreground">Modifier la tâche</h2>
+              <h2 className="text-lg font-semibold text-foreground">Edit task</h2>
               <button
                 onClick={() => setShowEditDialog(false)}
                 className="text-muted-foreground hover:text-foreground"
@@ -313,7 +313,7 @@ export default function Tasks() {
       {/* Filters */}
       <div className="bg-card p-6 rounded-lg border border-border">
         <h2 className="text-lg font-semibold text-foreground mb-4">
-          Filtres
+          Filters
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -322,7 +322,7 @@ export default function Tasks() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Rechercher..."
+              placeholder="Search..."
               value={filters.search}
               onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
               className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -338,7 +338,7 @@ export default function Tasks() {
             }))}
             className="px-4 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="">Tous les projets</option>
+            <option value="">All projects</option>
             {projects.map(project => (
               <option key={project.id} value={project.id}>
                 {project.name}
@@ -355,9 +355,9 @@ export default function Tasks() {
             }))}
             className="px-4 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="">Tous les statuts</option>
-            <option value="true">Payé</option>
-            <option value="false">Non payé</option>
+            <option value="">All statuses</option>
+            <option value="true">Paid</option>
+            <option value="false">Unpaid</option>
           </select>
 
           {/* Date Range */}
@@ -382,7 +382,7 @@ export default function Tasks() {
       <div className="bg-card rounded-lg border border-border">
         <div className="p-6 border-b border-border">
           <h2 className="text-lg font-semibold text-foreground">
-            Liste des tâches ({filteredTasks.length})
+            Task list ({filteredTasks.length})
           </h2>
         </div>
         
@@ -405,7 +405,7 @@ export default function Tasks() {
                       </p>
                       {task.end_time && (
                         <p className="text-sm text-muted-foreground">
-                          Durée: {formatDuration(task.duration || 0)}
+                          Duration: {formatDuration(task.duration || 0)}
                         </p>
                       )}
                     </div>
@@ -419,7 +419,7 @@ export default function Tasks() {
                         : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
                     }`}>
                       <DollarSign className="h-3 w-3" />
-                      <span>{task.is_paid ? 'Payé' : 'En attente'}</span>
+                      <span>{task.is_paid ? 'Paid' : 'Pending'}</span>
                     </div>
 
                     {/* Duration */}
@@ -436,7 +436,7 @@ export default function Tasks() {
                           onClick={handleStopTracking}
                           className="px-3 py-1 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors text-sm"
                         >
-                          Arrêter
+                          Stop
                         </button>
                       ) : (
                         <button
@@ -444,7 +444,7 @@ export default function Tasks() {
                           disabled={status.isTracking}
                           className="px-3 py-1 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Démarrer
+                          Start
                         </button>
                       )}
                       
@@ -471,11 +471,11 @@ export default function Tasks() {
           <div className="p-12 text-center">
             <div className="text-muted-foreground">
               <Calendar className="mx-auto h-12 w-12 mb-4 opacity-50" />
-              <h3 className="text-lg font-medium mb-2">Aucune tâche trouvée</h3>
+              <h3 className="text-lg font-medium mb-2">No tasks found</h3>
               <p className="text-sm">
                 {filters.search || filters.project_id || filters.is_paid !== undefined
-                  ? 'Aucune tâche ne correspond à vos filtres.'
-                  : 'Commencez par créer votre première tâche.'}
+                  ? 'No tasks match your filters.'
+                  : 'Start by creating your first task.'}
               </p>
             </div>
           </div>

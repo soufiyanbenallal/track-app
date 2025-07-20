@@ -80,7 +80,7 @@ export default function Reports() {
       <html>
         <head>
           <meta charset="utf-8">
-          <title>Rapport TrackApp</title>
+                      <title>TrackApp Report</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             .header { text-align: center; margin-bottom: 30px; }
@@ -94,37 +94,37 @@ export default function Reports() {
         </head>
         <body>
           <div class="header">
-            <h1>Rapport TrackApp</h1>
-            <p>Période: ${filters.start_date} à ${filters.end_date}</p>
+            <h1>TrackApp Report</h1>
+            <p>Period: ${filters.start_date} to ${filters.end_date}</p>
           </div>
           
           <div class="summary">
             <div class="summary-item">
-              <h3>Total heures</h3>
+              <h3>Total hours</h3>
               <p>${reportData.total_hours.toFixed(1)}h</p>
             </div>
             <div class="summary-item">
-              <h3>Heures payées</h3>
+              <h3>Paid hours</h3>
               <p>${reportData.paid_hours.toFixed(1)}h</p>
             </div>
             <div class="summary-item">
-              <h3>Heures en attente</h3>
+              <h3>Pending hours</h3>
               <p>${reportData.unpaid_hours.toFixed(1)}h</p>
             </div>
             <div class="summary-item">
-              <h3>Tâches</h3>
+              <h3>Tasks</h3>
               <p>${reportData.tasks_count}</p>
             </div>
           </div>
           
           <div class="section">
-            <h2>Résumé par projet</h2>
+            <h2>Project summary</h2>
             <table>
               <thead>
                 <tr>
-                  <th>Projet</th>
-                  <th>Heures</th>
-                  <th>Tâches</th>
+                  <th>Project</th>
+                  <th>Hours</th>
+                  <th>Tasks</th>
                 </tr>
               </thead>
               <tbody>
@@ -140,19 +140,19 @@ export default function Reports() {
           </div>
           
           <div class="section">
-            <h2>Résumé quotidien</h2>
+            <h2>Daily summary</h2>
             <table>
               <thead>
                 <tr>
                   <th>Date</th>
-                  <th>Heures</th>
-                  <th>Tâches</th>
+                  <th>Hours</th>
+                  <th>Tasks</th>
                 </tr>
               </thead>
               <tbody>
                 ${reportData.daily_summary.map(day => `
                   <tr>
-                    <td>${new Date(day.date).toLocaleDateString('fr-FR')}</td>
+                    <td>${new Date(day.date).toLocaleDateString('en-US')}</td>
                     <td>${day.hours.toFixed(1)}h</td>
                     <td>${day.tasks_count}</td>
                   </tr>
@@ -169,7 +169,7 @@ export default function Reports() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `rapport-trackapp-${filters.start_date}-${filters.end_date}.html`;
+    a.download = `trackapp-report-${filters.start_date}-${filters.end_date}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -181,9 +181,9 @@ export default function Reports() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Rapports</h1>
+          <h1 className="text-3xl font-bold text-foreground">Reports</h1>
           <p className="text-muted-foreground">
-            Analysez votre temps de travail et générez des rapports
+            Analyze your work time and generate reports
           </p>
         </div>
         
@@ -192,20 +192,20 @@ export default function Reports() {
           className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
         >
           <Download className="mr-2 h-4 w-4" />
-          Exporter
+          Export
         </button>
       </div>
 
       {/* Filters */}
       <div className="bg-card p-6 rounded-lg border border-border">
         <h2 className="text-lg font-semibold text-foreground mb-4">
-          Filtres
+          Filters
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
-              Date de début
+              Start date
             </label>
             <input
               type="date"
@@ -217,7 +217,7 @@ export default function Reports() {
           
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
-              Date de fin
+              End date
             </label>
             <input
               type="date"
@@ -229,7 +229,7 @@ export default function Reports() {
           
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
-              Projet
+              Project
             </label>
             <select
               value={filters.project_id || ''}
@@ -239,7 +239,7 @@ export default function Reports() {
               }))}
               className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="">Tous les projets</option>
+              <option value="">All projects</option>
               {projects.map(project => (
                 <option key={project.id} value={project.id}>
                   {project.name}
@@ -258,7 +258,7 @@ export default function Reports() {
               <Clock className="h-6 w-6 text-primary" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-muted-foreground">Total heures</p>
+              <p className="text-sm font-medium text-muted-foreground">Total hours</p>
               <p className="text-2xl font-bold text-foreground">
                 {reportData.total_hours.toFixed(1)}h
               </p>
@@ -272,7 +272,7 @@ export default function Reports() {
               <DollarSign className="h-6 w-6 text-green-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-muted-foreground">Heures payées</p>
+              <p className="text-sm font-medium text-muted-foreground">Paid hours</p>
               <p className="text-2xl font-bold text-foreground">
                 {reportData.paid_hours.toFixed(1)}h
               </p>
@@ -286,7 +286,7 @@ export default function Reports() {
               <Calendar className="h-6 w-6 text-orange-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-muted-foreground">Heures en attente</p>
+              <p className="text-sm font-medium text-muted-foreground">Pending hours</p>
               <p className="text-2xl font-bold text-foreground">
                 {reportData.unpaid_hours.toFixed(1)}h
               </p>
@@ -300,7 +300,7 @@ export default function Reports() {
               <BarChart3 className="h-6 w-6 text-blue-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-muted-foreground">Tâches</p>
+              <p className="text-sm font-medium text-muted-foreground">Tasks</p>
               <p className="text-2xl font-bold text-foreground">
                 {reportData.tasks_count}
               </p>
@@ -312,7 +312,7 @@ export default function Reports() {
       {/* Projects Summary */}
       <div className="bg-card p-6 rounded-lg border border-border">
         <h2 className="text-lg font-semibold text-foreground mb-4">
-          Résumé par projet
+          Project summary
         </h2>
         
         {reportData.projects_summary.length > 0 ? (
@@ -322,7 +322,7 @@ export default function Reports() {
                 <div>
                   <h3 className="font-medium text-foreground">{project.project_name}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {project.tasks_count} tâche{project.tasks_count > 1 ? 's' : ''}
+                    {project.tasks_count} task{project.tasks_count > 1 ? 's' : ''}
                   </p>
                 </div>
                 <div className="text-right">
@@ -338,7 +338,7 @@ export default function Reports() {
           </div>
         ) : (
           <p className="text-muted-foreground text-center py-8">
-            Aucune donnée pour la période sélectionnée
+            No data for the selected period
           </p>
         )}
       </div>
@@ -346,7 +346,7 @@ export default function Reports() {
       {/* Daily Summary */}
       <div className="bg-card p-6 rounded-lg border border-border">
         <h2 className="text-lg font-semibold text-foreground mb-4">
-          Résumé quotidien
+          Daily summary
         </h2>
         
         {reportData.daily_summary.length > 0 ? (
@@ -355,7 +355,7 @@ export default function Reports() {
               <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <div>
                   <h3 className="font-medium text-foreground">
-                    {new Date(day.date).toLocaleDateString('fr-FR', {
+                    {new Date(day.date).toLocaleDateString('en-US', {
                       weekday: 'long',
                       year: 'numeric',
                       month: 'long',
@@ -363,7 +363,7 @@ export default function Reports() {
                     })}
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    {day.tasks_count} tâche{day.tasks_count > 1 ? 's' : ''}
+                    {day.tasks_count} task{day.tasks_count > 1 ? 's' : ''}
                   </p>
                 </div>
                 <div className="text-right">
@@ -376,7 +376,7 @@ export default function Reports() {
           </div>
         ) : (
           <p className="text-muted-foreground text-center py-8">
-            Aucune donnée pour la période sélectionnée
+            No data for the selected period
           </p>
         )}
       </div>

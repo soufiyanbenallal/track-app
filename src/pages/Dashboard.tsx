@@ -61,9 +61,9 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Tableau de bord</h1>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground">
-            Vue d'ensemble de votre activité de suivi du temps
+            Overview of your time tracking activity
           </p>
         </div>
         
@@ -78,12 +78,12 @@ export default function Dashboard() {
           {status.isTracking ? (
             <>
               <Square className="mr-2 h-5 w-5" />
-              Arrêter
+              Stop
             </>
           ) : (
             <>
               <Play className="mr-2 h-5 w-5" />
-              Démarrer
+              Start
             </>
           )}
         </button>
@@ -97,7 +97,7 @@ export default function Dashboard() {
               <Clock className="h-6 w-6 text-primary" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-muted-foreground">Total heures</p>
+              <p className="text-sm font-medium text-muted-foreground">Total hours</p>
               <p className="text-2xl font-bold text-foreground">
                 {stats.totalHours.toFixed(1)}h
               </p>
@@ -111,7 +111,7 @@ export default function Dashboard() {
               <DollarSign className="h-6 w-6 text-green-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-muted-foreground">Heures payées</p>
+              <p className="text-sm font-medium text-muted-foreground">Paid hours</p>
               <p className="text-2xl font-bold text-foreground">
                 {stats.paidHours.toFixed(1)}h
               </p>
@@ -125,7 +125,7 @@ export default function Dashboard() {
               <TrendingUp className="h-6 w-6 text-orange-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-muted-foreground">Heures en attente</p>
+              <p className="text-sm font-medium text-muted-foreground">Pending hours</p>
               <p className="text-2xl font-bold text-foreground">
                 {stats.unpaidHours.toFixed(1)}h
               </p>
@@ -139,7 +139,7 @@ export default function Dashboard() {
               <Calendar className="h-6 w-6 text-blue-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-muted-foreground">Tâches</p>
+              <p className="text-sm font-medium text-muted-foreground">Tasks</p>
               <p className="text-2xl font-bold text-foreground">
                 {stats.tasksCount}
               </p>
@@ -152,20 +152,20 @@ export default function Dashboard() {
       {status.isTracking && (
         <div className="bg-card p-6 rounded-lg border border-border">
           <h2 className="text-lg font-semibold text-foreground mb-4">
-            Suivi en cours
+            Currently tracking
           </h2>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Tâche actuelle</p>
+              <p className="text-sm text-muted-foreground">Current task</p>
               <p className="text-lg font-medium text-foreground">
                 {status.currentTask?.description}
               </p>
               <p className="text-sm text-muted-foreground">
-                Projet: {status.currentTask?.project_name}
+                Project: {status.currentTask?.project_name}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-muted-foreground">Temps écoulé</p>
+              <p className="text-sm text-muted-foreground">Elapsed time</p>
               <p className="text-2xl font-mono font-bold text-primary">
                 {formatDuration(status.elapsedTime)}
               </p>
@@ -177,7 +177,7 @@ export default function Dashboard() {
       {/* Recent Tasks */}
       <div className="bg-card p-6 rounded-lg border border-border">
         <h2 className="text-lg font-semibold text-foreground mb-4">
-          Tâches récentes
+          Recent tasks
         </h2>
         {recentTasks.length > 0 ? (
           <div className="space-y-3">
@@ -205,7 +205,7 @@ export default function Dashboard() {
                     {formatDuration(task.duration || 0)}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {task.is_paid ? 'Payé' : 'En attente'}
+                    {task.is_paid ? 'Paid' : 'Pending'}
                   </p>
                 </div>
               </div>
@@ -213,7 +213,7 @@ export default function Dashboard() {
           </div>
         ) : (
           <p className="text-muted-foreground text-center py-8">
-            Aucune tâche récente
+            No recent tasks
           </p>
         )}
       </div>
@@ -221,27 +221,27 @@ export default function Dashboard() {
       {/* Quick Actions */}
       <div className="bg-card p-6 rounded-lg border border-border">
         <h2 className="text-lg font-semibold text-foreground mb-4">
-          Actions rapides
+          Quick actions
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button className="p-4 border border-border rounded-lg hover:bg-accent transition-colors text-left">
-            <h3 className="font-medium text-foreground">Nouvelle tâche</h3>
+            <h3 className="font-medium text-foreground">New task</h3>
             <p className="text-sm text-muted-foreground">
-              Créer une nouvelle tâche de suivi
+              Create a new tracking task
             </p>
           </button>
           
           <button className="p-4 border border-border rounded-lg hover:bg-accent transition-colors text-left">
-            <h3 className="font-medium text-foreground">Nouveau projet</h3>
+            <h3 className="font-medium text-foreground">New project</h3>
             <p className="text-sm text-muted-foreground">
-              Créer un nouveau projet
+              Create a new project
             </p>
           </button>
           
           <button className="p-4 border border-border rounded-lg hover:bg-accent transition-colors text-left">
-            <h3 className="font-medium text-foreground">Générer rapport</h3>
+            <h3 className="font-medium text-foreground">Generate report</h3>
             <p className="text-sm text-muted-foreground">
-              Créer un rapport de temps
+              Create a time report
             </p>
           </button>
         </div>

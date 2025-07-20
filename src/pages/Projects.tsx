@@ -27,7 +27,7 @@ export default function Projects() {
   const handleCreateProject = async () => {
     try {
       if (!newProject.name.trim()) {
-        alert('Veuillez entrer un nom pour le projet');
+        alert('Please enter a project name');
         return;
       }
 
@@ -47,7 +47,7 @@ export default function Projects() {
       refreshAllProjects();
     } catch (error) {
       console.error('Error creating project:', error);
-      alert('Erreur lors de la création du projet');
+      alert('Error creating project');
     }
   };
 
@@ -64,7 +64,7 @@ export default function Projects() {
   const handleUpdateProject = async () => {
     try {
       if (!editingProject.name.trim()) {
-        alert('Veuillez entrer un nom pour le projet');
+        alert('Please enter a project name');
         return;
       }
 
@@ -79,7 +79,7 @@ export default function Projects() {
       refreshAllProjects();
     } catch (error) {
       console.error('Error updating project:', error);
-      alert('Erreur lors de la modification du projet');
+      alert('Error updating project');
     }
   };
 
@@ -89,11 +89,11 @@ export default function Projects() {
 
     const hasTasks = tasks.some(t => t.project_id === projectId);
     
-    let message = `Êtes-vous sûr de vouloir supprimer le projet "${project.name}" ?`;
+    let message = `Are you sure you want to delete the project "${project.name}"?`;
     if (hasTasks) {
-      message += `\n\nCe projet contient des tâches associées. Voulez-vous également supprimer toutes les tâches ?`;
+      message += `\n\nThis project contains associated tasks. Do you also want to delete all tasks?`;
     }
-    message += '\n\nCette action est irréversible.';
+    message += '\n\nThis action is irreversible.';
 
     if (!confirm(message)) {
       return;
@@ -109,9 +109,9 @@ export default function Projects() {
     } catch (error) {
       console.error('Error deleting project:', error);
       if (error instanceof Error && error.message.includes('Cannot delete project')) {
-        alert('Impossible de supprimer ce projet car il contient des tâches. Veuillez d\'abord supprimer ou réassigner les tâches.');
+        alert('Cannot delete this project because it contains tasks. Please delete or reassign the tasks first.');
       } else {
-        alert('Erreur lors de la suppression du projet');
+        alert('Error deleting project');
       }
     }
   };
@@ -125,7 +125,7 @@ export default function Projects() {
       refreshAllProjects();
     } catch (error) {
       console.error('Error archiving project:', error);
-      alert('Erreur lors de l\'archivage du projet');
+      alert('Error archiving project');
     }
   };
 
@@ -134,9 +134,9 @@ export default function Projects() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Projets</h1>
+          <h1 className="text-3xl font-bold text-foreground">Projects</h1>
           <p className="text-muted-foreground">
-            Gérez vos projets de travail
+            Manage your work projects
           </p>
         </div>
         
@@ -145,7 +145,7 @@ export default function Projects() {
           className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
         >
           <Plus className="mr-2 h-4 w-4" />
-          Nouveau projet
+          New project
         </button>
       </div>
 
@@ -154,7 +154,7 @@ export default function Projects() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-card p-6 rounded-lg border border-border w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-foreground">Nouveau projet</h2>
+              <h2 className="text-lg font-semibold text-foreground">New project</h2>
               <button
                 onClick={() => setShowCreateDialog(false)}
                 className="text-muted-foreground hover:text-foreground"
@@ -166,13 +166,13 @@ export default function Projects() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Nom du projet
+                  Project name
                 </label>
                 <input
                   type="text"
                   value={newProject.name}
                   onChange={(e) => setNewProject(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Nom du projet..."
+                  placeholder="Project name..."
                   className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
@@ -184,7 +184,7 @@ export default function Projects() {
                 <textarea
                   value={newProject.description}
                   onChange={(e) => setNewProject(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Description du projet..."
+                  placeholder="Project description..."
                   className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                   rows={3}
                 />
@@ -192,7 +192,7 @@ export default function Projects() {
               
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Couleur
+                  Color
                 </label>
                 <input
                   type="color"

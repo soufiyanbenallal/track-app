@@ -16,9 +16,9 @@ export default function Settings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Paramètres</h1>
+          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
           <p className="text-muted-foreground">
-            Configurez votre application TrackApp
+            Configure your TrackApp application
           </p>
         </div>
       </div>
@@ -30,7 +30,7 @@ export default function Settings() {
           <div className="flex items-center mb-4">
             <Key className="h-5 w-5 text-primary mr-2" />
             <h2 className="text-lg font-semibold text-foreground">
-              Intégration Notion
+              Notion Integration
             </h2>
           </div>
           
