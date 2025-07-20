@@ -3,6 +3,7 @@ import { Clock, Play, Square, TrendingUp, DollarSign, Calendar } from 'lucide-re
 import { useData } from '@/contexts/DataContext';
 import { useTracking } from '@/contexts/TrackingContext';
 import { formatDuration, formatDate, getDateRange } from '@/lib/utils';
+import { TaskSelectionModal } from '@/components/TaskSelectionModal';
 
 export default function Dashboard() {
   const { projects, tasks, refreshTasks } = useData();
@@ -14,6 +15,7 @@ export default function Dashboard() {
     unpaidHours: 0,
     tasksCount: 0
   });
+  const [showTaskModal, setShowTaskModal] = useState(false);
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -50,13 +52,7 @@ export default function Dashboard() {
     if (status.isTracking) {
       stopTracking();
     } else {
-      // For now, start tracking the most recent task if available
-      if (tasks.length > 0) {
-        const mostRecentTask = tasks[0]; // Tasks are already sorted by start_time DESC
-        startTracking(mostRecentTask.id!);
-      } else {
-        alert('Aucune tâche disponible. Créez d\'abord une tâche dans la section Tâches.');
-      }
+      setShowTaskModal(true);
     }
   };
 
@@ -250,6 +246,12 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+      {/* Task Selection Modal */}
+      <TaskSelectionModal
+        isOpen={showTaskModal}
+        onClose={() => setShowTaskModal(false)}
+      />
     </div>
   );
 } 

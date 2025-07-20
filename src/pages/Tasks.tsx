@@ -19,10 +19,17 @@ export default function Tasks() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
   const [newTask, setNewTask] = useState({
-    project_id: 1,
+    project_id: projects.length > 0 ? projects[0].id! : 1,
     description: '',
     is_paid: false
   });
+
+  // Update newTask.project_id when projects change
+  useEffect(() => {
+    if (projects.length > 0 && !projects.find(p => p.id === newTask.project_id)) {
+      setNewTask(prev => ({ ...prev, project_id: projects[0].id! }));
+    }
+  }, [projects, newTask.project_id]);
 
   useEffect(() => {
     refreshTasks(filters);
@@ -38,6 +45,11 @@ export default function Tasks() {
 
   const handleCreateTask = async () => {
     try {
+      if (projects.length === 0) {
+        alert('Aucun projet disponible. Veuillez créer un projet d\'abord.');
+        return;
+      }
+
       if (!newTask.description.trim()) {
         alert('Veuillez entrer une description pour la tâche');
         return;
@@ -52,7 +64,7 @@ export default function Tasks() {
       });
 
       setNewTask({
-        project_id: 1,
+        project_id: projects.length > 0 ? projects[0].id! : 1,
         description: '',
         is_paid: false
       });
@@ -156,17 +168,23 @@ export default function Tasks() {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Projet
                 </label>
-                <select
-                  value={newTask.project_id}
-                  onChange={(e) => setNewTask(prev => ({ ...prev, project_id: Number(e.target.value) }))}
-                  className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {projects.map(project => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
+                {projects.length > 0 ? (
+                  <select
+                    value={newTask.project_id}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, project_id: Number(e.target.value) }))}
+                    className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    {projects.map(project => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="w-full px-4 py-2 border border-input rounded-md bg-background text-muted-foreground">
+                    Aucun projet disponible. Veuillez créer un projet d'abord.
+                  </div>
+                )}
               </div>
               
               <div>
@@ -205,7 +223,8 @@ export default function Tasks() {
               </button>
               <button
                 onClick={handleCreateTask}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                disabled={projects.length === 0}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Créer
               </button>
@@ -233,11 +252,11 @@ export default function Tasks() {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Projet
                 </label>
-                <select
-                  value={editingTask.project_id}
-                  onChange={(e) => setEditingTask(prev => ({ ...prev, project_id: Number(e.target.value) }))}
-                  className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
+                                 <select
+                   value={editingTask.project_id}
+                   onChange={(e) => setEditingTask((prev: any) => ({ ...prev, project_id: Number(e.target.value) }))}
+                   className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                 >
                   {projects.map(project => (
                     <option key={project.id} value={project.id}>
                       {project.name}
@@ -250,23 +269,23 @@ export default function Tasks() {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Description
                 </label>
-                <textarea
-                  value={editingTask.description}
-                  onChange={(e) => setEditingTask(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Description de la tâche..."
-                  className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-                  rows={3}
-                />
+                                 <textarea
+                   value={editingTask.description}
+                   onChange={(e) => setEditingTask((prev: any) => ({ ...prev, description: e.target.value }))}
+                   placeholder="Description de la tâche..."
+                   className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                   rows={3}
+                 />
               </div>
               
               <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="is_paid"
-                  checked={editingTask.is_paid}
-                  onChange={(e) => setEditingTask(prev => ({ ...prev, is_paid: e.target.checked }))}
-                  className="rounded border-input"
-                />
+                                 <input
+                   type="checkbox"
+                   id="is_paid"
+                   checked={editingTask.is_paid}
+                   onChange={(e) => setEditingTask((prev: any) => ({ ...prev, is_paid: e.target.checked }))}
+                   className="rounded border-input"
+                 />
                 <label htmlFor="is_paid" className="text-sm text-foreground">
                   Marquer comme payé
                 </label>

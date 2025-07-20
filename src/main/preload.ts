@@ -5,9 +5,11 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('electronAPI', {
   // Database operations
   getProjects: () => ipcRenderer.invoke('db:get-projects'),
+  getAllProjects: () => ipcRenderer.invoke('db:get-all-projects'),
   createProject: (project: any) => ipcRenderer.invoke('db:create-project', project),
   updateProject: (project: any) => ipcRenderer.invoke('db:update-project', project),
   deleteProject: (id: number) => ipcRenderer.invoke('db:delete-project', id),
+  deleteProjectWithTasks: (id: number) => ipcRenderer.invoke('db:delete-project-with-tasks', id),
   
   getTasks: (filters: any) => ipcRenderer.invoke('db:get-tasks', filters),
   createTask: (task: any) => ipcRenderer.invoke('db:create-task', task),
@@ -42,9 +44,11 @@ declare global {
   interface Window {
     electronAPI: {
       getProjects: () => Promise<any[]>;
+      getAllProjects: () => Promise<any[]>;
       createProject: (project: any) => Promise<any>;
       updateProject: (project: any) => Promise<any>;
       deleteProject: (id: number) => Promise<void>;
+      deleteProjectWithTasks: (id: number) => Promise<void>;
       
       getTasks: (filters: any) => Promise<any[]>;
       createTask: (task: any) => Promise<any>;

@@ -169,9 +169,22 @@ class TrackApp {
       }
     });
     
+    ipcMain.handle('db:get-all-projects', async () => {
+      console.log('Handling db:get-all-projects request');
+      try {
+        const projects = this.database.getAllProjects();
+        console.log('All projects retrieved:', projects);
+        return projects;
+      } catch (error) {
+        console.error('Error getting all projects:', error);
+        throw error;
+      }
+    });
+    
     ipcMain.handle('db:create-project', (_, project) => this.database.createProject(project));
     ipcMain.handle('db:update-project', (_, project) => this.database.updateProject(project));
     ipcMain.handle('db:delete-project', (_, id) => this.database.deleteProject(id));
+    ipcMain.handle('db:delete-project-with-tasks', (_, id) => this.database.deleteProjectWithTasks(id));
     
     ipcMain.handle('db:get-tasks', async (_, filters) => {
       console.log('Handling db:get-tasks request with filters:', filters);
@@ -185,7 +198,17 @@ class TrackApp {
       }
     });
     
-    ipcMain.handle('db:create-task', (_, task) => this.database.createTask(task));
+    ipcMain.handle('db:create-task', async (_, task) => {
+      console.log('Handling db:create-task request with task:', task);
+      try {
+        const result = this.database.createTask(task);
+        console.log('Task created successfully:', result);
+        return result;
+      } catch (error) {
+        console.error('Error in db:create-task handler:', error);
+        throw error;
+      }
+    });
     ipcMain.handle('db:update-task', (_, task) => this.database.updateTask(task));
     ipcMain.handle('db:delete-task', (_, id) => this.database.deleteTask(id));
     

@@ -42,10 +42,12 @@ interface DataContextType {
   tasks: Task[];
   loading: boolean;
   refreshProjects: () => Promise<void>;
+  refreshAllProjects: () => Promise<void>;
   refreshTasks: (filters?: TaskFilters) => Promise<void>;
   createProject: (project: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => Promise<Project>;
   updateProject: (project: Project) => Promise<Project>;
   deleteProject: (id: number) => Promise<void>;
+  deleteProjectWithTasks: (id: number) => Promise<void>;
   createTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => Promise<Task>;
   updateTask: (task: Task) => Promise<Task>;
   deleteTask: (id: number) => Promise<void>;
@@ -68,6 +70,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setProjects(data);
     } catch (error) {
       console.error('Error fetching projects:', error);
+    }
+  };
+
+  const refreshAllProjects = async () => {
+    try {
+      if (!window.electronAPI) {
+        console.warn('electronAPI not available yet');
+        return;
+      }
+      const data = await window.electronAPI.getAllProjects();
+      setProjects(data);
+    } catch (error) {
+      console.error('Error fetching all projects:', error);
     }
   };
 
@@ -119,13 +134,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const deleteProjectWithTasks = async (id: number) => {
+    try {
+      await window.electronAPI.deleteProjectWithTasks(id);
+      await refreshProjects();
+      await refreshTasks();
+    } catch (error) {
+      console.error('Error deleting project with tasks:', error);
+      throw error;
+    }
+  };
+
   const createTask = async (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => {
     try {
+      console.log('DataContext: Creating task with data:', task);
       const newTask = await window.electronAPI.createTask(task);
+      console.log('DataContext: Task created successfully:', newTask);
       await refreshTasks();
       return newTask;
     } catch (error) {
-      console.error('Error creating task:', error);
+      console.error('DataContext: Error creating task:', error);
       throw error;
     }
   };
@@ -182,10 +210,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       tasks,
       loading,
       refreshProjects,
+      refreshAllProjects,
       refreshTasks,
       createProject,
       updateProject,
       deleteProject,
+      deleteProjectWithTasks,
       createTask,
       updateTask,
       deleteTask

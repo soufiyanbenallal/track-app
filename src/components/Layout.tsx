@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Clock, ListTodo, FolderOpen, BarChart3, Settings, Play, Square } from 'lucide-react';
 import { useTracking } from '@/contexts/TrackingContext';
 import { formatDuration } from '@/lib/utils';
+import { TaskSelectionModal } from '@/components/TaskSelectionModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -18,7 +19,8 @@ const navigation = [
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
-  const { status, startTracking, stopTracking } = useTracking();
+  const { status, stopTracking } = useTracking();
+  const [showTaskModal, setShowTaskModal] = useState(false);
 
   return (
     <div className="flex h-screen bg-background">
@@ -29,7 +31,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
         
         {/* Tracking Status */}
-        {status.isTracking && (
+        {status.isTracking ? (
           <div className="px-6 py-4 border-b border-border">
             <div className="bg-primary/10 rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
@@ -50,6 +52,16 @@ export default function Layout({ children }: LayoutProps) {
                 {formatDuration(status.elapsedTime)}
               </p>
             </div>
+          </div>
+        ) : (
+          <div className="px-6 py-4 border-b border-border">
+            <button
+              onClick={() => setShowTaskModal(true)}
+              className="w-full inline-flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <Play className="mr-2 h-4 w-4" />
+              Démarrer le suivi
+            </button>
           </div>
         )}
 
@@ -81,33 +93,19 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-card border-b border-border px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-foreground">
-              {navigation.find(item => item.href === location.pathname)?.name || 'TrackApp'}
-            </h2>
-            
-            {/* Quick Start Button */}
-            {!status.isTracking && (
-              <button
-                onClick={() => {
-                  // This would open a quick start dialog
-                  console.log('Quick start tracking');
-                }}
-                className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-              >
-                <Play className="mr-2 h-4 w-4" />
-                Démarrer
-              </button>
-            )}
-          </div>
-        </header>
+       
 
         {/* Page Content */}
         <main className="flex-1 overflow-auto p-6">
           {children}
         </main>
       </div>
+
+      {/* Task Selection Modal */}
+      <TaskSelectionModal
+        isOpen={showTaskModal}
+        onClose={() => setShowTaskModal(false)}
+      />
     </div>
   );
 } 

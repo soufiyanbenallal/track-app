@@ -66,6 +66,10 @@ export class DatabaseManager {
     }
 
     this.db = new Database(dbPath);
+    
+    // Enable foreign key constraints
+    this.db.exec('PRAGMA foreign_keys = ON;');
+    
     this.initializeTables();
   }
 
@@ -122,45 +126,111 @@ export class DatabaseManager {
     return stmt.all() as Project[];
   }
 
-  createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Project {
+  getAllProjects(): Project[] {
     const stmt = this.db.prepare(`
-      INSERT INTO projects (name, description, color, notion_id, is_archived)
-      VALUES (?, ?, ?, ?, ?)
+      SELECT * FROM projects 
+      ORDER BY name
     `);
-    
-    const result = stmt.run(
-      project.name,
-      project.description,
-      project.color,
-      project.notion_id,
-      project.is_archived ? 1 : 0
-    );
+    return stmt.all() as Project[];
+  }
 
-    return this.getProjectById(result.lastInsertRowid as number);
+  getArchivedProjects(): Project[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM projects 
+      WHERE is_archived = TRUE 
+      ORDER BY name
+    `);
+    return stmt.all() as Project[];
+  }
+
+  createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Project {
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO projects (name, description, color, notion_id, is_archived)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      
+      const result = stmt.run(
+        project.name,
+        project.description,
+        project.color,
+        project.notion_id,
+        project.is_archived ? 1 : 0
+      );
+
+      return this.getProjectById(result.lastInsertRowid as number);
+    } catch (error) {
+      console.error('Error creating project:', error);
+      throw new Error('Failed to create project');
+    }
   }
 
   updateProject(project: Project): Project {
-    const stmt = this.db.prepare(`
-      UPDATE projects 
-      SET name = ?, description = ?, color = ?, notion_id = ?, is_archived = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
-    
-    stmt.run(
-      project.name,
-      project.description,
-      project.color,
-      project.notion_id,
-      project.is_archived ? 1 : 0,
-      project.id
-    );
+    try {
+      const stmt = this.db.prepare(`
+        UPDATE projects 
+        SET name = ?, description = ?, color = ?, notion_id = ?, is_archived = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `);
+      
+      stmt.run(
+        project.name,
+        project.description,
+        project.color,
+        project.notion_id,
+        project.is_archived ? 1 : 0,
+        project.id
+      );
 
-    return this.getProjectById(project.id!);
+      return this.getProjectById(project.id!);
+    } catch (error) {
+      console.error('Error updating project:', error);
+      throw new Error('Failed to update project');
+    }
   }
 
   deleteProject(id: number): void {
-    const stmt = this.db.prepare('DELETE FROM projects WHERE id = ?');
-    stmt.run(id);
+    try {
+      // Check if project has associated tasks
+      const taskCountStmt = this.db.prepare('SELECT COUNT(*) as count FROM tasks WHERE project_id = ?');
+      const taskCount = taskCountStmt.get(id) as { count: number };
+      
+      if (taskCount.count > 0) {
+        // If foreign key constraints are not enforced, we need to handle this manually
+        throw new Error(`Cannot delete project: ${taskCount.count} task(s) are associated with this project. Please delete or reassign the tasks first.`);
+      }
+      
+      const stmt = this.db.prepare('DELETE FROM projects WHERE id = ?');
+      const result = stmt.run(id);
+      
+      if (result.changes === 0) {
+        throw new Error('Project not found');
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      throw error;
+    }
+  }
+
+  deleteProjectWithTasks(id: number): void {
+    try {
+      // Delete all tasks associated with the project first
+      const deleteTasksStmt = this.db.prepare('DELETE FROM tasks WHERE project_id = ?');
+      const taskResult = deleteTasksStmt.run(id);
+      
+      // Then delete the project
+      const deleteProjectStmt = this.db.prepare('DELETE FROM projects WHERE id = ?');
+      const projectResult = deleteProjectStmt.run(id);
+      
+      if (projectResult.changes === 0) {
+        throw new Error('Project not found');
+      }
+      
+      console.log(`Deleted project ${id} and ${taskResult.changes} associated tasks`);
+    } catch (error) {
+      console.error('Error deleting project with tasks:', error);
+      throw error;
+    }
   }
 
   getProjectById(id: number): Project {
@@ -216,53 +286,81 @@ export class DatabaseManager {
   }
 
   createTask(task: Omit<Task, 'id' | 'created_at' | 'updated_at'>): Task {
-    const stmt = this.db.prepare(`
-      INSERT INTO tasks (project_id, description, start_time, end_time, duration, is_paid, tags, notion_id, is_archived)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    const result = stmt.run(
-      task.project_id,
-      task.description,
-      task.start_time,
-      task.end_time,
-      task.duration,
-      task.is_paid ? 1 : 0,
-      task.tags,
-      task.notion_id,
-      task.is_archived ? 1 : 0
-    );
+    try {
+      // Validate that the project exists
+      const projectExists = this.db.prepare('SELECT id FROM projects WHERE id = ?').get(task.project_id);
+      if (!projectExists) {
+        throw new Error(`Project with ID ${task.project_id} does not exist`);
+      }
 
-    return this.getTaskById(result.lastInsertRowid as number);
+      const stmt = this.db.prepare(`
+        INSERT INTO tasks (project_id, description, start_time, end_time, duration, is_paid, tags, notion_id, is_archived)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      
+      const result = stmt.run(
+        task.project_id,
+        task.description,
+        task.start_time,
+        task.end_time,
+        task.duration,
+        task.is_paid ? 1 : 0,
+        task.tags,
+        task.notion_id,
+        task.is_archived ? 1 : 0
+      );
+
+      if (!result.lastInsertRowid) {
+        throw new Error('Failed to insert task - no ID returned');
+      }
+
+      return this.getTaskById(result.lastInsertRowid as number);
+    } catch (error) {
+      console.error('Error creating task:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to create task');
+    }
   }
 
   updateTask(task: Task): Task {
-    const stmt = this.db.prepare(`
-      UPDATE tasks 
-      SET project_id = ?, description = ?, start_time = ?, end_time = ?, duration = ?, 
-          is_paid = ?, tags = ?, notion_id = ?, is_archived = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
-    
-    stmt.run(
-      task.project_id,
-      task.description,
-      task.start_time,
-      task.end_time,
-      task.duration,
-      task.is_paid ? 1 : 0,
-      task.tags,
-      task.notion_id,
-      task.is_archived ? 1 : 0,
-      task.id
-    );
+    try {
+      const stmt = this.db.prepare(`
+        UPDATE tasks 
+        SET project_id = ?, description = ?, start_time = ?, end_time = ?, duration = ?, 
+            is_paid = ?, tags = ?, notion_id = ?, is_archived = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `);
+      
+      stmt.run(
+        task.project_id,
+        task.description,
+        task.start_time,
+        task.end_time,
+        task.duration,
+        task.is_paid ? 1 : 0,
+        task.tags,
+        task.notion_id,
+        task.is_archived ? 1 : 0,
+        task.id
+      );
 
-    return this.getTaskById(task.id!);
+      return this.getTaskById(task.id!);
+    } catch (error) {
+      console.error('Error updating task:', error);
+      throw new Error('Failed to update task');
+    }
   }
 
   deleteTask(id: number): void {
-    const stmt = this.db.prepare('DELETE FROM tasks WHERE id = ?');
-    stmt.run(id);
+    try {
+      const stmt = this.db.prepare('DELETE FROM tasks WHERE id = ?');
+      stmt.run(id);
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      throw new Error('Failed to delete task');
+    }
   }
 
   getTaskById(id: number): Task {

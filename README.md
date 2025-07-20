@@ -5,7 +5,8 @@ Une application desktop Electron moderne pour le suivi du temps de travail, spé
 ## 🚀 Fonctionnalités
 
 ### Suivi du temps
-- **Démarrage/arrêt facile** du suivi du temps
+- **Démarrage/arrêt facile** du suivi du temps avec modal de sélection
+- **Sélection de projet et création de tâche** en un clic
 - **Détection d'inactivité** automatique (pause du suivi quand vous n'utilisez pas votre ordinateur)
 - **Affichage en temps réel** du temps écoulé
 - **Interface dans la barre de menu** macOS
@@ -138,8 +139,10 @@ DB_PATH=~/.trackapp/trackapp.db
 3. Commencez à suivre votre temps !
 
 ### Suivi du temps
-- Cliquez sur "Démarrer" pour commencer le suivi
-- Sélectionnez un projet et ajoutez une description
+- Cliquez sur "Démarrer" pour ouvrir le modal de sélection
+- Choisissez un projet existant ou créez-en un nouveau
+- Ajoutez une description pour votre tâche
+- Cliquez sur "Démarrer le suivi" pour commencer
 - L'application détectera automatiquement votre inactivité
 - Cliquez sur "Arrêter" pour terminer le suivi
 
