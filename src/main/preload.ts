@@ -4,7 +4,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
   // Database operations
-  getTasks: () => ipcRenderer.invoke('db-get-tasks'),
+  getTasks: (filters?: any) => ipcRenderer.invoke('db-get-tasks', filters),
   createTask: (task: any) => ipcRenderer.invoke('db-create-task', task),
   updateTask: (task: any) => ipcRenderer.invoke('db-update-task', task),
   deleteTask: (id: string) => ipcRenderer.invoke('db-delete-task', id),
@@ -63,7 +63,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 declare global {
   interface Window {
     electronAPI: {
-      getTasks: () => Promise<any[]>;
+      getTasks: (filters?: any) => Promise<any[]>;
       createTask: (task: any) => Promise<any>;
       updateTask: (task: any) => Promise<any>;
       deleteTask: (id: string) => Promise<void>;

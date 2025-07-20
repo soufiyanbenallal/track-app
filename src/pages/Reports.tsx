@@ -302,12 +302,12 @@ const Reports: React.FC = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="project">Projet</Label>
-                  <Select value={filters.projectId} onValueChange={(value) => setFilters({ ...filters, projectId: value })}>
+                  <Select value={filters.projectId || "all"} onValueChange={(value) => setFilters({ ...filters, projectId: value === "all" ? "" : value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Tous les projets" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Tous les projets</SelectItem>
+                      <SelectItem value="all">Tous les projets</SelectItem>
                       {projects.map(project => (
                         <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
                       ))}
@@ -338,17 +338,17 @@ const Reports: React.FC = () => {
                 <div className="space-y-2">
                   <Label htmlFor="paymentStatus">Statut de paiement</Label>
                   <Select 
-                    value={filters.isPaid === undefined ? '' : filters.isPaid.toString()} 
+                    value={filters.isPaid === undefined ? 'all' : filters.isPaid.toString()} 
                     onValueChange={(value) => setFilters({ 
                       ...filters, 
-                      isPaid: value === '' ? undefined : value === 'true' 
+                      isPaid: value === 'all' ? undefined : value === 'true' 
                     })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Tous" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Tous</SelectItem>
+                      <SelectItem value="all">Tous</SelectItem>
                       <SelectItem value="true">Payé</SelectItem>
                       <SelectItem value="false">Non payé</SelectItem>
                     </SelectContent>
@@ -358,17 +358,17 @@ const Reports: React.FC = () => {
                 <div className="space-y-2">
                   <Label htmlFor="completionStatus">Statut de complétion</Label>
                   <Select 
-                    value={filters.isCompleted === undefined ? '' : filters.isCompleted.toString()} 
+                    value={filters.isCompleted === undefined ? 'all' : filters.isCompleted.toString()} 
                     onValueChange={(value) => setFilters({ 
                       ...filters, 
-                      isCompleted: value === '' ? undefined : value === 'true' 
+                      isCompleted: value === 'all' ? undefined : value === 'true' 
                     })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Tous" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Tous</SelectItem>
+                      <SelectItem value="all">Tous</SelectItem>
                       <SelectItem value="true">Terminé</SelectItem>
                       <SelectItem value="false">En cours</SelectItem>
                     </SelectContent>
