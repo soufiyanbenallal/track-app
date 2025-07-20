@@ -206,10 +206,10 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
       </Dialog>
 
       {/* Projects List */}
-      <div className="space-y-3">
+      <div className="space-y-1">
         {projects.length === 0 ? (
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-8">
+            <CardContent className="flex flex-col items-center justify-center py-3">
               <p className="text-muted-foreground mb-4">Aucun projet créé</p>
               <Button onClick={() => setShowForm(true)}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -228,7 +228,7 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
               }`}
               onClick={() => onProjectSelect?.(project)}
             >
-              <CardContent className="p-4">
+              <CardContent >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div 
@@ -257,8 +257,7 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
                         handleEdit(project);
                       }}
                     >
-                      <Edit className="w-3 h-3 mr-1" />
-                      Modifier
+                      <Edit className="w-3 h-3 " />
                     </Button>
                     <Button
                       variant="destructive"
@@ -268,8 +267,7 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
                         handleDelete(project.id);
                       }}
                     >
-                      <Trash2 className="w-3 h-3 mr-1" />
-                      Supprimer
+                      <Trash2 className="w-3 h-3 " />
                     </Button>
                   </div>
                 </div>

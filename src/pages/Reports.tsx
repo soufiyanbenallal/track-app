@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { Search, Edit, Trash2, Download, Calendar, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Edit, Trash2, Download, Calendar, Clock, CheckCircle, XCircle, BarChart3 } from 'lucide-react';
 import { Loading } from '@/components/ui/loading';
 
 interface Task {
@@ -264,25 +264,44 @@ const Reports: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Rapports & Journal</h1>
-        <p className="text-muted-foreground">Gérez vos tâches et générez des rapports</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
+      <div className="max-w-7xl mx-auto p-6 space-y-8">
+        {/* Header */}
+        <div className="space-y-3 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-800/80 rounded-full border border-slate-200 dark:border-slate-700 backdrop-blur-sm">
+            <BarChart3 className="w-4 h-4 text-blue-600" />
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+              Analyse et rapports
+            </span>
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+            Rapports & Journal
+          </h1>
+          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+            Gérez vos tâches et générez des rapports détaillés
+          </p>
+        </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="tasks">Tâches</TabsTrigger>
-          <TabsTrigger value="reports">Rapports</TabsTrigger>
-        </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <TabsList className="grid w-full grid-cols-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 p-1 rounded-xl">
+            <TabsTrigger value="tasks" className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg">
+              Tâches
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg">
+              Rapports
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="tasks" className="space-y-6">
+        <TabsContent value="tasks" className="space-y-8">
           {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Filtres</CardTitle>
-              <CardDescription>Filtrez vos tâches selon vos besoins</CardDescription>
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-xl">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+                Filtres
+              </CardTitle>
+              <CardDescription className="text-slate-600 dark:text-slate-400">
+                Filtrez vos tâches selon vos besoins
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -653,6 +672,7 @@ const Reports: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 };
