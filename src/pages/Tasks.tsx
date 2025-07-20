@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Calendar, DollarSign, X } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, DollarSign, X, Edit, Trash2 } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { useTracking } from '@/contexts/TrackingContext';
 import { formatDuration, formatDate, formatDateTime } from '@/lib/utils';
 
 export default function Tasks() {
-  const { tasks, projects, refreshTasks, createTask } = useData();
+  const { tasks, projects, refreshTasks, createTask, updateTask, deleteTask } = useData();
   const { status, startTracking, stopTracking } = useTracking();
   const [filters, setFilters] = useState({
     project_id: undefined as number | undefined,
@@ -16,6 +16,8 @@ export default function Tasks() {
     is_archived: false
   });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingTask, setEditingTask] = useState<any>(null);
   const [newTask, setNewTask] = useState({
     project_id: 1,
     description: '',
@@ -59,6 +61,51 @@ export default function Tasks() {
     } catch (error) {
       console.error('Error creating task:', error);
       alert('Erreur lors de la création de la tâche');
+    }
+  };
+
+  const handleEditTask = (task: any) => {
+    setEditingTask({
+      ...task,
+      project_id: task.project_id,
+      description: task.description,
+      is_paid: task.is_paid
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateTask = async () => {
+    try {
+      if (!editingTask.description.trim()) {
+        alert('Veuillez entrer une description pour la tâche');
+        return;
+      }
+
+      await updateTask({
+        ...editingTask,
+        description: editingTask.description.trim()
+      });
+
+      setShowEditDialog(false);
+      setEditingTask(null);
+      refreshTasks(filters);
+    } catch (error) {
+      console.error('Error updating task:', error);
+      alert('Erreur lors de la modification de la tâche');
+    }
+  };
+
+  const handleDeleteTask = async (taskId: number) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+      return;
+    }
+
+    try {
+      await deleteTask(taskId);
+      refreshTasks(filters);
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert('Erreur lors de la suppression de la tâche');
     }
   };
 
@@ -161,6 +208,83 @@ export default function Tasks() {
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
               >
                 Créer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Task Dialog */}
+      {showEditDialog && editingTask && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card p-6 rounded-lg border border-border w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-foreground">Modifier la tâche</h2>
+              <button
+                onClick={() => setShowEditDialog(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Projet
+                </label>
+                <select
+                  value={editingTask.project_id}
+                  onChange={(e) => setEditingTask(prev => ({ ...prev, project_id: Number(e.target.value) }))}
+                  className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {projects.map(project => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={editingTask.description}
+                  onChange={(e) => setEditingTask(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Description de la tâche..."
+                  className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                  rows={3}
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="is_paid"
+                  checked={editingTask.is_paid}
+                  onChange={(e) => setEditingTask(prev => ({ ...prev, is_paid: e.target.checked }))}
+                  className="rounded border-input"
+                />
+                <label htmlFor="is_paid" className="text-sm text-foreground">
+                  Marquer comme payé
+                </label>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-2 mt-6">
+              <button
+                onClick={() => setShowEditDialog(false)}
+                className="px-4 py-2 border border-border rounded-md hover:bg-accent transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleUpdateTask}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+              >
+                Enregistrer
               </button>
             </div>
           </div>
@@ -305,8 +429,18 @@ export default function Tasks() {
                         </button>
                       )}
                       
-                      <button className="px-3 py-1 border border-border rounded-md hover:bg-accent transition-colors text-sm">
-                        Modifier
+                      <button 
+                        onClick={() => handleEditTask(task)}
+                        className="px-3 py-1 border border-border rounded-md hover:bg-accent transition-colors text-sm"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </button>
+                      
+                      <button 
+                        onClick={() => handleDeleteTask(task.id!)}
+                        className="px-3 py-1 border border-border rounded-md hover:bg-destructive hover:text-destructive-foreground transition-colors text-sm"
+                      >
+                        <Trash2 className="h-3 w-3" />
                       </button>
                     </div>
                   </div>
