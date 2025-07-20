@@ -127,7 +127,7 @@ const Settings: React.FC = () => {
                   min="1"
                   max="60"
                   value={idleTimeout}
-                  onChange={(e) => setIdleTimeout(parseInt(e.target.value) || 5)}
+                  onChange={(e: { target: { value: string; }; }) => setIdleTimeout(parseInt(e.target.value) || 5)}
                   className="w-20"
                 />
                 <span className="text-sm text-muted-foreground">minutes</span>
@@ -173,7 +173,7 @@ const Settings: React.FC = () => {
                 <Input
                   type="password"
                   value={notionApiKey}
-                  onChange={(e) => setNotionApiKey(e.target.value)}
+                  onChange={(e: { target: { value: any; }; }) => setNotionApiKey(e.target.value)}
                   placeholder="Entrez votre clé API Notion"
                 />
                 <Button
@@ -195,7 +195,7 @@ const Settings: React.FC = () => {
               <Input
                 type="text"
                 value={notionWorkspaceId}
-                onChange={(e) => setNotionWorkspaceId(e.target.value)}
+                onChange={(e: { target: { value: any; }; }) => setNotionWorkspaceId(e.target.value)}
                 placeholder="Entrez l'ID de votre espace de travail"
               />
             </div>
@@ -231,7 +231,7 @@ const Settings: React.FC = () => {
                   Bases de données Notion accessibles
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {notionDatabases.map((db, index) => (
+                  {notionDatabases.map((db: { title: any; }, index: any) => (
                     <Badge key={index} variant="secondary" className="justify-start">
                       {db.title}
                     </Badge>
@@ -250,7 +250,7 @@ const Settings: React.FC = () => {
           <CardDescription>Créez et gérez vos projets de suivi du temps</CardDescription>
         </CardHeader>
         <CardContent>
-          <ProjectManager />
+          <ProjectManager  />
         </CardContent>
       </Card>
 
