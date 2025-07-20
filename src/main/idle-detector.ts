@@ -1,63 +1,61 @@
-import { powerMonitor } from 'electron';
+import { EventEmitter } from 'events';
 
-export class IdleDetector {
-  private idleTimeout: number = 5 * 60 * 1000; // 5 minutes default
-  // private idleTimer: NodeJS.Timeout | null = null;
+export class IdleDetector extends EventEmitter {
+  private idleThreshold: number = 5 * 60 * 1000; // 5 minutes in milliseconds
+  private checkInterval: number = 30 * 1000; // Check every 30 seconds
+  private lastActivityTime: number = Date.now();
+  private intervalId: NodeJS.Timeout | null = null;
   private isIdle: boolean = false;
-  private onIdleCallback?: () => void;
-  private onActiveCallback?: () => void;
 
   constructor() {
-    this.setupIdleDetection();
+    super();
+    this.startMonitoring();
   }
 
-  setIdleTimeout(minutes: number): void {
-    this.idleTimeout = minutes * 60 * 1000;
+  private startMonitoring(): void {
+    // In the main process, we'll use a simpler approach
+    // that doesn't rely on DOM events
+    
+    // Start checking for idle state
+    this.intervalId = setInterval(() => {
+      this.checkIdleState();
+    }, this.checkInterval);
   }
 
-  onIdle(callback: () => void): void {
-    this.onIdleCallback = callback;
+  private updateActivity(): void {
+    this.lastActivityTime = Date.now();
+    
+    if (this.isIdle) {
+      this.isIdle = false;
+      this.emit('active');
+    }
   }
 
-  onActive(callback: () => void): void {
-    this.onActiveCallback = callback;
+  private checkIdleState(): void {
+    const now = Date.now();
+    const timeSinceLastActivity = now - this.lastActivityTime;
+    
+    if (timeSinceLastActivity >= this.idleThreshold && !this.isIdle) {
+      this.isIdle = true;
+      this.emit('idle');
+    }
   }
 
-  private setupIdleDetection(): void {
-    // Monitor system idle time
-    setInterval(() => {
-      const idleTime = powerMonitor.getSystemIdleTime() * 1000; // Convert to milliseconds
-      
-      if (idleTime >= this.idleTimeout && !this.isIdle) {
-        this.isIdle = true;
-        this.onIdleCallback?.();
-      } else if (idleTime < this.idleTimeout && this.isIdle) {
-        this.isIdle = false;
-        this.onActiveCallback?.();
-      }
-    }, 1000); // Check every second
-
-    // Monitor system sleep/wake events
-    powerMonitor.on('suspend', () => {
-      if (!this.isIdle) {
-        this.isIdle = true;
-        this.onIdleCallback?.();
-      }
-    });
-
-    powerMonitor.on('resume', () => {
-      if (this.isIdle) {
-        this.isIdle = false;
-        this.onActiveCallback?.();
-      }
-    });
+  public setIdleThreshold(threshold: number): void {
+    this.idleThreshold = threshold;
   }
 
-  isUserIdle(): boolean {
-    return this.isIdle;
+  public getCurrentState(): { isIdle: boolean; lastActivity: number } {
+    return {
+      isIdle: this.isIdle,
+      lastActivity: this.lastActivityTime
+    };
   }
 
-  getCurrentIdleTime(): number {
-    return powerMonitor.getSystemIdleTime();
+  public stop(): void {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
   }
 } 

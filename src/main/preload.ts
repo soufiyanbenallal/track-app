@@ -4,58 +4,36 @@ import { contextBridge, ipcRenderer } from 'electron';
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
   // Database operations
-  getTasks: () => ipcRenderer.invoke('db-get-tasks'),
-  createTask: (task: any) => ipcRenderer.invoke('db-create-task', task),
-  updateTask: (task: any) => ipcRenderer.invoke('db-update-task', task),
-  deleteTask: (id: string) => ipcRenderer.invoke('db-delete-task', id),
+  getProjects: () => ipcRenderer.invoke('db:get-projects'),
+  createProject: (project: any) => ipcRenderer.invoke('db:create-project', project),
+  updateProject: (project: any) => ipcRenderer.invoke('db:update-project', project),
+  deleteProject: (id: number) => ipcRenderer.invoke('db:delete-project', id),
   
-  // Time statistics
-  getTotalTimeToday: () => ipcRenderer.invoke('db-get-total-time-today'),
-  getTotalTimeWeek: () => ipcRenderer.invoke('db-get-total-time-week'),
-  getTotalTimeMonth: () => ipcRenderer.invoke('db-get-total-time-month'),
-  getCompletedTasksCount: () => ipcRenderer.invoke('db-get-completed-tasks-count'),
-  getActiveProjectsCount: () => ipcRenderer.invoke('db-get-active-projects-count'),
+  getTasks: (filters: any) => ipcRenderer.invoke('db:get-tasks', filters),
+  createTask: (task: any) => ipcRenderer.invoke('db:create-task', task),
+  updateTask: (task: any) => ipcRenderer.invoke('db:update-task', task),
+  deleteTask: (id: number) => ipcRenderer.invoke('db:delete-task', id),
   
-  // Project operations
-  getProjects: () => ipcRenderer.invoke('db-get-projects'),
-  createProject: (project: any) => ipcRenderer.invoke('db-create-project', project),
-  updateProject: (project: any) => ipcRenderer.invoke('db-update-project', project),
-  deleteProject: (id: string) => ipcRenderer.invoke('db-delete-project', id),
+  // Time tracking
+  startTracking: (taskId: number) => ipcRenderer.invoke('tracker:start', taskId),
+  stopTracking: () => ipcRenderer.invoke('tracker:stop'),
+  getCurrentTask: () => ipcRenderer.invoke('tracker:get-current'),
+  getTrackingStatus: () => ipcRenderer.invoke('tracker:get-status'),
   
-  // Notion operations
-  syncTask: (task: any) => ipcRenderer.invoke('notion-sync-task', task),
-  getNotionDatabases: () => ipcRenderer.invoke('notion-get-databases'),
+  // Notion integration
+  syncTaskToNotion: (taskId: number) => ipcRenderer.invoke('notion:sync-task', taskId),
+  getNotionProjects: () => ipcRenderer.invoke('notion:get-projects'),
   
-  // Settings
-  getSettings: () => ipcRenderer.invoke('get-settings'),
-  updateSettings: (settings: any) => ipcRenderer.invoke('update-settings', settings),
+  // Reports
+  generateReport: (filters: any) => ipcRenderer.invoke('reports:generate', filters),
   
   // Events
-  onStartTracking: (callback: () => void) => {
-    ipcRenderer.on('start-tracking', callback);
-  },
-  onStopTracking: (callback: () => void) => {
-    ipcRenderer.on('stop-tracking', callback);
-  },
-  onUserIdle: (callback: () => void) => {
-    ipcRenderer.on('user-idle', callback);
-  },
-  onUserActive: (callback: () => void) => {
-    ipcRenderer.on('user-active', callback);
+  onTrackingUpdate: (callback: (data: any) => void) => {
+    ipcRenderer.on('tracking-update', (_, data) => callback(data));
   },
   
-  // Event cleanup
-  removeStartTracking: (callback: () => void) => {
-    ipcRenderer.removeListener('start-tracking', callback);
-  },
-  removeStopTracking: (callback: () => void) => {
-    ipcRenderer.removeListener('stop-tracking', callback);
-  },
-  removeUserIdle: (callback: () => void) => {
-    ipcRenderer.removeListener('user-idle', callback);
-  },
-  removeUserActive: (callback: () => void) => {
-    ipcRenderer.removeListener('user-active', callback);
+  onIdleStateChange: (callback: (isIdle: boolean) => void) => {
+    ipcRenderer.on('idle-state-change', (_, isIdle) => callback(isIdle));
   }
 });
 
@@ -63,31 +41,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
 declare global {
   interface Window {
     electronAPI: {
-      getTasks: () => Promise<any[]>;
-      createTask: (task: any) => Promise<any>;
-      updateTask: (task: any) => Promise<any>;
-      deleteTask: (id: string) => Promise<void>;
-      getTotalTimeToday: () => Promise<number>;
-      getTotalTimeWeek: () => Promise<number>;
-      getTotalTimeMonth: () => Promise<number>;
-      getCompletedTasksCount: () => Promise<number>;
-      getActiveProjectsCount: () => Promise<number>;
       getProjects: () => Promise<any[]>;
       createProject: (project: any) => Promise<any>;
       updateProject: (project: any) => Promise<any>;
-      deleteProject: (id: string) => Promise<void>;
-      syncTask: (task: any) => Promise<any>;
-      getNotionDatabases: () => Promise<any[]>;
-      getSettings: () => Promise<any>;
-      updateSettings: (settings: any) => Promise<any>;
-      onStartTracking: (callback: () => void) => void;
-      onStopTracking: (callback: () => void) => void;
-      onUserIdle: (callback: () => void) => void;
-      onUserActive: (callback: () => void) => void;
-      removeStartTracking: (callback: () => void) => void;
-      removeStopTracking: (callback: () => void) => void;
-      removeUserIdle: (callback: () => void) => void;
-      removeUserActive: (callback: () => void) => void;
+      deleteProject: (id: number) => Promise<void>;
+      
+      getTasks: (filters: any) => Promise<any[]>;
+      createTask: (task: any) => Promise<any>;
+      updateTask: (task: any) => Promise<any>;
+      deleteTask: (id: number) => Promise<void>;
+      
+      startTracking: (taskId: number) => Promise<void>;
+      stopTracking: () => Promise<void>;
+      getCurrentTask: () => Promise<any>;
+      getTrackingStatus: () => Promise<any>;
+      
+      syncTaskToNotion: (taskId: number) => Promise<void>;
+      getNotionProjects: () => Promise<any[]>;
+      
+      generateReport: (filters: any) => Promise<any>;
+      
+      onTrackingUpdate: (callback: (data: any) => void) => void;
+      onIdleStateChange: (callback: (isIdle: boolean) => void) => void;
     };
   }
 } 

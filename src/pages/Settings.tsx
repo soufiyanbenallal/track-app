@@ -1,267 +1,176 @@
-import React, { useState, useEffect } from 'react';
-import { useSettings } from '../contexts/SettingsContext';
-import ProjectManager from '../components/ProjectManager';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { 
-  Clock, 
-  MessageSquare, 
-  ExternalLink, 
-  Database, 
-  CheckCircle, 
-  XCircle, 
-  AlertCircle,
-  Settings as SettingsIcon
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { Settings as SettingsIcon, Key, Database, Bell } from 'lucide-react';
 
-const Settings: React.FC = () => {
-  const { settings, updateSettings, testNotionConnection, getNotionDatabases } = useSettings();
-  const [notionApiKey, setNotionApiKey] = useState(settings.notionApiKey || '');
-  const [notionWorkspaceId, setNotionWorkspaceId] = useState(settings.notionWorkspaceId || '');
-  const [idleTimeout, setIdleTimeout] = useState(settings.idleTimeoutMinutes);
-  const [autoSync, setAutoSync] = useState(settings.autoSyncToNotion);
-  const [notionDatabases, setNotionDatabases] = useState<any[]>([]);
-  const [testingConnection, setTestingConnection] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+export default function Settings() {
+  const [notionApiKey, setNotionApiKey] = useState('');
+  const [idleThreshold, setIdleThreshold] = useState(5);
+  const [notifications, setNotifications] = useState(true);
 
-  useEffect(() => {
-    if (settings.notionApiKey) {
-      loadNotionDatabases();
-    }
-  }, [settings.notionApiKey]);
-
-  const handleSaveSettings = async () => {
-    try {
-      await updateSettings({
-        notionApiKey,
-        notionWorkspaceId,
-        idleTimeoutMinutes: idleTimeout,
-        autoSyncToNotion: autoSync,
-      });
-      alert('Paramètres sauvegardés avec succès');
-    } catch (error) {
-      alert('Erreur lors de la sauvegarde des paramètres');
-    }
-  };
-
-  const handleTestNotionConnection = async () => {
-    setTestingConnection(true);
-    setConnectionStatus('idle');
-    
-    try {
-      const isConnected = await testNotionConnection();
-      setConnectionStatus(isConnected ? 'success' : 'error');
-    } catch (error) {
-      setConnectionStatus('error');
-    } finally {
-      setTestingConnection(false);
-    }
-  };
-
-  const loadNotionDatabases = async () => {
-    try {
-      const databases = await getNotionDatabases();
-      setNotionDatabases(databases);
-    } catch (error) {
-      console.error('Error loading Notion databases:', error);
-    }
-  };
-
-  const getConnectionStatusText = () => {
-    switch (connectionStatus) {
-      case 'success':
-        return 'Connexion réussie';
-      case 'error':
-        return 'Échec de la connexion';
-      default:
-        return 'Non testé';
-    }
-  };
-
-  const getConnectionStatusIcon = () => {
-    switch (connectionStatus) {
-      case 'success':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'error':
-        return <XCircle className="w-4 h-4 text-red-500" />;
-      default:
-        return <AlertCircle className="w-4 h-4 text-muted-foreground" />;
-    }
+  const handleSaveSettings = () => {
+    // Save settings logic would go here
+    console.log('Saving settings...');
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-          <SettingsIcon className="w-8 h-8" />
-          Paramètres
-        </h1>
-        <p className="text-muted-foreground">Configurez votre application de suivi du temps</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Paramètres</h1>
+          <p className="text-muted-foreground">
+            Configurez votre application TrackApp
+          </p>
+        </div>
       </div>
 
-      {/* General Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Paramètres généraux</CardTitle>
-          <CardDescription>Configurez le comportement de base de l'application</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-muted-foreground" />
-                <Label className="text-base font-medium">Temps d'inactivité</Label>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Le suivi sera automatiquement mis en pause après cette durée d'inactivité
-              </p>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min="1"
-                  max="60"
-                  value={idleTimeout}
-                  onChange={(e) => setIdleTimeout(parseInt(e.target.value) || 5)}
-                  className="w-20"
-                />
-                <span className="text-sm text-muted-foreground">minutes</span>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-muted-foreground" />
-                <Label className="text-base font-medium">Synchronisation automatique</Label>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Synchronise automatiquement les tâches terminées avec Notion
-              </p>
-              <div className="flex items-center gap-3">
-                <Switch
-                  checked={autoSync}
-                  onCheckedChange={setAutoSync}
-                />
-                <span className="text-sm text-muted-foreground">
-                  {autoSync ? 'Activé' : 'Désactivé'}
-                </span>
-              </div>
-            </div>
+      {/* Settings Sections */}
+      <div className="space-y-6">
+        {/* Notion Integration */}
+        <div className="bg-card p-6 rounded-lg border border-border">
+          <div className="flex items-center mb-4">
+            <Key className="h-5 w-5 text-primary mr-2" />
+            <h2 className="text-lg font-semibold text-foreground">
+              Intégration Notion
+            </h2>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Notion Integration */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Intégration Notion</CardTitle>
-          <CardDescription>Connectez votre application à Notion pour synchroniser vos données</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <Label className="text-base font-medium">Clé API Notion</Label>
-              <p className="text-sm text-muted-foreground">
-                Votre clé API pour l'intégration avec Notion
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  type="password"
-                  value={notionApiKey}
-                  onChange={(e) => setNotionApiKey(e.target.value)}
-                  placeholder="Entrez votre clé API Notion"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open('https://www.notion.so/my-integrations', '_blank')}
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Obtenir
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <Label className="text-base font-medium">ID de l'espace de travail</Label>
-              <p className="text-sm text-muted-foreground">
-                L'ID de votre espace de travail Notion
-              </p>
-              <Input
-                type="text"
-                value={notionWorkspaceId}
-                onChange={(e) => setNotionWorkspaceId(e.target.value)}
-                placeholder="Entrez l'ID de votre espace de travail"
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Clé API Notion
+              </label>
+              <input
+                type="password"
+                value={notionApiKey}
+                onChange={(e) => setNotionApiKey(e.target.value)}
+                placeholder="Entrez votre clé API Notion"
+                className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
+              <p className="text-sm text-muted-foreground mt-1">
+                Obtenez votre clé API depuis les paramètres de votre intégration Notion
+              </p>
+            </div>
+            
+            <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+              Tester la connexion
+            </button>
+          </div>
+        </div>
+
+        {/* Idle Detection */}
+        <div className="bg-card p-6 rounded-lg border border-border">
+          <div className="flex items-center mb-4">
+            <Bell className="h-5 w-5 text-primary mr-2" />
+            <h2 className="text-lg font-semibold text-foreground">
+              Détection d'inactivité
+            </h2>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Seuil d'inactivité (minutes)
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="60"
+                value={idleThreshold}
+                onChange={(e) => setIdleThreshold(Number(e.target.value))}
+                className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                Le suivi du temps sera automatiquement mis en pause après cette durée d'inactivité
+              </p>
             </div>
           </div>
+        </div>
 
-          <Separator />
-
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              onClick={handleTestNotionConnection}
-              disabled={testingConnection || !notionApiKey}
-            >
-              {testingConnection ? 'Test en cours...' : 'Tester la connexion'}
-            </Button>
-            <div className="flex items-center gap-2">
-              {getConnectionStatusIcon()}
-              <span className="text-sm text-muted-foreground">
-                {getConnectionStatusText()}
-              </span>
-            </div>
+        {/* Notifications */}
+        <div className="bg-card p-6 rounded-lg border border-border">
+          <div className="flex items-center mb-4">
+            <Bell className="h-5 w-5 text-primary mr-2" />
+            <h2 className="text-lg font-semibold text-foreground">
+              Notifications
+            </h2>
           </div>
-
-          {notionDatabases.length > 0 && (
-            <>
-              <Separator />
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Database className="w-5 h-5 text-muted-foreground" />
-                  <Label className="text-base font-medium">Bases de données disponibles</Label>
-                </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-foreground">Notifications de suivi</h3>
                 <p className="text-sm text-muted-foreground">
-                  Bases de données Notion accessibles
+                  Recevoir des notifications lors du démarrage/arrêt du suivi
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {notionDatabases.map((db, index) => (
-                    <Badge key={index} variant="secondary" className="justify-start">
-                      {db.title}
-                    </Badge>
-                  ))}
-                </div>
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={notifications}
+                  onChange={(e) => setNotifications(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ring rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+          </div>
+        </div>
 
-      {/* Project Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Gestion des projets</CardTitle>
-          <CardDescription>Créez et gérez vos projets de suivi du temps</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ProjectManager />
-        </CardContent>
-      </Card>
+        {/* Database */}
+        <div className="bg-card p-6 rounded-lg border border-border">
+          <div className="flex items-center mb-4">
+            <Database className="h-5 w-5 text-primary mr-2" />
+            <h2 className="text-lg font-semibold text-foreground">
+              Base de données
+            </h2>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-foreground">Emplacement de la base de données</h3>
+                <p className="text-sm text-muted-foreground">
+                  ~/.trackapp/trackapp.db
+                </p>
+              </div>
+              <button className="px-4 py-2 border border-border rounded-md hover:bg-accent transition-colors">
+                Changer
+              </button>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-foreground">Sauvegarde automatique</h3>
+                <p className="text-sm text-muted-foreground">
+                  Sauvegarder automatiquement les données
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ring rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+            
+            <button className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors">
+              Exporter les données
+            </button>
+          </div>
+        </div>
 
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <Button onClick={handleSaveSettings} size="lg">
-          Sauvegarder les paramètres
-        </Button>
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <button
+            onClick={handleSaveSettings}
+            className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          >
+            Sauvegarder les paramètres
+          </button>
+        </div>
       </div>
     </div>
   );
-};
-
-export default Settings; 
+} 

@@ -1,27 +1,30 @@
 import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } from 'electron';
-import { join } from 'path';
-import { DatabaseService } from './database';
+import * as path from 'path';
+import { DatabaseManager } from './database';
 import { IdleDetector } from './idle-detector';
-import { NotionService } from './notion-service';
+import { NotionIntegration } from './notion-integration';
+import { TimeTracker } from './time-tracker';
 
 class TrackApp {
   private mainWindow: BrowserWindow | null = null;
   private tray: Tray | null = null;
-  private database: DatabaseService;
+  private database: DatabaseManager;
   private idleDetector: IdleDetector;
-  private notionService: NotionService;
+  private notionIntegration: NotionIntegration;
+  private timeTracker: TimeTracker;
 
   constructor() {
-    this.database = new DatabaseService();
+    this.database = new DatabaseManager();
     this.idleDetector = new IdleDetector();
-    this.notionService = new NotionService();
+    this.notionIntegration = new NotionIntegration();
+    this.timeTracker = new TimeTracker(this.database, this.idleDetector);
     
     this.initializeApp();
   }
 
   private initializeApp(): void {
     app.whenReady().then(() => {
-      this.createWindow();
+      this.createMainWindow();
       this.createTray();
       this.setupIpcHandlers();
       this.setupIdleDetection();
@@ -35,35 +38,48 @@ class TrackApp {
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        this.createWindow();
+        this.createMainWindow();
       }
     });
   }
 
-  private createWindow(): void {
+  private createMainWindow(): void {
     this.mainWindow = new BrowserWindow({
-      width: 1000,
-      height: 700,
+      width: 1200,
+      height: 800,
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        preload: join(__dirname, 'preload.js')
+        preload: path.join(__dirname, 'preload.js'),
+        webSecurity: true,
+        allowRunningInsecureContent: false
       },
-      titleBarStyle: 'hiddenInset',
-      show: false,
-      resizable: true,
-      movable: true,
-      minimizable: true,
-      maximizable: true,
-      frame: false,
-      transparent: false
+      icon: path.join(__dirname, '../../assets/icon.png'),
+      show: false
     });
 
-    if (process.env.NODE_ENV === 'development') {
+    // Set Content Security Policy
+    this.mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [
+            "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' http://localhost:* https:;"
+          ]
+        }
+      });
+    });
+
+    // Check if we're in development mode
+    const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+    
+    if (isDev) {
+      console.log('Loading development server at http://localhost:3000');
       this.mainWindow.loadURL('http://localhost:3000');
       this.mainWindow.webContents.openDevTools();
     } else {
-      this.mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+      console.log('Loading production build');
+      this.mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
     }
 
     this.mainWindow.once('ready-to-show', () => {
@@ -76,11 +92,11 @@ class TrackApp {
   }
 
   private createTray(): void {
-    const iconPath = join(__dirname, '../../assets/icon.png');
+    const iconPath = path.join(__dirname, '../../assets/tray-icon.png');
     const icon = nativeImage.createFromPath(iconPath);
     
     this.tray = new Tray(icon);
-    this.tray.setToolTip('Track App');
+    this.tray.setToolTip('TrackApp - Suivi du temps');
     
     this.updateTrayMenu();
   }
@@ -88,138 +104,125 @@ class TrackApp {
   private updateTrayMenu(): void {
     if (!this.tray) return;
 
-    // Get current time
-    const now = new Date();
-    const timeString = now.toLocaleTimeString('fr-FR', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-
-    const contextMenu = Menu.buildFromTemplate([
+    const currentTask = this.timeTracker.getCurrentTask();
+    const isTracking = !!currentTask;
+    
+    const template: Electron.MenuItemConstructorOptions[] = [
       {
-        label: `🕐 ${timeString}`,
-        enabled: false
+        label: isTracking ? '⏸️ Pause' : '▶️ Démarrer',
+        click: () => this.toggleTracking()
       },
       { type: 'separator' },
       {
-        label: 'Démarrer le suivi',
-        click: () => {
-          this.mainWindow?.webContents.send('start-tracking');
-        }
-      },
-      {
-        label: 'Arrêter le suivi',
-        click: () => {
-          this.mainWindow?.webContents.send('stop-tracking');
-        }
+        label: '📊 Ouvrir TrackApp',
+        click: () => this.showMainWindow()
       },
       { type: 'separator' },
       {
-        label: 'Ouvrir Track App',
-        click: () => {
-          this.mainWindow?.show();
-        }
-      },
-      { type: 'separator' },
-      {
-        label: 'Quitter',
-        click: () => {
-          app.quit();
-        }
+        label: '❌ Quitter',
+        click: () => app.quit()
       }
-    ]);
+    ];
 
+    if (isTracking) {
+      template.unshift({
+        label: `⏱️ ${currentTask?.description || 'Tâche en cours'}`,
+        enabled: false
+      });
+      template.unshift({ type: 'separator' });
+    }
+
+    const contextMenu = Menu.buildFromTemplate(template);
     this.tray.setContextMenu(contextMenu);
   }
 
+  private toggleTracking(): void {
+    if (this.timeTracker.isTracking()) {
+      this.timeTracker.stopTracking();
+    } else {
+      // This would open a dialog to select a task
+      console.log('Need to select a task to start tracking');
+    }
+    this.updateTrayMenu();
+  }
+
+  private showMainWindow(): void {
+    if (this.mainWindow) {
+      this.mainWindow.show();
+      this.mainWindow.focus();
+    }
+  }
+
   private setupIpcHandlers(): void {
+    console.log('Setting up IPC handlers...');
+    
     // Database operations
-    ipcMain.handle('db-get-tasks', async (_, filters) => {
-      return await this.database.getTasks(filters);
+    ipcMain.handle('db:get-projects', async () => {
+      console.log('Handling db:get-projects request');
+      try {
+        const projects = this.database.getProjects();
+        console.log('Projects retrieved:', projects);
+        return projects;
+      } catch (error) {
+        console.error('Error getting projects:', error);
+        throw error;
+      }
     });
-
-    ipcMain.handle('db-create-task', async (_, task) => {
-      return await this.database.createTask(task);
+    
+    ipcMain.handle('db:create-project', (_, project) => this.database.createProject(project));
+    ipcMain.handle('db:update-project', (_, project) => this.database.updateProject(project));
+    ipcMain.handle('db:delete-project', (_, id) => this.database.deleteProject(id));
+    
+    ipcMain.handle('db:get-tasks', async (_, filters) => {
+      console.log('Handling db:get-tasks request with filters:', filters);
+      try {
+        const tasks = this.database.getTasks(filters);
+        console.log('Tasks retrieved:', tasks);
+        return tasks;
+      } catch (error) {
+        console.error('Error getting tasks:', error);
+        throw error;
+      }
     });
-
-    ipcMain.handle('db-update-task', async (_, task) => {
-      return await this.database.updateTask(task);
+    
+    ipcMain.handle('db:create-task', (_, task) => this.database.createTask(task));
+    ipcMain.handle('db:update-task', (_, task) => this.database.updateTask(task));
+    ipcMain.handle('db:delete-task', (_, id) => this.database.deleteTask(id));
+    
+    // Time tracking
+    ipcMain.handle('tracker:start', (_, taskId) => this.timeTracker.startTracking(taskId));
+    ipcMain.handle('tracker:stop', () => this.timeTracker.stopTracking());
+    ipcMain.handle('tracker:get-current', () => this.timeTracker.getCurrentTask());
+    ipcMain.handle('tracker:get-status', async () => {
+      console.log('Handling tracker:get-status request');
+      try {
+        const status = this.timeTracker.getStatus();
+        console.log('Tracking status:', status);
+        return status;
+      } catch (error) {
+        console.error('Error getting tracking status:', error);
+        throw error;
+      }
     });
-
-    ipcMain.handle('db-delete-task', async (_, id) => {
-      return await this.database.deleteTask(id);
-    });
-
-    // Time statistics
-    ipcMain.handle('db-get-total-time-today', async () => {
-      return await this.database.getTotalTimeForToday();
-    });
-
-    ipcMain.handle('db-get-total-time-week', async () => {
-      return await this.database.getTotalTimeForWeek();
-    });
-
-    ipcMain.handle('db-get-total-time-month', async () => {
-      return await this.database.getTotalTimeForMonth();
-    });
-
-    ipcMain.handle('db-get-completed-tasks-count', async () => {
-      return await this.database.getCompletedTasksCount();
-    });
-
-    ipcMain.handle('db-get-active-projects-count', async () => {
-      return await this.database.getActiveProjectsCount();
-    });
-
-    // Project operations
-    ipcMain.handle('db-get-projects', async () => {
-      return await this.database.getProjects();
-    });
-
-    ipcMain.handle('db-create-project', async (_, project) => {
-      return await this.database.createProject(project);
-    });
-
-    ipcMain.handle('db-update-project', async (_, project) => {
-      return await this.database.updateProject(project);
-    });
-
-    ipcMain.handle('db-delete-project', async (_, id) => {
-      return await this.database.deleteProject(id);
-    });
-
-    // Notion operations
-    ipcMain.handle('notion-sync-task', async (_, task, project) => {
-      return await this.notionService.syncTask(task, project);
-    });
-
-    ipcMain.handle('notion-get-databases', async () => {
-      return await this.notionService.getDatabases();
-    });
-
-    // Settings
-    ipcMain.handle('get-settings', async () => {
-      return await this.database.getSettings();
-    });
-
-    ipcMain.handle('update-settings', async (_, settings) => {
-      return await this.database.updateSettings(settings);
-    });
+    
+    // Notion integration
+    ipcMain.handle('notion:sync-task', (_, taskId) => this.notionIntegration.syncTask(taskId));
+    ipcMain.handle('notion:get-projects', () => this.notionIntegration.getProjects());
+    
+    // Reports
+    ipcMain.handle('reports:generate', (_, filters) => this.database.generateReport(filters));
+    
+    console.log('IPC handlers setup complete');
   }
 
   private setupIdleDetection(): void {
-    this.idleDetector.onIdle(() => {
-      this.mainWindow?.webContents.send('user-idle');
+    this.idleDetector.on('idle', () => {
+      this.timeTracker.handleIdle();
     });
-
-    this.idleDetector.onActive(() => {
-      this.mainWindow?.webContents.send('user-active');
+    
+    this.idleDetector.on('active', () => {
+      this.timeTracker.handleActive();
     });
-
-    // Update tray menu every minute to keep time current
-    setInterval(() => {
-      this.updateTrayMenu();
-    }, 60000); // Update every minute
   }
 }
 

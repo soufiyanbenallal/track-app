@@ -1,210 +1,213 @@
-# Track App - Time Tracking Desktop Application
+# TrackApp - Application de suivi du temps pour développeurs
 
-A modern, feature-rich time tracking desktop application built with Electron, React, and TypeScript. Designed specifically for developers to track their work time with Notion integration.
+Une application desktop Electron moderne pour le suivi du temps de travail, spécialement conçue pour les développeurs.
 
-## 🚀 Features
+## 🚀 Fonctionnalités
 
-### Core Functionality
-- **Start/Stop Time Tracking**: Simple one-click time tracking with project association
-- **Task Descriptions**: Add detailed descriptions for each tracked session
-- **Idle Detection**: Automatically pause tracking when user is inactive (configurable)
-- **Project Management**: Organize tasks by projects with color coding
+### Suivi du temps
+- **Démarrage/arrêt facile** du suivi du temps
+- **Détection d'inactivité** automatique (pause du suivi quand vous n'utilisez pas votre ordinateur)
+- **Affichage en temps réel** du temps écoulé
+- **Interface dans la barre de menu** macOS
 
-### Menu Bar Integration
-- **macOS Menu Bar App**: Quick access to start/stop tracking
-- **Current Task Display**: Shows active task and elapsed time in menu bar
-- **Quick Actions**: Start/stop tracking and switch projects from menu bar
+### Gestion des projets
+- **Création et gestion** de projets
+- **Codes couleur** pour identifier facilement les projets
+- **Archivage** des projets terminés
+- **Intégration Notion** pour synchroniser les projets
 
-### Work Log Management
-- **Comprehensive Task List**: View all tracked time entries with details
-- **Advanced Filtering**: Filter by project, date range, payment status, and search
-- **Task Management**: Edit, delete, and mark tasks as paid/unpaid
-- **Archiving**: Archive completed tasks and projects
+### Gestion des tâches
+- **Création de tâches** avec descriptions détaillées
+- **Association aux projets** existants
+- **Tags et étiquettes** pour organiser les tâches
+- **Statut payé/non payé** pour le suivi financier
+- **Archivage** des tâches terminées
 
-### Notion Integration
-- **API Integration**: Connect with Notion via official API
-- **Auto-Sync**: Automatically sync completed tasks to Notion databases
-- **Project Linking**: Link local projects to specific Notion databases
-- **Data Export**: Export task data to Notion with proper formatting
+### Filtres et recherche
+- **Filtrage par projet** pour voir les tâches spécifiques
+- **Filtrage par statut** (payé/non payé)
+- **Filtrage par date** (plage personnalisable)
+- **Recherche textuelle** dans les descriptions et noms de projets
 
-### Reporting & Analytics
-- **Time Reports**: Generate detailed time reports with CSV export
-- **Project Breakdown**: View time distribution across projects
-- **Payment Tracking**: Separate paid vs unpaid hours
-- **Date Range Analysis**: Daily, weekly, and monthly breakdowns
+### Rapports et analyses
+- **Génération de rapports** détaillés
+- **Statistiques par projet** (heures, nombre de tâches)
+- **Résumé quotidien** de l'activité
+- **Export des données** pour analyse externe
 
-## 🛠 Tech Stack
+### Intégration Notion
+- **Synchronisation automatique** des tâches vers Notion
+- **Création de pages** Notion pour chaque tâche
+- **Mise à jour en temps réel** des statuts
+- **Liaison des projets** avec les bases de données Notion
 
-- **Frontend**: React 18, TypeScript, Vite
-- **Backend**: Electron 27, Node.js
-- **Database**: SQLite (better-sqlite3)
-- **UI Framework**: Custom CSS with modern design
-- **External APIs**: Notion API
-- **Build Tools**: Electron Builder, Vite
+## 🛠️ Technologies utilisées
+
+- **Electron** - Framework desktop cross-platform
+- **React 18** - Interface utilisateur
+- **TypeScript** - Typage statique
+- **Tailwind CSS v4** - Styling moderne
+- **SQLite** - Base de données locale
+- **shadcn/ui** - Composants UI
+- **Zustand** - Gestion d'état
+- **React Hook Form** - Gestion des formulaires
+- **date-fns** - Manipulation des dates
+- **Lucide React** - Icônes
 
 ## 📦 Installation
 
-### Prerequisites
+### Prérequis
 - Node.js 18+ 
-- npm or yarn
-- macOS (primary target platform)
+- pnpm (recommandé) ou npm
 
-### Setup
-1. Clone the repository:
+### Installation des dépendances
 ```bash
-git clone <repository-url>
-cd track-app
-```
+# Installer les dépendances
+pnpm install
 
-2. Install dependencies:
-```bash
+# Ou avec npm
 npm install
 ```
 
-3. Start development server:
+### Développement
 ```bash
+# Lancer en mode développement
+pnpm dev
+
+# Ou avec npm
 npm run dev
 ```
 
-4. Build for production:
+### Build
 ```bash
-npm run build
-npm run dist:mac
+# Construire l'application
+pnpm build
+
+# Créer un package distributable pour macOS
+pnpm dist:mac
 ```
 
-## 🏗 Project Structure
+## 🏗️ Architecture
 
 ```
 track-app/
 ├── src/
-│   ├── main/                 # Electron main process
-│   │   ├── main.ts          # Main entry point
-│   │   ├── preload.ts       # Preload script
-│   │   ├── database.ts      # SQLite database service
-│   │   ├── idle-detector.ts # User activity monitoring
-│   │   └── notion-service.ts # Notion API integration
-│   ├── components/          # React components
-│   ├── contexts/           # React contexts
-│   ├── pages/              # Page components
-│   ├── App.tsx             # Main app component
-│   └── main.tsx            # React entry point
-├── dist/                   # Build output
-├── assets/                 # Static assets
-└── package.json
+│   ├── main/           # Processus principal Electron
+│   │   ├── main.ts     # Point d'entrée principal
+│   │   ├── database.ts # Gestion de la base de données SQLite
+│   │   ├── time-tracker.ts # Logique de suivi du temps
+│   │   ├── idle-detector.ts # Détection d'inactivité
+│   │   ├── notion-integration.ts # Intégration Notion
+│   │   └── preload.ts  # Script de préchargement sécurisé
+│   ├── renderer/       # Processus de rendu React
+│   │   ├── main.tsx    # Point d'entrée React
+│   │   ├── App.tsx     # Composant principal
+│   │   ├── contexts/   # Contextes React
+│   │   ├── components/ # Composants réutilisables
+│   │   ├── pages/      # Pages de l'application
+│   │   └── lib/        # Utilitaires et helpers
+│   └── types/          # Définitions TypeScript
+├── assets/             # Ressources (icônes, images)
+└── dist/               # Fichiers de build
 ```
 
 ## 🔧 Configuration
 
-### Notion Integration Setup
+### Variables d'environnement
+Créez un fichier `.env` à la racine du projet :
 
-1. Create a Notion integration at [https://www.notion.so/my-integrations](https://www.notion.so/my-integrations)
-2. Get your API key and workspace ID
-3. Configure in the app settings
-4. Link projects to specific Notion databases
+```env
+# Clé API Notion (optionnelle)
+NOTION_API_KEY=your_notion_api_key_here
 
-### Idle Detection
+# Configuration de la base de données
+DB_PATH=~/.trackapp/trackapp.db
+```
 
-Configure idle timeout in settings:
-- Default: 5 minutes
-- Range: 1-60 minutes
-- Automatically pauses tracking when user is inactive
+### Configuration Notion
+1. Créez une intégration dans [Notion Developers](https://developers.notion.com)
+2. Obtenez votre clé API
+3. Ajoutez la clé dans les variables d'environnement
+4. Partagez vos bases de données avec l'intégration
 
-## 🎨 UI/UX Features
+## 📱 Utilisation
 
-- **Modern Design**: Clean, productivity-focused interface
-- **French Localization**: UI text in French as requested
-- **Responsive Layout**: Works on different screen sizes
-- **Dark Mode Ready**: CSS variables for easy theming
-- **Accessibility**: Keyboard navigation and screen reader support
+### Première utilisation
+1. Lancez l'application
+2. Créez votre premier projet
+3. Commencez à suivre votre temps !
 
-## 📊 Database Schema
+### Suivi du temps
+- Cliquez sur "Démarrer" pour commencer le suivi
+- Sélectionnez un projet et ajoutez une description
+- L'application détectera automatiquement votre inactivité
+- Cliquez sur "Arrêter" pour terminer le suivi
 
-### Tasks Table
-- `id`: Unique identifier
-- `description`: Task description
-- `projectId`: Associated project
-- `startTime`: Start timestamp
-- `endTime`: End timestamp (optional)
-- `duration`: Duration in seconds
-- `isPaid`: Payment status
-- `isArchived`: Archive status
+### Gestion des projets
+- Accédez à la page "Projets"
+- Créez de nouveaux projets avec des couleurs personnalisées
+- Archivez les projets terminés
+- Synchronisez avec Notion si configuré
 
-### Projects Table
-- `id`: Unique identifier
-- `name`: Project name
-- `color`: Project color
-- `notionDatabaseId`: Linked Notion database
-- `isArchived`: Archive status
+### Rapports
+- Consultez les rapports dans la page dédiée
+- Filtrez par période, projet ou statut
+- Exportez les données pour analyse externe
 
-### Settings Table
-- `key`: Setting name
-- `value`: Setting value (JSON)
+## 🎨 Interface utilisateur
 
-## 🔌 API Integration
+L'application utilise un design moderne avec :
+- **Mode sombre/clair** automatique
+- **Interface responsive** adaptée à différentes tailles d'écran
+- **Animations fluides** pour une meilleure expérience utilisateur
+- **Icônes intuitives** pour une navigation facile
 
-### Notion API
-- **Authentication**: API key-based
-- **Endpoints**: Database queries, page creation
-- **Data Mapping**: Automatic field mapping
-- **Error Handling**: Graceful fallbacks
+## 🔒 Sécurité
 
-### Electron IPC
-- **Security**: Context isolation enabled
-- **Communication**: Main-renderer process communication
-- **Event Handling**: Real-time updates
+- **Context isolation** pour séparer les processus
+- **Preload scripts** sécurisés pour l'IPC
+- **Validation des données** côté serveur et client
+- **Stockage local sécurisé** des données sensibles
 
-## 🚀 Development
+## 🚀 Déploiement
 
-### Scripts
-- `npm run dev`: Start development server
-- `npm run build`: Build for production
-- `npm run dist:mac`: Create macOS distribution
-- `npm run lint`: Run ESLint
+### Build pour production
+```bash
+# Build complet
+pnpm build
 
-### Code Style
-- TypeScript strict mode
-- ESLint configuration
-- Prettier formatting
-- Component-based architecture
+# Package pour macOS
+pnpm dist:mac
 
-## 📱 Platform Support
+# Package pour Windows (si configuré)
+pnpm dist:win
 
-- **Primary**: macOS (with menu bar integration)
-- **Secondary**: Windows/Linux (basic support)
-- **Architecture**: x64 and ARM64 support
+# Package pour Linux (si configuré)
+pnpm dist:linux
+```
 
-## 🔒 Security
+### Distribution
+Les fichiers de distribution se trouvent dans le dossier `release/`.
 
-- **Context Isolation**: Electron security best practices
-- **API Key Storage**: Secure local storage
-- **Data Privacy**: All data stored locally
-- **No Telemetry**: Privacy-focused design
+## 🤝 Contribution
 
-## 🤝 Contributing
+1. Fork le projet
+2. Créez une branche pour votre fonctionnalité
+3. Committez vos changements
+4. Poussez vers la branche
+5. Ouvrez une Pull Request
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+## 📄 Licence
 
-## 📄 License
-
-MIT License - see LICENSE file for details
+Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 
 ## 🆘 Support
 
-For issues and questions:
-1. Check the documentation
-2. Search existing issues
-3. Create a new issue with details
+Pour toute question ou problème :
+- Ouvrez une issue sur GitHub
+- Consultez la documentation
+- Contactez l'équipe de développement
 
-## 🔄 Roadmap
+---
 
-- [ ] Cloud sync support
-- [ ] Team collaboration features
-- [ ] Advanced reporting with charts
-- [ ] Mobile companion app
-- [ ] Integration with other tools (Slack, GitHub, etc.)
-- [ ] Offline mode improvements
-- [ ] Multi-language support 
+**TrackApp** - Suivez votre temps, maximisez votre productivité ! ⏱️ 
