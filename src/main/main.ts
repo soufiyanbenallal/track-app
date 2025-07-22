@@ -49,13 +49,13 @@ class TrackApp {
         contextIsolation: true,
         preload: join(__dirname, 'preload.js')
       },
-      titleBarStyle: 'hiddenInset',
-      show: false,
+      titleBarStyle: 'default',
+      show: true,
       resizable: true,
       movable: true,
       minimizable: true,
       maximizable: true,
-      frame: false,
+      frame: true,
       transparent: false
     });
 
