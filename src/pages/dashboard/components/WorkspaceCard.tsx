@@ -80,7 +80,6 @@ export default function WorkspaceCard({
                 🍅
               </div>
               <div className="flex-1">
-                {isTaskDescriptionEditing ? (
                   <Input
                     value={currentTaskDescription}
                     onChange={(e) => setCurrentTaskDescription(e.target.value)}
@@ -96,23 +95,20 @@ export default function WorkspaceCard({
                     className="!text-xl border-0 bg-transparent focus:ring-0 shadow-none "
                     autoFocus
                   />
-                ) : (
-                  <p 
-                    className="text-lg font-medium text-slate-900 dark:text-slate-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
-                    onClick={() => setIsTaskDescriptionEditing(true)}
-                  >
-                    {currentTaskDescription || 'What are you working on?'}
-                  </p>
-                )}
+                
               </div>
-              <div className="text-2xl font-mono font-bold text-slate-900 dark:text-slate-100 bg-white/80 dark:bg-slate-700/80 px-4 py-2 rounded-lg">
-                0:00:00
+              <div className="text-xl font-mono font-bold text-slate-900 bg-slate-700/20 px-4 py-2 rounded-lg">
+                {isTracking ? formatElapsedTime() : '0:00:00'}
               </div>
               {
                 isTracking ? (
                   <Button
                     size="lg"
-                    onClick={onStopTracking}
+                    onClick={()=>{
+                      onStopTracking();
+                      setIsTaskDescriptionEditing(true);
+                      setCurrentTaskDescription('');
+                    }}
                     className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-700"
                   >
                     <Square className="w-6 h-6" />
@@ -121,7 +117,7 @@ export default function WorkspaceCard({
                   size="lg"
                   onClick={onStartWithConfigurableTime}
                   disabled={!currentTaskDescription.trim()}
-                  className="w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-10 h-10 rounded-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Play className="w-6 h-6" />
                 </Button>

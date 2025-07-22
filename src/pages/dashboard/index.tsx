@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTracking } from '../../contexts/TrackingContext';
 import TaskEditModal from '../../components/TaskEditModal';
 import TimeEditPopover from '../../components/TimeEditPopover';
+import ProjectCreateModal from '../../components/ProjectCreateModal';
 import StatsGrid from './components/StatsGrid';
 import WorkspaceCard from './components/WorkspaceCard';
 import RecentTasksCard from './components/RecentTasksCard';
@@ -44,6 +45,7 @@ const Dashboard: React.FC = () => {
   const [inlineEditingTask, setInlineEditingTask] = useState<string | null>(null);
   const [inlineEditValue, setInlineEditValue] = useState('');
   const [isTimeEditOpen, setIsTimeEditOpen] = useState(false);
+  const [isProjectCreateModalOpen, setIsProjectCreateModalOpen] = useState(false);
   const [currentTaskDescription, setCurrentTaskDescription] = useState('');
   const [isTaskDescriptionEditing, setIsTaskDescriptionEditing] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -110,8 +112,20 @@ const Dashboard: React.FC = () => {
   };
 
   const handleCreateProject = () => {
-    // TODO: Implement project creation modal
-    console.log('Create project clicked');
+    setIsProjectCreateModalOpen(true);
+  };
+
+  const handleProjectCreate = async (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      if (window.electronAPI) {
+        await window.electronAPI.createProject(projectData);
+        await loadProjects(); // Reload projects after creation
+        setIsProjectCreateModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Error creating project:', error);
+      alert('Error creating project');
+    }
   };
 
   const handleStartTracking = () => {
@@ -290,6 +304,13 @@ const Dashboard: React.FC = () => {
           initialStartTime="19:51"
           initialEndTime="20:52"
           initialDate="22/7/2025"
+        />
+
+        {/* Project Create Modal */}
+        <ProjectCreateModal
+          isOpen={isProjectCreateModalOpen}
+          onClose={() => setIsProjectCreateModalOpen(false)}
+          onCreateProject={handleProjectCreate}
         />
       </div>
     </div>

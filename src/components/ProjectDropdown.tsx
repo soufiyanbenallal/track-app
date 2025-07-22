@@ -82,8 +82,6 @@ const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <Tag className="w-3 h-3 text-purple-500" />
-          <DollarSign className="w-3 h-3 text-slate-400" />
           <ChevronDown className="w-3 h-3 text-slate-400" />
         </div>
       </Button>
