@@ -1,30 +1,14 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { 
   Home, 
-  FileText, 
   Settings, 
-  Play, 
-  Square, 
   Clock,
   BarChart3
 } from 'lucide-react';
-import { useTracking } from '@/contexts/TrackingContext';
 
 const Sidebar: React.FC = () => {
-  const { state, startTracking, stopTracking } = useTracking();
-
-  const handleStartTracking = () => {
-    if (state.currentTask) {
-      startTracking(state.currentTask.description, state.currentTask.projectId);
-    }
-  };
-
-  const handleStopTracking = () => {
-    stopTracking();
-  };
 
   return (
     <div className="w-64 h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col shadow-xl">
@@ -42,59 +26,6 @@ const Sidebar: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Current Task Display */}
-      {state.currentTask && (
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${state.isTracking ? 'bg-green-500 animate-pulse' : 'bg-blue-600'}`} />
-              <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                {state.isTracking ? 'Tâche active' : 'Tâche en pause'}
-              </span>
-            </div>
-            <div className="bg-white/60 dark:bg-slate-800/60 rounded-lg p-3 border border-slate-200 dark:border-slate-600">
-              <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2 font-medium">
-                {state.currentTask.description}
-              </p>
-            </div>
-            {state.isTracking && (
-              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400 font-medium">
-                <Clock className="w-4 h-4 animate-pulse" />
-                <span>Suivi en cours...</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Tracking Controls */}
-      {state.currentTask && (
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="space-y-3">
-            {!state.isTracking ? (
-              <Button 
-                onClick={handleStartTracking} 
-                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-                size="sm"
-              >
-                <Play className="w-4 h-4 mr-2" />
-                Démarrer le suivi
-              </Button>
-            ) : (
-              <Button 
-                onClick={handleStopTracking} 
-                variant="destructive"
-                className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-                size="sm"
-              >
-                <Square className="w-4 h-4 mr-2" />
-                Arrêter le suivi
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">

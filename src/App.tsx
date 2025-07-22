@@ -3,7 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import { TrackingProvider } from './contexts/TrackingContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import Sidebar from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
+import Dashboard from './pages/dashboard';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 
