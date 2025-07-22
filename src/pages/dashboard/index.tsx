@@ -46,6 +46,7 @@ const Dashboard: React.FC = () => {
   const [isTimeEditOpen, setIsTimeEditOpen] = useState(false);
   const [currentTaskDescription, setCurrentTaskDescription] = useState('');
   const [isTaskDescriptionEditing, setIsTaskDescriptionEditing] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState({
     todayTime: 0,
     completedTasks: 0,
@@ -57,6 +58,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     loadStats();
     loadRecentTasks();
+    loadProjects();
   }, []);
 
   const loadStats = async () => {
@@ -94,6 +96,22 @@ const Dashboard: React.FC = () => {
     } catch (error) {
       console.error('Error loading recent tasks:', error);
     }
+  };
+
+  const loadProjects = async () => {
+    try {
+      if (window.electronAPI) {
+        const projectsData = await window.electronAPI.getProjects();
+        setProjects(projectsData);
+      }
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    }
+  };
+
+  const handleCreateProject = () => {
+    // TODO: Implement project creation modal
+    console.log('Create project clicked');
   };
 
   const handleStartTracking = () => {
@@ -219,6 +237,8 @@ const Dashboard: React.FC = () => {
           onStartTracking={handleStartTracking}
           setIsFormVisible={setIsFormVisible}
           formatElapsedTime={formatElapsedTime}
+          projects={projects}
+          onCreateProject={handleCreateProject}
         />
 
         {/* Stats Grid */}

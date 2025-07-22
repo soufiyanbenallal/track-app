@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import ProjectManager from '../../../components/ProjectManager';
+import ProjectDropdown from '../../../components/ProjectDropdown';
 import { Play, Square, Plus, Tag, DollarSign } from 'lucide-react';
 
 interface Project {
@@ -35,9 +34,11 @@ interface WorkspaceCardProps {
   onStartTracking: () => void;
   setIsFormVisible: (visible: boolean) => void;
   formatElapsedTime: () => string;
+  projects: Project[];
+  onCreateProject: () => void;
 }
 
-export  default function WorkspaceCardProps   ({
+export default function WorkspaceCard({
   state,
   selectedProject,
   setSelectedProject,
@@ -49,7 +50,9 @@ export  default function WorkspaceCardProps   ({
   onStopTracking,
   onStartTracking,
   setIsFormVisible,
-  formatElapsedTime
+  formatElapsedTime,
+  projects,
+  onCreateProject
 }: WorkspaceCardProps) {
   const isTracking = useMemo(() => {
     return state.isTracking && state.currentTask;
@@ -117,13 +120,23 @@ export  default function WorkspaceCardProps   ({
                 ) : (<Button
                   size="lg"
                   onClick={onStartWithConfigurableTime}
-                  disabled={!!currentTaskDescription.trim()}
+                  disabled={!currentTaskDescription.trim()}
                   className="w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Play className="w-6 h-6" />
                 </Button>
                 )
               }
+            </div>
+            
+            {/* Project selector */}
+            <div className="flex items-center gap-3">
+              <ProjectDropdown
+                selectedProject={selectedProject}
+                onProjectSelect={setSelectedProject}
+                projects={projects}
+                onCreateProject={onCreateProject}
+              />
             </div>
           </div>
       </div>
