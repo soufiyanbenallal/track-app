@@ -102,6 +102,7 @@ const Reports: React.FC = () => {
     isCompleted: undefined as boolean | undefined,
     isArchived: false,
     search: '',
+    minDuration: 300, // 5 minutes in seconds (default)
   });
 
   const [dateRange, setDateRange] = useState({
@@ -173,7 +174,11 @@ const Reports: React.FC = () => {
     }
     
     // Calculate totals for completed tasks only
-    const completedTasks = tasks.filter(task => task.isCompleted && task.duration);
+    const completedTasks = tasks.filter(task => 
+      task.isCompleted && 
+      task.duration && 
+      task.duration >= filters.minDuration
+    );
     let subtotal = 0;
     let totalHours = 0;
     
@@ -258,7 +263,7 @@ const Reports: React.FC = () => {
     
     // Save with invoice number
     doc.save(`invoice-${invoiceNumber}-${dateRange.startDate}-${dateRange.endDate}.pdf`);
-  }, [dateRange.startDate, dateRange.endDate, stats, tasks, settings.hourlyRate, filters.customerId, customers]);
+  }, [dateRange.startDate, dateRange.endDate, stats, tasks, settings.hourlyRate, filters.customerId, customers, filters.minDuration]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -355,7 +360,11 @@ const Reports: React.FC = () => {
   const generateStats = useCallback(() => {
     const filteredTasks = tasks.filter(task => {
       const taskDate = new Date(task.startTime).toISOString().split('T')[0];
-      return taskDate >= dateRange.startDate && taskDate <= dateRange.endDate && task.isCompleted;
+      return taskDate >= dateRange.startDate && 
+             taskDate <= dateRange.endDate && 
+             task.isCompleted &&
+             task.duration &&
+             task.duration >= filters.minDuration;
     });
 
     let totalSeconds = 0;
@@ -386,7 +395,7 @@ const Reports: React.FC = () => {
       totalAmount,
       unpaidAmount
     });
-  }, [tasks, dateRange.startDate, dateRange.endDate, settings.hourlyRate]);
+  }, [tasks, dateRange.startDate, dateRange.endDate, settings.hourlyRate, filters.minDuration]);
 
   const handleFilterChange = (newFilters: Partial<typeof filters>) => {
     const updatedFilters = { ...filters, ...newFilters };
@@ -578,46 +587,34 @@ const Reports: React.FC = () => {
       if (filters.search && !task.description.toLowerCase().includes(filters.search.toLowerCase())) {
         return false;
       }
+      if (task.duration && task.duration < filters.minDuration) {
+        return false;
+      }
       return true;
     });
-  }, [tasks, filters.search]);
+  }, [tasks, filters.search, filters.minDuration]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
       <div className="max-w-7xl mx-auto p-6 space-y-8">
-        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-xl p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="search">Search</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="search"
-                      placeholder="Search..."
-                      value={filters.search}
-                      onChange={(e) => handleFilterChange({ search: e.target.value })}
-                      className="pl-10"
-                      aria-label="Search in tasks"
-                    />
-                  </div>
-                </div>
+        <ul className="bg-white/80 shadow-xl rounded-xl flex flex-wrap gap-4 p-4">
                 
-                <div className="space-y-2">
-                  <Label htmlFor="project">Project</Label>
-                <Select value={filters.projectId || "all"} onValueChange={(value) => handleFilterChange({ projectId: value === "all" ? "" : value })}>
-                    <SelectTrigger aria-label="Select a project">
-                      <SelectValue placeholder="All projects" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All projects</SelectItem>
-                      {projects.map(project => (
-                        <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <li className="space-y-1">
+                <Label htmlFor="project">Project</Label>
+              <Select value={filters.projectId || "all"} onValueChange={(value) => handleFilterChange({ projectId: value === "all" ? "" : value })}>
+                  <SelectTrigger aria-label="Select a project">
+                    <SelectValue placeholder="All projects" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All projects</SelectItem>
+                    {projects.map(project => (
+                      <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </li>
 
-              <div className="space-y-2">
+              <li className="space-y-1">
                 <Label htmlFor="customer">Customer</Label>
                 <div className="flex gap-2">
                   <Select value={filters.customerId || "all"} onValueChange={(value) => handleFilterChange({ customerId: value === "all" ? "" : value })}>
@@ -642,9 +639,9 @@ const Reports: React.FC = () => {
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
-              </div>
+              </li>
 
-              <div className="space-y-2">
+              <li className="space-y-1">
                 <Label htmlFor="tags">Tags</Label>
                 <div className="flex gap-2">
                   <Select value={filters.tags || "all"} onValueChange={(value) => handleFilterChange({ tags: value === "all" ? "" : value })}>
@@ -669,9 +666,9 @@ const Reports: React.FC = () => {
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
-              </div>
+              </li>
 
-                <div className="space-y-2">
+                <li className="space-y-1">
                   <Label htmlFor="startDate">Start date</Label>
                   <Input
                     id="startDate"
@@ -679,9 +676,9 @@ const Reports: React.FC = () => {
                   value={dateRange.startDate}
                   onChange={(e) => handleDateRangeChange({ startDate: e.target.value })}
                   />
-                </div>
+                </li>
 
-                <div className="space-y-2">
+                <li className="space-y-1">
                   <Label htmlFor="endDate">End date</Label>
                   <Input
                     id="endDate"
@@ -689,10 +686,10 @@ const Reports: React.FC = () => {
                   value={dateRange.endDate}
                   onChange={(e) => handleDateRangeChange({ endDate: e.target.value })}
                   />
-                </div>
+                </li>
 
-                <div className="space-y-2">
-                  <Label htmlFor="paymentStatus">Payment status</Label>
+                <li className="space-y-1">
+                  <Label htmlFor="paymentStatus">Payment </Label>
                   <Select 
                     value={filters.isPaid === undefined ? 'all' : filters.isPaid.toString()} 
                   onValueChange={(value) => handleFilterChange({ 
@@ -708,10 +705,10 @@ const Reports: React.FC = () => {
                       <SelectItem value="false">Unpaid</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
+                </li>
 
-                <div className="space-y-2">
-                  <Label htmlFor="completionStatus">Completion status</Label>
+                <li className="space-y-1">
+                  <Label htmlFor="completionStatus">Completion</Label>
                   <Select 
                     value={filters.isCompleted === undefined ? 'all' : filters.isCompleted.toString()} 
                   onValueChange={(value) => handleFilterChange({ 
@@ -727,18 +724,31 @@ const Reports: React.FC = () => {
                       <SelectItem value="false">In Progress</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
+                </li>
 
-                <div className="flex items-center space-x-2">
+                <li className="flex items-center space-x-2">
                   <Checkbox
                     id="archived"
                     checked={filters.isArchived}
                   onCheckedChange={(checked) => handleFilterChange({ isArchived: checked as boolean })}
                   />
                   <Label htmlFor="archived">Include archived</Label>
-                </div>
-              </div>
-          </div>
+                </li>
+
+                <li className="space-y-1">
+                  <Label htmlFor="minDuration">Min</Label>
+                  <Input
+                    id="minDuration"
+                    type="number"
+                    min="0"
+                    step="1"
+                    className='max-w-16'
+                    value={filters.minDuration / 60}
+                    onChange={(e) => handleFilterChange({ minDuration: Math.max(0, parseFloat(e.target.value) || 0) * 60 })}
+                    placeholder="5"
+                  />
+                </li>
+          </ul>
 
         {/* Stats Cards */}
         {stats && (
@@ -814,7 +824,18 @@ const Reports: React.FC = () => {
 
           {/* Tasks List */}
         <div className="bg-white/80 rounded-xl shadow-xl">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-1 px-2 border-b bg-slate-900 rounded-t-xl text-white">
+          <div className="relative border-b border-white/10 bg-slate-900 rounded-t-xl h-10">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <input
+              id="search"
+              placeholder="Search..."
+              value={filters.search}
+              onChange={(e) => handleFilterChange({ search: e.target.value })}
+              className="pl-10 h-10 bg-transparent border-none w-full text-white focus:outline-none"
+              aria-label="Search in tasks"
+            />
+          </div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-1 px-2 border-b bg-slate-900  text-white">
               <div className="flex items-center gap-4">
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -890,11 +911,7 @@ const Reports: React.FC = () => {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-1 px-2 font-medium" scope="col">
-                        <Checkbox
-                          checked={selectAll}
-                          onCheckedChange={handleSelectAll}
-                          aria-label="Select all tasks"
-                        />
+                      
                       </th>
                       <th className="text-left py-1 px-2 font-medium" scope="col">Project</th>
                       <th className="text-left py-1 px-2 font-medium" scope="col">Date</th>
