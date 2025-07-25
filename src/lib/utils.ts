@@ -27,11 +27,11 @@ export function formatHours(hours: number): string {
 
 export function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('fr-FR', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
+    year: '2-digit',
+    month: '2-digit',
+    day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
+    // second: '2-digit',
   });
 }

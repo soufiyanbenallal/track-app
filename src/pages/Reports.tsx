@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,14 +7,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Search, Edit, Trash2, Download, Calendar, Clock, CheckCircle, XCircle, BarChart3, User, Tag, Plus, Archive, FileText } from 'lucide-react';
 import { Loading } from '@/components/ui/loading';
-import { Toast } from '@/components/ui/toast';
 import CustomerModal from '@/components/CustomerModal';
 import TagModal from '@/components/TagModal';
-import { formatTime, formatDuration, formatHours, formatDate } from '@/lib/utils';
+import { formatDuration, formatHours, formatDate } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -133,68 +130,133 @@ const Reports: React.FC = () => {
 
   const exportToPDF = useCallback(() => {
     const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const currentDate = new Date().toLocaleDateString('en-GB');
+    const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
     
-    // Title
-    doc.setFontSize(20);
-    doc.text('Rapport des Tâches', 20, 20);
+    // Header - Entrepreneur Info
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INVOICE', pageWidth - 50, 25);
     
-    // Date range
-    doc.setFontSize(12);
-    doc.text(`Période: ${dateRange.startDate} - ${dateRange.endDate}`, 20, 35);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Benallal Soufiyan', 20, 25);
     
-    // Stats
-    if (stats) {
-      doc.setFontSize(14);
-      doc.text('Statistiques:', 20, 50);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Entrepreneur - Software Development', 20, 35);
+    doc.text('Email: contact@soufiyan.dev', 20, 45);
+    doc.text('Phone: +212 XXX XXX XXX', 20, 55);
+    
+    // Invoice details (right side)
+    doc.setFontSize(10);
+    doc.text(`Invoice #: ${invoiceNumber}`, pageWidth - 70, 45);
+    doc.text(`Date: ${currentDate}`, pageWidth - 70, 55);
+    doc.text(`Period: ${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`, pageWidth - 70, 65);
+    
+    // Customer info (if single customer selected)
+    const selectedCustomer = filters.customerId ? customers.find(c => c.id === filters.customerId) : null;
+    if (selectedCustomer) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Bill To:', 20, 80);
+      
       doc.setFontSize(10);
-      doc.text(`Total d'heures: ${formatHours(stats.totalHours)}`, 20, 60);
-      doc.text(`Heures non payées: ${formatHours(stats.unpaidHours)}`, 20, 70);
-      doc.text(`Moyenne par jour: ${formatHours(stats.averageHoursPerDay)}`, 20, 80);
-      doc.text(`Montant total: ${stats.totalAmount.toFixed(2)} MAD`, 20, 90);
-      doc.text(`Montant non payé: ${stats.unpaidAmount.toFixed(2)} MAD`, 20, 100);
+      doc.setFont('helvetica', 'normal');
+      doc.text(selectedCustomer.name, 20, 90);
+      if (selectedCustomer.email) doc.text(selectedCustomer.email, 20, 100);
+      if (selectedCustomer.phone) doc.text(selectedCustomer.phone, 20, 110);
+      if (selectedCustomer.address) doc.text(selectedCustomer.address, 20, 120);
     }
+    
+    // Calculate totals for completed tasks only
+    const completedTasks = tasks.filter(task => task.isCompleted && task.duration);
+    let subtotal = 0;
+    let totalHours = 0;
+    
+    // Prepare table data with rates
+    const tableData = completedTasks.map(task => {
+      const hours = task.duration ? task.duration / 3600 : 0;
+      const amount = hours * settings.hourlyRate;
+      totalHours += hours;
+      subtotal += amount;
+      
+      return [
+        formatDate(task.startTime),
+        task.projectName,
+        task.description.substring(0, 40) + (task.description.length > 40 ? '...' : ''),
+        formatHours(hours),
+        `${settings.hourlyRate} MAD`,
+        `${amount.toFixed(2)} MAD`
+      ];
+    });
     
     // Tasks table
-    const tableData = tasks.map(task => [
-      task.projectName,
-      task.customerName || '-',
-      task.description.substring(0, 30) + (task.description.length > 30 ? '...' : ''),
-      formatDate(task.startTime),
-      task.duration ? formatDuration(task.duration) : '-',
-      task.isPaid ? 'Payé' : 'Non payé',
-      task.isCompleted ? 'Terminé' : 'En cours'
-    ]);
-    
-    // Use autoTable to create the table
     try {
-      autoTable(doc, {
-        startY: 120,
-        head: [['Projet', 'Client', 'Description', 'Date', 'Durée', 'Statut', 'Complétion']],
-        body: tableData,
-        theme: 'grid',
-        headStyles: { fillColor: [59, 130, 246] }
-      });
+              autoTable(doc, {
+          startY: selectedCustomer ? 140 : 100,
+          head: [['Date', 'Project', 'Description', 'Hours', 'Rate', 'Amount']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: { 
+            fillColor: [30, 41, 59], // slate-800
+            textColor: 255,
+            fontSize: 10,
+            fontStyle: 'bold'
+          },
+          bodyStyles: {
+            fontSize: 9
+          },
+          margin: { left: 20, right: 20 }
+        });
     } catch (error) {
-      console.error('Error creating autoTable, falling back to simple table:', error);
-      // Fallback: simple table without autoTable
-      let y = 120;
-      doc.setFontSize(10);
-      doc.text('Projet | Client | Description | Date | Durée | Statut | Complétion', 20, y);
-      y += 10;
-      
-      tableData.forEach(row => {
-        const line = row.join(' | ');
-        doc.text(line, 20, y);
-        y += 8;
-        if (y > 280) { // New page if needed
-          doc.addPage();
-          y = 20;
-        }
-      });
+      console.error('Error creating autoTable:', error);
     }
     
-    doc.save(`rapport-${dateRange.startDate}-${dateRange.endDate}.pdf`);
-  }, [dateRange.startDate, dateRange.endDate, stats, tasks]);
+    // Get final Y position after table
+    const finalY = (doc as any).lastAutoTable?.finalY || 200;
+    
+    // Summary section
+    const summaryStartY = finalY + 20;
+    const summaryX = pageWidth - 80;
+    
+    // Summary box
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(summaryX - 10, summaryStartY - 10, 70, 60);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Hours: ${formatHours(totalHours)}`, summaryX, summaryStartY);
+    doc.text(`Hourly Rate: ${settings.hourlyRate} MAD`, summaryX, summaryStartY + 10);
+    doc.text(`Subtotal: ${subtotal.toFixed(2)} MAD`, summaryX, summaryStartY + 20);
+    
+    // Tax calculation (20% TVA for Morocco)
+    const taxRate = 0.20;
+    const taxAmount = subtotal * taxRate;
+    const totalAmount = subtotal + taxAmount;
+    
+    doc.text(`TVA (20%): ${taxAmount.toFixed(2)} MAD`, summaryX, summaryStartY + 30);
+    
+    // Total line (bold)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(`TOTAL: ${totalAmount.toFixed(2)} MAD`, summaryX, summaryStartY + 45);
+    
+    // Payment terms
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text('Payment Terms: Net 30 days', 20, finalY + 50);
+    doc.text('Thank you for your business!', 20, finalY + 60);
+    
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text(`Generated on ${currentDate}`, 20, doc.internal.pageSize.height - 20);
+    
+    // Save with invoice number
+    doc.save(`invoice-${invoiceNumber}-${dateRange.startDate}-${dateRange.endDate}.pdf`);
+  }, [dateRange.startDate, dateRange.endDate, stats, tasks, settings.hourlyRate, filters.customerId, customers]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -271,7 +333,7 @@ const Reports: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading data:', error);
-      showToast('Erreur lors du chargement des données', 'error');
+      showToast('Error loading data', 'error');
     } finally {
       setLoading(false);
     }
@@ -351,26 +413,26 @@ const Reports: React.FC = () => {
         });
         setShowEditModal(false);
         setEditingTask(null);
-        showToast('Tâche mise à jour avec succès', 'success');
+        showToast('Task updated successfully', 'success');
         loadData();
       }
     } catch (error) {
       console.error('Error updating task:', error);
-      showToast('Erreur lors de la mise à jour de la tâche', 'error');
+      showToast('Error updating task', 'error');
     }
   }, [editingTask, editForm, loadData, showToast]);
 
   const handleDeleteTask = useCallback(async (taskId: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+    if (confirm('Are you sure you want to delete this task?')) {
       try {
         if (window.electronAPI) {
           await window.electronAPI.deleteTask(taskId);
-          showToast('Tâche supprimée avec succès', 'success');
+          showToast('Task deleted successfully', 'success');
           loadData();
         }
       } catch (error) {
         console.error('Error deleting task:', error);
-        showToast('Erreur lors de la suppression de la tâche', 'error');
+        showToast('Error deleting task', 'error');
       }
     }
   }, [loadData, showToast]);
@@ -394,26 +456,26 @@ const Reports: React.FC = () => {
         await window.electronAPI.bulkUpdateTaskStatus(selectedTasks, sqliteUpdates);
         setSelectedTasks([]);
         setSelectAll(false);
-        showToast('Tâches mises à jour avec succès', 'success');
+        showToast('Tasks updated successfully', 'success');
         loadData();
       }
     } catch (error) {
       console.error('Error bulk updating tasks:', error);
-      showToast('Erreur lors de la mise à jour des tâches', 'error');
+      showToast('Error updating tasks', 'error');
     }
   };
 
   const handleBulkArchivePaid = async () => {
-    if (confirm('Êtes-vous sûr de vouloir archiver toutes les tâches payées ?')) {
+    if (confirm('Are you sure you want to archive all paid tasks?')) {
       try {
         if (window.electronAPI) {
           await window.electronAPI.bulkArchivePaidTasks();
-          showToast('Tâches payées archivées avec succès', 'success');
+          showToast('Paid tasks archived successfully', 'success');
           loadData();
         }
       } catch (error) {
         console.error('Error bulk archiving tasks:', error);
-        showToast('Erreur lors de l\'archivage des tâches', 'error');
+        showToast('Error archiving tasks', 'error');
       }
     }
   };
@@ -478,84 +540,31 @@ const Reports: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
       <div className="max-w-7xl mx-auto p-6 space-y-8">
-        {/* Header */}
-        <div className="space-y-3 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-800/80 rounded-full border border-slate-200 dark:border-slate-700 backdrop-blur-sm">
-            <BarChart3 className="w-4 h-4 text-blue-600" />
-            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-              Analyse et rapports
-            </span>
-          </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-            Rapports & Journal
-          </h1>
-          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            Gérez vos tâches et générez des rapports détaillés
-          </p>
-        </div>
-
-        {/* Stats Cards */}
-        {stats && (
-          <ul className="flex items-center text-white bg-gray-950 rounded-lg">
-            <li className='p-2 py-3 flex-1'>
-                <p className="text-xs">Heures totales</p>
-                <div className="text-2xl font-bold">{formatHours(stats.totalHours)}</div>
-            </li>
-            <li className='p-2 py-3 flex-1'>
-                <p className="text-xs">Heures non payées</p>
-                <div className="text-2xl font-bold text-red-600">{formatHours(stats.unpaidHours)}</div>
-            </li>
-            <li className='p-2 py-3 flex-1'>
-                <p className="text-xs">Heures par jour</p>
-                <div className="text-2xl font-bold text-blue-600">{formatHours(stats.averageHoursPerDay)}</div>
-            </li>
-            <li className='p-2 py-3 flex-1'>
-   
-                <p className="text-xs">Montant total</p>
-                <div className="text-2xl font-bold text-green-600">{stats.totalAmount.toFixed(2)} MAD</div>
-            </li>
-            <li className='p-2 py-3 flex-1'>
-                <p className="text-xs">Montant non payé</p>
-                <div className="text-2xl font-bold text-red-600">{stats.unpaidAmount.toFixed(2)} MAD</div>
-            </li>
-          </ul>
-        )}
-
-          {/* Filters */}
-          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                Filtres
-              </CardTitle>
-              <CardDescription className="text-slate-600 dark:text-slate-400">
-                Filtrez vos tâches selon vos besoins
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-xl p-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="search">Recherche</Label>
+                  <Label htmlFor="search">Search</Label>
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="search"
-                      placeholder="Rechercher..."
+                      placeholder="Search..."
                       value={filters.search}
                       onChange={(e) => handleFilterChange({ search: e.target.value })}
                       className="pl-10"
-                      aria-label="Rechercher dans les tâches"
+                      aria-label="Search in tasks"
                     />
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="project">Projet</Label>
+                  <Label htmlFor="project">Project</Label>
                 <Select value={filters.projectId || "all"} onValueChange={(value) => handleFilterChange({ projectId: value === "all" ? "" : value })}>
-                    <SelectTrigger aria-label="Sélectionner un projet">
-                      <SelectValue placeholder="Tous les projets" />
+                    <SelectTrigger aria-label="Select a project">
+                      <SelectValue placeholder="All projects" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tous les projets</SelectItem>
+                      <SelectItem value="all">All projects</SelectItem>
                       {projects.map(project => (
                         <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
                       ))}
@@ -564,14 +573,14 @@ const Reports: React.FC = () => {
                 </div>
 
               <div className="space-y-2">
-                <Label htmlFor="customer">Client</Label>
+                <Label htmlFor="customer">Customer</Label>
                 <div className="flex gap-2">
                   <Select value={filters.customerId || "all"} onValueChange={(value) => handleFilterChange({ customerId: value === "all" ? "" : value })}>
-                    <SelectTrigger className="flex-1" aria-label="Sélectionner un client">
-                      <SelectValue placeholder="Tous les clients" />
+                    <SelectTrigger className="flex-1" aria-label="Select a customer">
+                      <SelectValue placeholder="All customers" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tous les clients</SelectItem>
+                      <SelectItem value="all">All customers</SelectItem>
                       {customers.map(customer => (
                         <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
                       ))}
@@ -595,10 +604,10 @@ const Reports: React.FC = () => {
                 <div className="flex gap-2">
                   <Select value={filters.tags || "all"} onValueChange={(value) => handleFilterChange({ tags: value === "all" ? "" : value })}>
                     <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Tous les tags" />
+                      <SelectValue placeholder="All tags" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tous les tags</SelectItem>
+                      <SelectItem value="all">All tags</SelectItem>
                       {tags.map(tag => (
                         <SelectItem key={tag.id} value={tag.name}>{tag.name}</SelectItem>
                       ))}
@@ -618,7 +627,7 @@ const Reports: React.FC = () => {
               </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="startDate">Date de début</Label>
+                  <Label htmlFor="startDate">Start date</Label>
                   <Input
                     id="startDate"
                     type="date"
@@ -628,7 +637,7 @@ const Reports: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="endDate">Date de fin</Label>
+                  <Label htmlFor="endDate">End date</Label>
                   <Input
                     id="endDate"
                     type="date"
@@ -638,7 +647,7 @@ const Reports: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="paymentStatus">Statut de paiement</Label>
+                  <Label htmlFor="paymentStatus">Payment status</Label>
                   <Select 
                     value={filters.isPaid === undefined ? 'all' : filters.isPaid.toString()} 
                   onValueChange={(value) => handleFilterChange({ 
@@ -646,18 +655,18 @@ const Reports: React.FC = () => {
                     })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Tous" />
+                      <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tous</SelectItem>
-                      <SelectItem value="true">Payé</SelectItem>
-                      <SelectItem value="false">Non payé</SelectItem>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="true">Paid</SelectItem>
+                      <SelectItem value="false">Unpaid</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="completionStatus">Statut de complétion</Label>
+                  <Label htmlFor="completionStatus">Completion status</Label>
                   <Select 
                     value={filters.isCompleted === undefined ? 'all' : filters.isCompleted.toString()} 
                   onValueChange={(value) => handleFilterChange({ 
@@ -665,12 +674,12 @@ const Reports: React.FC = () => {
                     })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Tous" />
+                      <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tous</SelectItem>
-                      <SelectItem value="true">Terminé</SelectItem>
-                      <SelectItem value="false">En cours</SelectItem>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="true">Completed</SelectItem>
+                      <SelectItem value="false">In Progress</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -681,155 +690,171 @@ const Reports: React.FC = () => {
                     checked={filters.isArchived}
                   onCheckedChange={(checked) => handleFilterChange({ isArchived: checked as boolean })}
                   />
-                  <Label htmlFor="archived">Inclure archivés</Label>
+                  <Label htmlFor="archived">Include archived</Label>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+          </div>
 
-        {/* Bulk Actions */}
-        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-xl">
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* Stats Cards */}
+        {stats && (
+          <ul className="flex items-center text-white bg-gray-950 rounded-lg">
+            <li className='p-3 flex-1'>
+                <p className="text-xs">Total hours</p>
+                <div className="text-2xl font-bold">{formatHours(stats.totalHours)}</div>
+            </li>
+            <li className='p-3 flex-1'>
+                <p className="text-xs">Unpaid hours</p>
+                <div className="text-2xl font-bold text-red-600">{formatHours(stats.unpaidHours)}</div>
+            </li>
+            <li className='p-3 flex-1'>
+                <p className="text-xs">Average hours per day</p>
+                <div className="text-2xl font-bold text-blue-600">{formatHours(stats.averageHoursPerDay)}</div>
+            </li>
+            <li className='p-3 flex-1'>
+   
+                <p className="text-xs">Total amount</p>
+                <div className="text-2xl font-bold text-green-600">{stats.totalAmount.toFixed(2)} MAD</div>
+            </li>
+            <li className='p-3 flex-1'>
+                <p className="text-xs">Unpaid amount</p>
+                <div className="text-2xl font-bold text-red-600">{stats.unpaidAmount.toFixed(2)} MAD</div>
+            </li>
+          </ul>
+        )}
+
+     
+
+          {/* Tasks List */}
+        <div className="bg-white/80 rounded-xl shadow-xl">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-1 px-2 border-b bg-slate-900 rounded-t-xl text-white">
               <div className="flex items-center gap-4">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     checked={selectAll}
                     onCheckedChange={handleSelectAll}
                   />
-                  <Label>Tout sélectionner</Label>
+                  <Label>Select all</Label>
                 </div>
                 {selectedTasks.length > 0 && (
                   <Badge variant="secondary">
-                    {selectedTasks.length} tâche(s) sélectionnée(s)
+                    {selectedTasks.length} task(s) selected
                   </Badge>
                 )}
               </div>
               
               <div className="flex flex-wrap gap-2">
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   onClick={() => handleBulkUpdateStatus({ isPaid: true })}
                   disabled={selectedTasks.length === 0}
                   className="text-xs sm:text-sm"
                 >
                   <CheckCircle className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Marquer comme payé</span>
-                  <span className="sm:hidden">Payé</span>
+                  <span className="hidden sm:inline">Mark as paid</span>
+                  <span className="sm:hidden">Paid</span>
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   onClick={() => handleBulkUpdateStatus({ isPaid: false })}
                   disabled={selectedTasks.length === 0}
                   className="text-xs sm:text-sm"
                 >
                   <XCircle className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Marquer comme non payé</span>
-                  <span className="sm:hidden">Non payé</span>
+                  <span className="hidden sm:inline">Mark as unpaid</span>
+                  <span className="sm:hidden">Unpaid</span>
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   onClick={handleBulkArchivePaid}
                   className="text-xs sm:text-sm"
                 >
                   <Archive className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Archiver payées</span>
-                  <span className="sm:hidden">Archiver</span>
+                  <span className="hidden sm:inline">Archive paid</span>
+                  <span className="sm:hidden">Archive</span>
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   onClick={exportToPDF}
                   className="text-xs sm:text-sm"
                 >
                   <FileText className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Exporter PDF</span>
+                  <span className="hidden sm:inline">Export PDF</span>
                   <span className="sm:hidden">PDF</span>
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-          {/* Tasks List */}
-        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader>
-              <CardTitle>Tâches</CardTitle>
-              <CardDescription>Liste de toutes vos tâches</CardDescription>
-            </CardHeader>
-            <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loading text="Chargement..." />
+                  <Loading text="Loading..." />
                 </div>
               ) : filteredTasks.length === 0 ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="text-muted-foreground">Aucune tâche trouvée</div>
+                  <div className="text-muted-foreground">No tasks found</div>
                 </div>
               ) : (
               <div className="overflow-x-auto">
-                <table className="w-full" role="table" aria-label="Liste des tâches">
+                <table className="w-full" role="table" aria-label="Task list">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-medium" scope="col">
+                      <th className="text-left py-1 px-2 font-medium" scope="col">
                         <Checkbox
                           checked={selectAll}
                           onCheckedChange={handleSelectAll}
-                          aria-label="Sélectionner toutes les tâches"
+                          aria-label="Select all tasks"
                         />
                       </th>
-                      <th className="text-left py-3 px-4 font-medium" scope="col">Projet</th>
-                      <th className="text-left py-3 px-4 font-medium" scope="col">Client</th>
-                      <th className="text-left py-3 px-4 font-medium" scope="col">Description</th>
-                      <th className="text-left py-3 px-4 font-medium" scope="col">Date</th>
-                      <th className="text-left py-3 px-4 font-medium" scope="col">Durée</th>
-                      <th className="text-left py-3 px-4 font-medium" scope="col">Statut</th>
-                      <th className="text-left py-3 px-4 font-medium" scope="col">Actions</th>
+                      <th className="text-left py-1 px-2 font-medium" scope="col">Project</th>
+                      <th className="text-left py-1 px-2 font-medium" scope="col">Date</th>
+                      <th className="text-left py-1 px-2 font-medium" scope="col">Duration</th>
+                      <th className="text-left py-1 px-2 font-medium" scope="col">Status</th>
+                      <th className="text-left py-1 px-2 font-medium max-w-20" scope="col"></th>
                     </tr>
                   </thead>
                   <tbody>
                   {filteredTasks.map((task) => (
                       <tr key={task.id} className="border-b hover:bg-muted/50">
-                        <td className="py-3 px-4">
+                        <td className="py-1 pl-4 relative">
+                        <div 
+                                className="w-1 rounded-full absolute left-1 inset-y-2"
+                                style={{ backgroundColor: task.projectColor }}
+                              />
                           <Checkbox
                             checked={selectedTasks.includes(task.id)}
                             onCheckedChange={(checked) => handleSelectTask(task.id, checked as boolean)}
-                            aria-label={`Sélectionner la tâche ${task.description}`}
+                            aria-label={`Select task ${task.description}`}
                           />
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-1 px-2">
+
                           <div className="flex items-center gap-2">
-                              <div 
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: task.projectColor }}
-                              />
+                            <span className={!task.customerName ? 'text-gray-400' :"text-blue-500"}>{task.customerName || 'No customer'}</span> -
                             <span>{task.projectName}</span>
                           </div>
+                          <p className="max-w-xs truncate text-xs">{task.description}</p>
+
                         </td>
-                        <td className="py-3 px-4">{task.customerName || '-'}</td>
-                        <td className="py-3 px-4 max-w-xs truncate">{task.description}</td>
-                        <td className="py-3 px-4">{formatDate(task.startTime)}</td>
-                        <td className="py-3 px-4">{task.duration ? formatDuration(task.duration) : '-'}</td>
-                        <td className="py-3 px-4">
+                        <td className="py-1 px-2">{formatDate(task.startTime)}</td>
+                        <td className="py-1 px-2">{task.duration ? formatDuration(task.duration) : '-'}</td>
+                        <td className="py-1 px-2">
                               <div className="flex gap-2">
                                 <Badge variant={task.isPaid ? "default" : "secondary"}>
-                              {task.isPaid ? "Payé" : "Non payé"}
+                              {task.isPaid ? "Paid" : "Unpaid"}
                                 </Badge>
-                                <Badge variant={task.isCompleted ? "default" : "outline"}>
-                                  {task.isCompleted ? "Terminé" : "En cours"}
-                                </Badge>
+                           
                               </div>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-1 px-2">
                           <div className="flex gap-2">
                             <Button
-                              variant="outline"
+                              variant="secondary"
                               size="sm"
                               onClick={() => handleEditTask(task)}
-                              aria-label={`Modifier la tâche ${task.description}`}
+                              aria-label={`Edit task ${task.description}`}
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
@@ -837,7 +862,7 @@ const Reports: React.FC = () => {
                               variant="destructive"
                               size="sm"
                               onClick={() => handleDeleteTask(task.id)}
-                              aria-label={`Supprimer la tâche ${task.description}`}
+                              aria-label={`Delete task ${task.description}`}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -849,17 +874,16 @@ const Reports: React.FC = () => {
                   </table>
                 </div>
             )}
-              </CardContent>
-            </Card>
+            </div>
       </div>
 
       {/* Edit Task Dialog */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Modifier la tâche</DialogTitle>
+            <DialogTitle>Edit task</DialogTitle>
             <DialogDescription>
-              Modifiez les détails de cette tâche
+              Edit the details of this task
             </DialogDescription>
           </DialogHeader>
           
@@ -880,17 +904,10 @@ const Reports: React.FC = () => {
                 checked={editForm.isPaid}
                 onCheckedChange={(checked) => setEditForm({ ...editForm, isPaid: checked })}
               />
-              <Label htmlFor="editPaid">Payé</Label>
+              <Label htmlFor="editPaid">Paid</Label>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="editCompleted"
-                checked={editForm.isCompleted}
-                onCheckedChange={(checked) => setEditForm({ ...editForm, isCompleted: checked })}
-              />
-              <Label htmlFor="editCompleted">Terminé</Label>
-            </div>
+     
             
             <div className="flex items-center space-x-2">
               <Switch
@@ -898,16 +915,16 @@ const Reports: React.FC = () => {
                 checked={editForm.isArchived}
                 onCheckedChange={(checked) => setEditForm({ ...editForm, isArchived: checked })}
               />
-              <Label htmlFor="editArchived">Archivé</Label>
+              <Label htmlFor="editArchived">Archived</Label>
             </div>
           </div>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditModal(false)}>
-              Annuler
+              Cancel
             </Button>
             <Button onClick={handleUpdateTask}>
-              Sauvegarder
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
