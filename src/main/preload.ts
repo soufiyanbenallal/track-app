@@ -22,6 +22,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateProject: (project: any) => ipcRenderer.invoke('db-update-project', project),
   deleteProject: (id: string) => ipcRenderer.invoke('db-delete-project', id),
   
+  // Customer operations
+  getCustomers: () => ipcRenderer.invoke('db-get-customers'),
+  createCustomer: (customer: any) => ipcRenderer.invoke('db-create-customer', customer),
+  updateCustomer: (customer: any) => ipcRenderer.invoke('db-update-customer', customer),
+  deleteCustomer: (id: string) => ipcRenderer.invoke('db-delete-customer', id),
+  
+  // Tag operations
+  getTags: () => ipcRenderer.invoke('db-get-tags'),
+  createTag: (tag: any) => ipcRenderer.invoke('db-create-tag', tag),
+  updateTag: (tag: any) => ipcRenderer.invoke('db-update-tag', tag),
+  deleteTag: (id: string) => ipcRenderer.invoke('db-delete-tag', id),
+  
+  // Bulk operations
+  bulkUpdateTaskStatus: (taskIds: string[], updates: any) => ipcRenderer.invoke('db-bulk-update-task-status', taskIds, updates),
+  bulkArchivePaidTasks: () => ipcRenderer.invoke('db-bulk-archive-paid-tasks'),
+  
   // Notion operations
   syncTask: (task: any) => ipcRenderer.invoke('notion-sync-task', task),
   getNotionDatabases: () => ipcRenderer.invoke('notion-get-databases'),
@@ -76,6 +92,16 @@ declare global {
       createProject: (project: any) => Promise<any>;
       updateProject: (project: any) => Promise<any>;
       deleteProject: (id: string) => Promise<void>;
+      getCustomers: () => Promise<any[]>;
+      createCustomer: (customer: any) => Promise<any>;
+      updateCustomer: (customer: any) => Promise<any>;
+      deleteCustomer: (id: string) => Promise<void>;
+      getTags: () => Promise<any[]>;
+      createTag: (tag: any) => Promise<any>;
+      updateTag: (tag: any) => Promise<any>;
+      deleteTag: (id: string) => Promise<void>;
+      bulkUpdateTaskStatus: (taskIds: string[], updates: any) => Promise<void>;
+      bulkArchivePaidTasks: () => Promise<void>;
       syncTask: (task: any) => Promise<any>;
       getNotionDatabases: () => Promise<any[]>;
       getSettings: () => Promise<any>;

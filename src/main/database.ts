@@ -6,6 +6,8 @@ export interface Task {
   id: string;
   description: string;
   projectId: string;
+  customerId?: string;
+  tags?: string;
   startTime: string;
   endTime?: string;
   duration?: number;
@@ -26,11 +28,33 @@ export interface Project {
   updatedAt: string;
 }
 
+export interface Customer {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Settings {
   idleTimeoutMinutes: number;
   notionApiKey?: string;
   notionWorkspaceId?: string;
   autoSyncToNotion: boolean;
+  hourlyRate: number;
+  defaultDateRange: string;
 }
 
 export class DatabaseService {
@@ -56,12 +80,40 @@ export class DatabaseService {
       )
     `);
 
+    // Customers table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS customers (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT,
+        phone TEXT,
+        address TEXT,
+        isArchived INTEGER DEFAULT 0,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      )
+    `);
+
+    // Tags table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS tags (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        color TEXT NOT NULL,
+        isArchived INTEGER DEFAULT 0,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      )
+    `);
+
     // Tasks table
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS tasks (
         id TEXT PRIMARY KEY,
         description TEXT NOT NULL,
         projectId TEXT NOT NULL,
+        customerId TEXT,
+        tags TEXT,
         startTime TEXT NOT NULL,
         endTime TEXT,
         duration INTEGER,
@@ -70,7 +122,8 @@ export class DatabaseService {
         isArchived INTEGER DEFAULT 0,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL,
-        FOREIGN KEY (projectId) REFERENCES projects (id)
+        FOREIGN KEY (projectId) REFERENCES projects (id),
+        FOREIGN KEY (customerId) REFERENCES customers (id)
       )
     `);
 
@@ -85,7 +138,9 @@ export class DatabaseService {
     // Insert default settings if they don't exist
     const defaultSettings = {
       idleTimeoutMinutes: 5,
-      autoSyncToNotion: false
+      autoSyncToNotion: false,
+      hourlyRate: 100,
+      defaultDateRange: '7'
     };
 
     Object.entries(defaultSettings).forEach(([key, value]) => {
@@ -93,21 +148,32 @@ export class DatabaseService {
       stmt.run(key, JSON.stringify(value));
     });
 
-    // Database migration: Add isCompleted column if it doesn't exist
+    // Database migration: Add new columns if they don't exist
     this.migrateDatabase();
   }
 
   private migrateDatabase(): void {
     try {
-      // Check if isCompleted column exists
+      // Check if new columns exist
       const tableInfo = this.db.prepare("PRAGMA table_info(tasks)").all() as any[];
-      const hasIsCompleted = tableInfo.some(column => column.name === 'isCompleted');
+      const columns = tableInfo.map(col => col.name);
       
-      if (!hasIsCompleted) {
+      if (!columns.includes('isCompleted')) {
         console.log('Adding isCompleted column to tasks table...');
         this.db.exec('ALTER TABLE tasks ADD COLUMN isCompleted INTEGER DEFAULT 0');
-        console.log('Database migration completed successfully');
       }
+      
+      if (!columns.includes('customerId')) {
+        console.log('Adding customerId column to tasks table...');
+        this.db.exec('ALTER TABLE tasks ADD COLUMN customerId TEXT');
+      }
+      
+      if (!columns.includes('tags')) {
+        console.log('Adding tags column to tasks table...');
+        this.db.exec('ALTER TABLE tasks ADD COLUMN tags TEXT');
+      }
+      
+      console.log('Database migration completed successfully');
     } catch (error) {
       console.error('Database migration error:', error);
     }
@@ -116,15 +182,20 @@ export class DatabaseService {
   // Task operations
   async getTasks(filters?: {
     projectId?: string;
+    customerId?: string;
+    tags?: string;
     startDate?: string;
     endDate?: string;
     isPaid?: boolean;
+    isCompleted?: boolean;
     isArchived?: boolean;
+    search?: string;
   }): Promise<Task[]> {
     let query = `
-      SELECT t.*, p.name as projectName, p.color as projectColor
+      SELECT t.*, p.name as projectName, p.color as projectColor, c.name as customerName
       FROM tasks t
       LEFT JOIN projects p ON t.projectId = p.id
+      LEFT JOIN customers c ON t.customerId = c.id
       WHERE 1=1
     `;
     const params: any[] = [];
@@ -132,6 +203,16 @@ export class DatabaseService {
     if (filters?.projectId) {
       query += ' AND t.projectId = ?';
       params.push(filters.projectId);
+    }
+
+    if (filters?.customerId) {
+      query += ' AND t.customerId = ?';
+      params.push(filters.customerId);
+    }
+
+    if (filters?.tags) {
+      query += ' AND t.tags LIKE ?';
+      params.push(`%${filters.tags}%`);
     }
 
     if (filters?.startDate) {
@@ -149,9 +230,20 @@ export class DatabaseService {
       params.push(filters.isPaid ? 1 : 0);
     }
 
+    if (filters?.isCompleted !== undefined) {
+      query += ' AND t.isCompleted = ?';
+      params.push(filters.isCompleted ? 1 : 0);
+    }
+
     if (filters?.isArchived !== undefined) {
       query += ' AND t.isArchived = ?';
       params.push(filters.isArchived ? 1 : 0);
+    }
+
+    if (filters?.search) {
+      query += ' AND (t.description LIKE ? OR p.name LIKE ? OR c.name LIKE ?)';
+      const searchTerm = `%${filters.search}%`;
+      params.push(searchTerm, searchTerm, searchTerm);
     }
 
     query += ' ORDER BY t.startTime DESC';
@@ -165,14 +257,16 @@ export class DatabaseService {
     const now = new Date().toISOString();
 
     const stmt = this.db.prepare(`
-      INSERT INTO tasks (id, description, projectId, startTime, endTime, duration, isCompleted, isPaid, isArchived, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tasks (id, description, projectId, customerId, tags, startTime, endTime, duration, isCompleted, isPaid, isArchived, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
       id,
       task.description,
       task.projectId,
+      task.customerId,
+      task.tags,
       task.startTime,
       task.endTime,
       task.duration,
@@ -215,7 +309,13 @@ export class DatabaseService {
   }
 
   private async getTaskById(id: string): Promise<Task> {
-    const stmt = this.db.prepare('SELECT * FROM tasks WHERE id = ?');
+    const stmt = this.db.prepare(`
+      SELECT t.*, p.name as projectName, p.color as projectColor, c.name as customerName
+      FROM tasks t
+      LEFT JOIN projects p ON t.projectId = p.id
+      LEFT JOIN customers c ON t.customerId = c.id
+      WHERE t.id = ?
+    `);
     return stmt.get(id) as Task;
   }
 
@@ -288,6 +388,160 @@ export class DatabaseService {
   private async getProjectById(id: string): Promise<Project> {
     const stmt = this.db.prepare('SELECT * FROM projects WHERE id = ?');
     return stmt.get(id) as Project;
+  }
+
+  // Customer operations
+  async getCustomers(): Promise<Customer[]> {
+    const stmt = this.db.prepare('SELECT * FROM customers WHERE isArchived = 0 ORDER BY name');
+    return stmt.all() as Customer[];
+  }
+
+  async createCustomer(customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): Promise<Customer> {
+    const id = this.generateId();
+    const now = new Date().toISOString();
+
+    const stmt = this.db.prepare(`
+      INSERT INTO customers (id, name, email, phone, address, isArchived, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(
+      id,
+      customer.name,
+      customer.email,
+      customer.phone,
+      customer.address,
+      customer.isArchived ? 1 : 0,
+      now,
+      now
+    );
+
+    return this.getCustomerById(id);
+  }
+
+  async updateCustomer(customer: Partial<Customer> & { id: string }): Promise<Customer> {
+    const now = new Date().toISOString();
+    const updates: string[] = [];
+    const params: any[] = [];
+
+    Object.entries(customer).forEach(([key, value]) => {
+      if (key !== 'id' && key !== 'createdAt') {
+        updates.push(`${key} = ?`);
+        params.push(value);
+      }
+    });
+
+    updates.push('updatedAt = ?');
+    params.push(now);
+    params.push(customer.id);
+
+    const query = `UPDATE customers SET ${updates.join(', ')} WHERE id = ?`;
+    const stmt = this.db.prepare(query);
+    stmt.run(params);
+
+    return this.getCustomerById(customer.id);
+  }
+
+  async deleteCustomer(id: string): Promise<void> {
+    const stmt = this.db.prepare('DELETE FROM customers WHERE id = ?');
+    stmt.run(id);
+  }
+
+  private async getCustomerById(id: string): Promise<Customer> {
+    const stmt = this.db.prepare('SELECT * FROM customers WHERE id = ?');
+    return stmt.get(id) as Customer;
+  }
+
+  // Tag operations
+  async getTags(): Promise<Tag[]> {
+    const stmt = this.db.prepare('SELECT * FROM tags WHERE isArchived = 0 ORDER BY name');
+    return stmt.all() as Tag[];
+  }
+
+  async createTag(tag: Omit<Tag, 'id' | 'createdAt' | 'updatedAt'>): Promise<Tag> {
+    const id = this.generateId();
+    const now = new Date().toISOString();
+
+    const stmt = this.db.prepare(`
+      INSERT INTO tags (id, name, color, isArchived, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(
+      id,
+      tag.name,
+      tag.color,
+      tag.isArchived ? 1 : 0,
+      now,
+      now
+    );
+
+    return this.getTagById(id);
+  }
+
+  async updateTag(tag: Partial<Tag> & { id: string }): Promise<Tag> {
+    const now = new Date().toISOString();
+    const updates: string[] = [];
+    const params: any[] = [];
+
+    Object.entries(tag).forEach(([key, value]) => {
+      if (key !== 'id' && key !== 'createdAt') {
+        updates.push(`${key} = ?`);
+        params.push(value);
+      }
+    });
+
+    updates.push('updatedAt = ?');
+    params.push(now);
+    params.push(tag.id);
+
+    const query = `UPDATE tags SET ${updates.join(', ')} WHERE id = ?`;
+    const stmt = this.db.prepare(query);
+    stmt.run(params);
+
+    return this.getTagById(tag.id);
+  }
+
+  async deleteTag(id: string): Promise<void> {
+    const stmt = this.db.prepare('DELETE FROM tags WHERE id = ?');
+    stmt.run(id);
+  }
+
+  private async getTagById(id: string): Promise<Tag> {
+    const stmt = this.db.prepare('SELECT * FROM tags WHERE id = ?');
+    return stmt.get(id) as Tag;
+  }
+
+  // Bulk operations
+  async bulkUpdateTaskStatus(taskIds: string[], updates: Partial<Task>): Promise<void> {
+    const now = new Date().toISOString();
+    const updateFields: string[] = [];
+    const params: any[] = [];
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (key !== 'id' && key !== 'createdAt') {
+        updateFields.push(`${key} = ?`);
+        params.push(value);
+      }
+    });
+
+    updateFields.push('updatedAt = ?');
+    params.push(now);
+
+    const placeholders = taskIds.map(() => '?').join(',');
+    const query = `UPDATE tasks SET ${updateFields.join(', ')} WHERE id IN (${placeholders})`;
+    
+    const stmt = this.db.prepare(query);
+    stmt.run(...params, ...taskIds);
+  }
+
+  async bulkArchivePaidTasks(): Promise<void> {
+    const stmt = this.db.prepare(`
+      UPDATE tasks 
+      SET isArchived = 1, updatedAt = ? 
+      WHERE isPaid = 1 AND isArchived = 0
+    `);
+    stmt.run(new Date().toISOString());
   }
 
   // Settings operations

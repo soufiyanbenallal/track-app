@@ -42,7 +42,7 @@ class TrackApp {
 
   private createWindow(): void {
     this.mainWindow = new BrowserWindow({
-      width: 1000,
+      width: 700,
       height: 700,
       webPreferences: {
         nodeIntegration: false,
@@ -186,6 +186,49 @@ class TrackApp {
 
     ipcMain.handle('db-delete-project', async (_, id) => {
       return await this.database.deleteProject(id);
+    });
+
+    // Customer operations
+    ipcMain.handle('db-get-customers', async () => {
+      return await this.database.getCustomers();
+    });
+
+    ipcMain.handle('db-create-customer', async (_, customer) => {
+      return await this.database.createCustomer(customer);
+    });
+
+    ipcMain.handle('db-update-customer', async (_, customer) => {
+      return await this.database.updateCustomer(customer);
+    });
+
+    ipcMain.handle('db-delete-customer', async (_, id) => {
+      return await this.database.deleteCustomer(id);
+    });
+
+    // Tag operations
+    ipcMain.handle('db-get-tags', async () => {
+      return await this.database.getTags();
+    });
+
+    ipcMain.handle('db-create-tag', async (_, tag) => {
+      return await this.database.createTag(tag);
+    });
+
+    ipcMain.handle('db-update-tag', async (_, tag) => {
+      return await this.database.updateTag(tag);
+    });
+
+    ipcMain.handle('db-delete-tag', async (_, id) => {
+      return await this.database.deleteTag(id);
+    });
+
+    // Bulk operations
+    ipcMain.handle('db-bulk-update-task-status', async (_, taskIds, updates) => {
+      return await this.database.bulkUpdateTaskStatus(taskIds, updates);
+    });
+
+    ipcMain.handle('db-bulk-archive-paid-tasks', async () => {
+      return await this.database.bulkArchivePaidTasks();
     });
 
     // Notion operations
