@@ -384,7 +384,13 @@ const Reports: React.FC = () => {
 
     const totalHours = totalSeconds / 3600;
     const unpaidHours = unpaidSeconds / 3600;
-    const averageHoursPerDay = daysSet.size > 0 ? totalHours / daysSet.size : 0;
+    
+    // Calculate total days in the selected range
+    const startDate = new Date(dateRange.startDate);
+    const endDate = new Date(dateRange.endDate);
+    const totalDaysInRange = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    
+    const averageHoursPerDay = totalHours / totalDaysInRange;
     const totalAmount = totalHours * settings.hourlyRate;
     const unpaidAmount = unpaidHours * settings.hourlyRate;
 
