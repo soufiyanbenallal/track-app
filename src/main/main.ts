@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } from 'electron';
+import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, Notification } from 'electron';
 import { join } from 'path';
 import { DatabaseService } from './database';
 import { IdleDetector } from './idle-detector';
@@ -231,6 +231,15 @@ class TrackApp {
       return await this.database.bulkArchivePaidTasks();
     });
 
+    // Draft task operations
+    ipcMain.handle('db-save-draft-task', async (_, task) => {
+      return await this.database.saveDraftTask(task);
+    });
+
+    ipcMain.handle('db-complete-draft-task', async (_, taskId, finalEndTime, finalDuration) => {
+      return await this.database.completeDraftTask(taskId, finalEndTime, finalDuration);
+    });
+
     // Notion operations
     ipcMain.handle('notion-sync-task', async (_, task, project) => {
       return await this.notionService.syncTask(task, project);
@@ -253,10 +262,25 @@ class TrackApp {
   private setupIdleDetection(): void {
     this.idleDetector.onIdle(() => {
       this.mainWindow?.webContents.send('user-idle');
+      
+      // Show system notification
+      const notification = new Notification({
+        title: 'Time Tracking Paused',
+        body: 'You appear to be away. Time tracking has been paused.',
+        icon: join(__dirname, 'assets/icon.png')
+      });
+      notification.show();
     });
 
     this.idleDetector.onActive(() => {
       this.mainWindow?.webContents.send('user-active');
+      
+      const notification = new Notification({
+        title: 'Time Tracking Resumed',
+        body: 'Welcome back! Time tracking has resumed.',
+        icon: join(__dirname, 'assets/icon.png')
+      });
+      notification.show();
     });
 
     // Update tray menu every minute to keep time current

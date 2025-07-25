@@ -38,6 +38,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   bulkUpdateTaskStatus: (taskIds: string[], updates: any) => ipcRenderer.invoke('db-bulk-update-task-status', taskIds, updates),
   bulkArchivePaidTasks: () => ipcRenderer.invoke('db-bulk-archive-paid-tasks'),
   
+  // Draft task operations
+  saveDraftTask: (task: any) => ipcRenderer.invoke('db-save-draft-task', task),
+  completeDraftTask: (taskId: string, finalEndTime: string, finalDuration: number) => ipcRenderer.invoke('db-complete-draft-task', taskId, finalEndTime, finalDuration),
+  
   // Notion operations
   syncTask: (task: any) => ipcRenderer.invoke('notion-sync-task', task),
   getNotionDatabases: () => ipcRenderer.invoke('notion-get-databases'),
@@ -102,6 +106,8 @@ declare global {
       deleteTag: (id: string) => Promise<void>;
       bulkUpdateTaskStatus: (taskIds: string[], updates: any) => Promise<void>;
       bulkArchivePaidTasks: () => Promise<void>;
+      saveDraftTask: (task: any) => Promise<any>;
+      completeDraftTask: (taskId: string, finalEndTime: string, finalDuration: number) => Promise<any>;
       syncTask: (task: any) => Promise<any>;
       getNotionDatabases: () => Promise<any[]>;
       getSettings: () => Promise<any>;

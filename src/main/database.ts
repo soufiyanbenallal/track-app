@@ -690,4 +690,38 @@ export class DatabaseService {
   close(): void {
     this.db.close();
   }
+
+  async saveDraftTask(task: Partial<Task>): Promise<void> {
+    const id = this.generateId();
+    const now = new Date().toISOString();
+    
+    const stmt = this.db.prepare(`
+      INSERT INTO tasks (id, description, projectId, customerId, tags, startTime, endTime, duration, isCompleted, isPaid, isArchived, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?)
+    `);
+    
+    stmt.run(
+      id,
+      task.description || 'Interrupted session',
+      task.projectId,
+      task.customerId || null,
+      task.tags || null,
+      task.startTime,
+      now, // Set endTime to when interruption occurred
+      task.duration || 0,
+      now,
+      now
+    );
+  }
+
+  // Method to convert draft to completed task
+  async completeDraftTask(taskId: string, finalEndTime: string, finalDuration: number): Promise<void> {
+    const stmt = this.db.prepare(`
+      UPDATE tasks 
+      SET endTime = ?, duration = ?, isCompleted = 1, updatedAt = ?
+      WHERE id = ?
+    `);
+    
+    stmt.run(finalEndTime, finalDuration, new Date().toISOString(), taskId);
+  }
 } 
