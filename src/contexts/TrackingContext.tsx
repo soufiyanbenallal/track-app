@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
+import { IdleDialog } from '@/components/IdleDialog';
 
 interface TrackingState {
   isTracking: boolean;
@@ -93,6 +94,8 @@ const TrackingContext = createContext<TrackingContextType | undefined>(undefined
 // Component for Fast Refresh compatibility
 function TrackingProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(trackingReducer, initialState);
+  const [showIdleDialog, setShowIdleDialog] = useState(false);
+  const [idleDialogTime, setIdleDialogTime] = useState(0);
   
   // Refs to access latest values in event handlers
   const stateRef = useRef(state);
@@ -233,7 +236,7 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
         // If less than 30 minutes since last save, offer recovery
         if (timeSinceLastSave < 30 * 60 * 1000) {
           const shouldRecover = confirm(
-            `You have an incomplete tracking session from ${formatDistanceToNow(new Date(parsed.timestamp), { addSuffix: true, locale: fr })}. Do you want to recover it?`
+            `You have an incomplete tracking session from ${formatDistanceToNow(new Date(parsed.timestamp), { addSuffix: true, locale: enUS })}. Do you want to recover it?`
           );
           
           if (shouldRecover) {
@@ -262,6 +265,41 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
     }
   }, []); // Run once on mount
 
+  const handleIdleDialogChoice = useCallback(async (choice: number) => {
+    setShowIdleDialog(false);
+    
+    try {
+      switch (choice) {
+        case 0: // Continue tracking (keep idle time)
+          dispatch({ type: 'SET_IDLE', payload: false });
+          break;
+        case 1: // Discard idle time and continue
+          if (stateRef.current.currentTask) {
+            const idleSeconds = Math.floor(idleDialogTime);
+            const newElapsedTime = Math.max(0, stateRef.current.elapsedTime - idleSeconds);
+            dispatch({ type: 'UPDATE_ELAPSED_TIME', payload: newElapsedTime });
+          }
+          dispatch({ type: 'SET_IDLE', payload: false });
+          break;
+        case 2: // Stop tracking and save session
+          if (stopTrackingRef.current) {
+            await stopTrackingRef.current();
+          }
+          break;
+        case 3: // Start a new time entry for idle time
+          // This could be implemented to create a separate idle time entry
+          dispatch({ type: 'SET_IDLE', payload: false });
+          break;
+        default:
+          dispatch({ type: 'SET_IDLE', payload: false });
+          break;
+      }
+    } catch (error) {
+      console.error('Error handling idle dialog choice:', error);
+      dispatch({ type: 'SET_IDLE', payload: false });
+    }
+  }, [idleDialogTime]);
+
   // Listen for Electron events - run only once on mount
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -283,36 +321,12 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
       
       dispatch({ type: 'SET_IDLE', payload: true });
       
-      // Show native modal immediately when idle is detected
-      try {
-        const choice = await window.electronAPI.showIdleDialog(data.idleTime);
-        
-        switch (choice) {
-          case 0: // Continue tracking (keep idle time)
-            dispatch({ type: 'SET_IDLE', payload: false });
-            break;
-          case 1: // Discard idle time and continue
-            if (stateRef.current.currentTask) {
-              const idleSeconds = Math.floor(data.idleTime);
-              const newElapsedTime = Math.max(0, stateRef.current.elapsedTime - idleSeconds);
-              dispatch({ type: 'UPDATE_ELAPSED_TIME', payload: newElapsedTime });
-            }
-            dispatch({ type: 'SET_IDLE', payload: false });
-            break;
-          case 2: // Stop tracking and save session
-            if (stopTrackingRef.current) {
-              await stopTrackingRef.current();
-            }
-            break;
-          default:
-            dispatch({ type: 'SET_IDLE', payload: false });
-            break;
-        }
-      } catch (error) {
-        console.error('Error handling idle dialog:', error);
-        dispatch({ type: 'SET_IDLE', payload: false });
-      }
+      // Show custom idle dialog
+      setIdleDialogTime(data.idleTime);
+      setShowIdleDialog(true);
     };
+
+
 
     const handleUserActive = () => {
       dispatch({ type: 'SET_IDLE', payload: false });
@@ -405,6 +419,12 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
   return (
     <TrackingContext.Provider value={value}>
       {children}
+      <IdleDialog
+        isOpen={showIdleDialog}
+        onChoice={handleIdleDialogChoice}
+        initialIdleTime={idleDialogTime}
+        currentTaskDescription={state.currentTask?.description}
+      />
     </TrackingContext.Provider>
   );
 }

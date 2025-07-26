@@ -399,6 +399,18 @@ export class DatabaseService {
   }
 
   async deleteProject(id: string): Promise<void> {
+    // Check if there are any tasks associated with this project (both active and archived)
+    const taskCheckStmt = this.db.prepare('SELECT COUNT(*) as count FROM tasks WHERE projectId = ?');
+    const taskCount = taskCheckStmt.get(id) as { count: number };
+    
+    if (taskCount.count > 0) {
+      // Delete all tasks associated with this project first
+      const deleteTasksStmt = this.db.prepare('DELETE FROM tasks WHERE projectId = ?');
+      deleteTasksStmt.run(id);
+      console.log(`Deleted ${taskCount.count} tasks associated with project ${id}`);
+    }
+    
+    // Now delete the project
     const stmt = this.db.prepare('DELETE FROM projects WHERE id = ?');
     stmt.run(id);
   }

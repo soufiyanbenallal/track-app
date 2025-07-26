@@ -79,15 +79,17 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
   };
 
   const handleDelete = async (projectId: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce projet ?')) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce projet ?\n\n⚠️ Attention : Toutes les tâches associées à ce projet seront également supprimées définitivement.')) {
       try {
         if (window.electronAPI) {
           await window.electronAPI.deleteProject(projectId);
           await loadProjects();
+          alert('Projet et toutes ses tâches supprimés avec succès');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error deleting project:', error);
-        alert('Erreur lors de la suppression du projet');
+        const errorMessage = error?.message || 'Erreur lors de la suppression du projet';
+        alert(errorMessage);
       }
     }
   };

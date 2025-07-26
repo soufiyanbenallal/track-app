@@ -285,6 +285,11 @@ class TrackApp {
       return result.response;
     });
 
+    // Get current idle time
+    ipcMain.handle('get-current-idle-time', async () => {
+      return this.idleDetector.getCurrentIdleTime();
+    });
+
     // Notion operations
     ipcMain.handle('notion-sync-task', async (_, task, project) => {
       return await this.notionService.syncTask(task, project);
