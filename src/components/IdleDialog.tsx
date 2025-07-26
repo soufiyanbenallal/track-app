@@ -4,29 +4,28 @@ import { Button } from '@/components/ui/button';
 
 interface IdleDialogProps {
   isOpen: boolean;
-  onChoice: (choice: number) => void;
+  onChoice: (choice: number, finalIdleTime: number) => void;
   initialIdleTime: number;
   currentTaskDescription?: string;
+  rememberedStartTime?: Date | null;
 }
 
-export function IdleDialog({ isOpen, onChoice, initialIdleTime, currentTaskDescription }: IdleDialogProps) {
+export function IdleDialog({ isOpen, onChoice, initialIdleTime, currentTaskDescription, rememberedStartTime }: IdleDialogProps) {
   const [currentIdleTime, setCurrentIdleTime] = useState(initialIdleTime);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !rememberedStartTime) return;
 
-    // Update idle time every second
-    const interval = setInterval(async () => {
-      try {
-        const idleTimeSeconds = await window.electronAPI.getCurrentIdleTime();
-        setCurrentIdleTime(idleTimeSeconds);
-      } catch (error) {
-        console.error('Error getting current idle time:', error);
-      }
+    // Calculate idle time based on remembered start time instead of live system idle time
+    const interval = setInterval(() => {
+      const now = new Date();
+      const idleTimeMs = now.getTime() - rememberedStartTime.getTime();
+      const idleTimeSeconds = Math.floor(idleTimeMs / 1000);
+      setCurrentIdleTime(idleTimeSeconds);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isOpen]);
+  }, [isOpen, rememberedStartTime]);
 
   // Reset idle time when dialog opens
   useEffect(() => {
@@ -56,6 +55,10 @@ export function IdleDialog({ isOpen, onChoice, initialIdleTime, currentTaskDescr
     return `${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''}`;
   };
 
+  const handleChoice = (choice: number) => {
+    onChoice(choice, currentIdleTime);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent className="max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
@@ -71,7 +74,7 @@ export function IdleDialog({ isOpen, onChoice, initialIdleTime, currentTaskDescr
                 You've been idle for {formatIdleTimeText(currentIdleTime)}.
               </div>
               <div className="text-sm text-gray-600">
-                You have been idle since {new Date(Date.now() - currentIdleTime * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                You have been idle since {rememberedStartTime ? rememberedStartTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : new Date(Date.now() - currentIdleTime * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
               </div>
               <div className="text-3xl font-mono font-bold text-blue-600">
                 {formatIdleTime(currentIdleTime)}
@@ -88,20 +91,20 @@ export function IdleDialog({ isOpen, onChoice, initialIdleTime, currentTaskDescr
         
         <div className="flex flex-col space-y-3 mt-6">
           <Button
-            onClick={() => onChoice(1)}
+            onClick={() => handleChoice(1)}
             className="w-full bg-purple-600 hover:bg-purple-700 text-white"
           >
             Discard idle time and continue
           </Button>
           <Button
-            onClick={() => onChoice(0)}
+            onClick={() => handleChoice(0)}
             variant="outline"
             className="w-full"
           >
             Keep idle time and continue
           </Button>
           <Button
-            onClick={() => onChoice(2)}
+            onClick={() => handleChoice(2)}
             variant="outline"
             className="w-full"
           >

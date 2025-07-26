@@ -45,6 +45,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Idle dialog
   showIdleDialog: (idleTime: number) => ipcRenderer.invoke('show-idle-dialog', idleTime),
   getCurrentIdleTime: () => ipcRenderer.invoke('get-current-idle-time'),
+  pauseIdleDetection: () => ipcRenderer.invoke('pause-idle-detection'),
+  resumeIdleDetection: () => ipcRenderer.invoke('resume-idle-detection'),
+  getPausedIdleTime: () => ipcRenderer.invoke('get-paused-idle-time'),
   
   // Notion operations
   syncTask: (task: any) => ipcRenderer.invoke('notion-sync-task', task),
@@ -114,6 +117,9 @@ declare global {
       completeDraftTask: (taskId: string, finalEndTime: string, finalDuration: number) => Promise<any>;
       showIdleDialog: (idleTime: number) => Promise<number>;
       getCurrentIdleTime: () => Promise<number>;
+      pauseIdleDetection: () => Promise<void>;
+      resumeIdleDetection: () => Promise<void>;
+      getPausedIdleTime: () => Promise<number>;
       syncTask: (task: any) => Promise<any>;
       getNotionDatabases: () => Promise<any[]>;
       getSettings: () => Promise<any>;

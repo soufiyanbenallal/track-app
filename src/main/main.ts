@@ -290,6 +290,19 @@ class TrackApp {
       return this.idleDetector.getCurrentIdleTime();
     });
 
+    // Idle detection control
+    ipcMain.handle('pause-idle-detection', async () => {
+      this.idleDetector.pauseIdleDetection();
+    });
+
+    ipcMain.handle('resume-idle-detection', async () => {
+      this.idleDetector.resumeIdleDetection();
+    });
+
+    ipcMain.handle('get-paused-idle-time', async () => {
+      return this.idleDetector.getPausedIdleTime();
+    });
+
     // Notion operations
     ipcMain.handle('notion-sync-task', async (_, task, project) => {
       return await this.notionService.syncTask(task, project);

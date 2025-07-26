@@ -96,6 +96,7 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(trackingReducer, initialState);
   const [showIdleDialog, setShowIdleDialog] = useState(false);
   const [idleDialogTime, setIdleDialogTime] = useState(0);
+  const [rememberedIdleStartTime, setRememberedIdleStartTime] = useState<Date | null>(null);
   
   // Refs to access latest values in event handlers
   const stateRef = useRef(state);
@@ -265,36 +266,75 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
     }
   }, []); // Run once on mount
 
-  const handleIdleDialogChoice = useCallback(async (choice: number) => {
+  const handleIdleDialogChoice = useCallback(async (choice: number, finalIdleTime: number) => {
     setShowIdleDialog(false);
     
     try {
       switch (choice) {
         case 0: // Keep idle time and continue
+          // Resume idle detection
+          await window.electronAPI.resumeIdleDetection();
           dispatch({ type: 'SET_IDLE', payload: false });
           break;
         case 1: // Discard idle time and continue
-          if (stateRef.current.currentTask) {
-            const idleSeconds = Math.floor(idleDialogTime);
-            const newElapsedTime = Math.max(0, stateRef.current.elapsedTime - idleSeconds);
-            dispatch({ type: 'UPDATE_ELAPSED_TIME', payload: newElapsedTime });
+          if (stateRef.current.currentTask && rememberedIdleStartTime) {
+            // Calculate the actual idle duration that should be discarded
+            const idleSeconds = Math.floor(finalIdleTime);
+            
+            // Adjust the task start time to account for discarded idle time
+            const currentTask = stateRef.current.currentTask;
+            const originalStartTime = new Date(currentTask.startTime);
+            const adjustedStartTime = new Date(originalStartTime.getTime() + (idleSeconds * 1000));
+            
+            // Update the current task with the new start time
+            dispatch({ 
+              type: 'START_TRACKING', 
+              payload: { 
+                ...currentTask,
+                startTime: adjustedStartTime.toISOString(),
+                initialDuration: currentTask.initialDuration || 0
+              }
+            });
+            
+            // Recalculate elapsed time without the idle period
+            const now = new Date();
+            const actualElapsed = Math.floor((now.getTime() - adjustedStartTime.getTime()) / 1000);
+            const totalElapsed = (currentTask.initialDuration || 0) + actualElapsed;
+            dispatch({ type: 'UPDATE_ELAPSED_TIME', payload: Math.max(0, totalElapsed) });
           }
+          // Resume idle detection
+          await window.electronAPI.resumeIdleDetection();
           dispatch({ type: 'SET_IDLE', payload: false });
           break;
         case 2: // Stop and save session
+          // Don't include the idle time when stopping
+          if (stateRef.current.currentTask && rememberedIdleStartTime) {
+            const idleSeconds = Math.floor(finalIdleTime);
+            const adjustedElapsedTime = Math.max(0, stateRef.current.elapsedTime - idleSeconds);
+            dispatch({ type: 'UPDATE_ELAPSED_TIME', payload: adjustedElapsedTime });
+          }
+          // Resume idle detection before stopping
+          await window.electronAPI.resumeIdleDetection();
           if (stopTrackingRef.current) {
             await stopTrackingRef.current();
           }
           break;
         default:
+          // Resume idle detection
+          await window.electronAPI.resumeIdleDetection();
           dispatch({ type: 'SET_IDLE', payload: false });
           break;
       }
     } catch (error) {
       console.error('Error handling idle dialog choice:', error);
+      // Always resume idle detection on error
+      await window.electronAPI.resumeIdleDetection();
       dispatch({ type: 'SET_IDLE', payload: false });
     }
-  }, [idleDialogTime]);
+    
+    // Reset remembered start time
+    setRememberedIdleStartTime(null);
+  }, [rememberedIdleStartTime]);
 
   // Listen for Electron events - run only once on mount
   useEffect(() => {
@@ -316,6 +356,13 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
       if (!stateRef.current.isTracking) return;
       
       dispatch({ type: 'SET_IDLE', payload: true });
+      
+      // Pause idle detection so mouse movement doesn't reset the timer
+      await window.electronAPI.pauseIdleDetection();
+      
+      // Remember when the idle period started
+      const idleStartTime = new Date(Date.now() - (data.idleTime * 1000));
+      setRememberedIdleStartTime(idleStartTime);
       
       // Show custom idle dialog
       setIdleDialogTime(data.idleTime);
@@ -420,6 +467,7 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
         onChoice={handleIdleDialogChoice}
         initialIdleTime={idleDialogTime}
         currentTaskDescription={state.currentTask?.description}
+        rememberedStartTime={rememberedIdleStartTime}
       />
     </TrackingContext.Provider>
   );

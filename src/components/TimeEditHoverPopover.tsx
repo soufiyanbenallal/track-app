@@ -130,6 +130,7 @@ const TimeEditHoverPopover: React.FC<TimeEditHoverPopoverProps> = ({
                 className={`text-center font-mono text-lg bg-slate-700 border-slate-600 text-white focus:border-blue-500 focus:ring-blue-500 ${
                   isTracking ? 'cursor-not-allowed opacity-60' : ''
                 }`}
+                autoFocus={false}
                 placeholder="HH:MM"
                 disabled={isTracking}
               />
