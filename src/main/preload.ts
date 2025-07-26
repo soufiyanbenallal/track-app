@@ -42,6 +42,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveDraftTask: (task: any) => ipcRenderer.invoke('db-save-draft-task', task),
   completeDraftTask: (taskId: string, finalEndTime: string, finalDuration: number) => ipcRenderer.invoke('db-complete-draft-task', taskId, finalEndTime, finalDuration),
   
+  // Interrupted task operations
+  saveInterruptedTask: (task: any) => ipcRenderer.invoke('db-save-interrupted-task', task),
+  getInterruptedTasks: () => ipcRenderer.invoke('db-get-interrupted-tasks'),
+  completeInterruptedTask: (taskId: string) => ipcRenderer.invoke('db-complete-interrupted-task', taskId),
+  removeInterruptedTask: (taskId: string) => ipcRenderer.invoke('db-remove-interrupted-task', taskId),
+  updateInterruptedTask: (taskId: string, updates: any) => ipcRenderer.invoke('db-update-interrupted-task', taskId, updates),
+  
   // Idle dialog
   showIdleDialog: (idleTime: number) => ipcRenderer.invoke('show-idle-dialog', idleTime),
   getCurrentIdleTime: () => ipcRenderer.invoke('get-current-idle-time'),
@@ -115,6 +122,11 @@ declare global {
       bulkArchivePaidTasks: () => Promise<void>;
       saveDraftTask: (task: any) => Promise<any>;
       completeDraftTask: (taskId: string, finalEndTime: string, finalDuration: number) => Promise<any>;
+      saveInterruptedTask: (task: any) => Promise<any>;
+      getInterruptedTasks: () => Promise<any[]>;
+      completeInterruptedTask: (taskId: string) => Promise<void>;
+      removeInterruptedTask: (taskId: string) => Promise<void>;
+      updateInterruptedTask: (taskId: string, updates: any) => Promise<any>;
       showIdleDialog: (idleTime: number) => Promise<number>;
       getCurrentIdleTime: () => Promise<number>;
       pauseIdleDetection: () => Promise<void>;

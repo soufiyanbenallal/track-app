@@ -16,6 +16,7 @@ interface Task {
   isCompleted: boolean;
   isPaid: boolean;
   isArchived: boolean;
+  isInterrupted: boolean;
   createdAt: string;
   updatedAt: string;
 }

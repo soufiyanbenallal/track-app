@@ -257,6 +257,27 @@ class TrackApp {
       return await this.database.completeDraftTask(taskId, finalEndTime, finalDuration);
     });
 
+    // Interrupted task operations
+    ipcMain.handle('db-save-interrupted-task', async (_, task) => {
+      return await this.database.saveInterruptedTask(task);
+    });
+
+    ipcMain.handle('db-get-interrupted-tasks', async () => {
+      return await this.database.getInterruptedTasks();
+    });
+
+    ipcMain.handle('db-complete-interrupted-task', async (_, taskId) => {
+      return await this.database.completeInterruptedTask(taskId);
+    });
+
+    ipcMain.handle('db-remove-interrupted-task', async (_, taskId) => {
+      return await this.database.removeInterruptedTask(taskId);
+    });
+
+    ipcMain.handle('db-update-interrupted-task', async (_, taskId, updates) => {
+      return await this.database.updateInterruptedTask(taskId, updates);
+    });
+
     // Show idle dialog
     ipcMain.handle('show-idle-dialog', async (_, idleTimeSeconds) => {
       if (!this.mainWindow) return null;

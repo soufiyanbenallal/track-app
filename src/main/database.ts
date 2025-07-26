@@ -14,6 +14,7 @@ export interface Task {
   isCompleted: boolean;
   isPaid: boolean;
   isArchived: boolean;
+  isInterrupted: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -123,6 +124,7 @@ export class DatabaseService {
         isCompleted INTEGER DEFAULT 0,
         isPaid INTEGER DEFAULT 0,
         isArchived INTEGER DEFAULT 0,
+        isInterrupted INTEGER DEFAULT 0,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL,
         FOREIGN KEY (projectId) REFERENCES projects (id),
@@ -174,6 +176,11 @@ export class DatabaseService {
       if (!taskColumns.includes('tags')) {
         console.log('Adding tags column to tasks table...');
         this.db.exec('ALTER TABLE tasks ADD COLUMN tags TEXT');
+      }
+      
+      if (!taskColumns.includes('isInterrupted')) {
+        console.log('Adding isInterrupted column to tasks table...');
+        this.db.exec('ALTER TABLE tasks ADD COLUMN isInterrupted INTEGER DEFAULT 0');
       }
       
       // Check if new columns exist in projects table
@@ -269,8 +276,8 @@ export class DatabaseService {
     const now = new Date().toISOString();
 
     const stmt = this.db.prepare(`
-      INSERT INTO tasks (id, description, projectId, customerId, tags, startTime, endTime, duration, isCompleted, isPaid, isArchived, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tasks (id, description, projectId, customerId, tags, startTime, endTime, duration, isCompleted, isPaid, isArchived, isInterrupted, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -285,6 +292,7 @@ export class DatabaseService {
       task.isCompleted ? 1 : 0,
       task.isPaid ? 1 : 0,
       task.isArchived ? 1 : 0,
+      task.isInterrupted ? 1 : 0,
       now,
       now
     );
@@ -726,8 +734,8 @@ export class DatabaseService {
     const now = new Date().toISOString();
     
     const stmt = this.db.prepare(`
-      INSERT INTO tasks (id, description, projectId, customerId, tags, startTime, endTime, duration, isCompleted, isPaid, isArchived, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?)
+      INSERT INTO tasks (id, description, projectId, customerId, tags, startTime, endTime, duration, isCompleted, isPaid, isArchived, isInterrupted, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, ?, ?)
     `);
     
     stmt.run(
@@ -755,5 +763,81 @@ export class DatabaseService {
     `);
     
     stmt.run(finalEndTime, finalDuration, new Date().toISOString(), taskId);
+  }
+
+  // New methods for interrupted task handling
+  async saveInterruptedTask(task: Partial<Task>): Promise<Task> {
+    const id = this.generateId();
+    const now = new Date().toISOString();
+    
+    const stmt = this.db.prepare(`
+      INSERT INTO tasks (id, description, projectId, customerId, tags, startTime, endTime, duration, isCompleted, isPaid, isArchived, isInterrupted, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 1, ?, ?)
+    `);
+    
+    stmt.run(
+      id,
+      task.description || 'Interrupted session',
+      task.projectId,
+      task.customerId || null,
+      task.tags || null,
+      task.startTime,
+      task.endTime || now,
+      task.duration || 0,
+      now,
+      now
+    );
+    
+    return this.getTaskById(id);
+  }
+
+  async getInterruptedTasks(): Promise<Task[]> {
+    const stmt = this.db.prepare(`
+      SELECT t.*, p.name as projectName, p.color as projectColor, c.name as customerName
+      FROM tasks t
+      LEFT JOIN projects p ON t.projectId = p.id
+      LEFT JOIN customers c ON t.customerId = c.id
+      WHERE t.isInterrupted = 1 AND t.isArchived = 0
+      ORDER BY t.updatedAt DESC
+    `);
+    return stmt.all() as Task[];
+  }
+
+  async completeInterruptedTask(taskId: string): Promise<void> {
+    const stmt = this.db.prepare(`
+      UPDATE tasks 
+      SET isCompleted = 1, isInterrupted = 0, updatedAt = ?
+      WHERE id = ?
+    `);
+    
+    stmt.run(new Date().toISOString(), taskId);
+  }
+
+  async removeInterruptedTask(taskId: string): Promise<void> {
+    const stmt = this.db.prepare('DELETE FROM tasks WHERE id = ? AND isInterrupted = 1');
+    stmt.run(taskId);
+  }
+
+  async updateInterruptedTask(taskId: string, updates: Partial<Task>): Promise<Task> {
+    const now = new Date().toISOString();
+    const updateFields: string[] = [];
+    const params: any[] = [];
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (key !== 'id' && key !== 'createdAt') {
+        updateFields.push(`${key} = ?`);
+        params.push(value);
+      }
+    });
+
+    updateFields.push('updatedAt = ?');
+    params.push(now);
+    params.push(taskId);
+
+    const query = `UPDATE tasks SET ${updateFields.join(', ')} WHERE id = ? AND isInterrupted = 1`;
+    const stmt = this.db.prepare(query);
+    stmt.run(params);
+
+    return this.getTaskById(taskId);
   }
 } 

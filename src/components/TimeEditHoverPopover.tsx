@@ -82,7 +82,7 @@ const TimeEditHoverPopover: React.FC<TimeEditHoverPopoverProps> = ({
       <PopoverTrigger asChild>
         <div 
           className="cursor-pointer hover:bg-slate-600/20 rounded-lg transition-colors"
-          onMouseEnter={() => setIsOpen(true)}
+          onClick={() => setIsOpen(true)}
         >
           {children}
         </div>
@@ -91,9 +91,8 @@ const TimeEditHoverPopover: React.FC<TimeEditHoverPopoverProps> = ({
       <PopoverContent 
         className="w-80 p-4 bg-slate-800/95 backdrop-blur-sm border-slate-600 shadow-xl"
         align="center"
-        sideOffset={8}
-        onMouseEnter={() => setIsOpen(true)}
-        onMouseLeave={() => setIsOpen(false)}
+        sideOffset={0}
+      
       >
         <div className="space-y-4">
           {/* Header */}

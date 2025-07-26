@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTracking } from '../../contexts/TrackingContext';
+import { Button } from '@/components/ui/button';
 import TaskEditModal from '../../components/TaskEditModal';
 
 import ProjectCreateModal from '../../components/ProjectCreateModal';
@@ -8,6 +9,7 @@ import StatsGrid from './components/StatsGrid';
 import WorkspaceCard from './components/WorkspaceCard';
 import RecentTasksCard from './components/RecentTasksCard';
 import TaskForm from './components/TaskForm';
+import InterruptedTaskCard from './components/InterruptedTaskCard';
 
 interface Project {
   id: string;
@@ -45,12 +47,13 @@ interface Task {
   isCompleted: boolean;
   isPaid: boolean;
   isArchived: boolean;
+  isInterrupted: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 const Dashboard: React.FC = () => {
-  const { state, startTracking, stopTracking, formatElapsedTime } = useTracking();
+  const { state, startTracking, stopTracking, interruptTask, formatElapsedTime } = useTracking();
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [taskDescription, setTaskDescription] = useState('');
@@ -73,6 +76,7 @@ const Dashboard: React.FC = () => {
     activeProjects: 0,
     productivity: 0
   });
+  const [interruptedTasks, setInterruptedTasks] = useState<Task[]>([]);
 
   // Load statistics and recent tasks
   useEffect(() => {
@@ -80,7 +84,19 @@ const Dashboard: React.FC = () => {
     loadRecentTasks();
     loadProjects();
     loadCustomers();
+    loadInterruptedTasks();
   }, []);
+
+  const loadInterruptedTasks = async () => {
+    try {
+      if (window.electronAPI) {
+        const tasks = await window.electronAPI.getInterruptedTasks();
+        setInterruptedTasks(tasks);
+      }
+    } catch (error) {
+      console.error('Error loading interrupted tasks:', error);
+    }
+  };
 
   const loadStats = async () => {
     try {
@@ -273,10 +289,58 @@ const Dashboard: React.FC = () => {
     try {
       await stopTracking();
       // Reload stats and recent tasks after stopping tracking
-      await Promise.all([loadStats(), loadRecentTasks()]);
+      await Promise.all([loadStats(), loadRecentTasks(), loadInterruptedTasks()]);
     } catch (error) {
       console.error('Error stopping tracking:', error);
       alert('Error stopping tracking');
+    }
+  };
+
+  // Interrupted task handlers
+  const handleCompleteInterruptedTask = async (taskId: string) => {
+    try {
+      if (window.electronAPI) {
+        await window.electronAPI.completeInterruptedTask(taskId);
+        await Promise.all([loadInterruptedTasks(), loadRecentTasks(), loadStats()]);
+      }
+    } catch (error) {
+      console.error('Error completing interrupted task:', error);
+      alert('Error completing interrupted task');
+    }
+  };
+
+  const handleResumeInterruptedTask = (task: Task) => {
+    // Calculate elapsed time since interruption
+    const startTime = new Date(task.startTime);
+    const now = new Date();
+    const timeSinceStart = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+    
+    startTracking(task.description, task.projectId, task.customerId, task.startTime, timeSinceStart);
+    
+    // Remove the interrupted task since we're resuming it
+    handleRemoveInterruptedTask(task.id);
+  };
+
+  const handleRemoveInterruptedTask = async (taskId: string) => {
+    try {
+      if (window.electronAPI) {
+        await window.electronAPI.removeInterruptedTask(taskId);
+        await loadInterruptedTasks();
+      }
+    } catch (error) {
+      console.error('Error removing interrupted task:', error);
+      alert('Error removing interrupted task');
+    }
+  };
+
+  // Test interrupt function (for debugging)
+  const handleTestInterrupt = async () => {
+    try {
+      await interruptTask();
+      await loadInterruptedTasks();
+    } catch (error) {
+      console.error('Error interrupting task:', error);
+      alert('Error interrupting task');
     }
   };
 
@@ -306,8 +370,30 @@ const Dashboard: React.FC = () => {
           onCreateCustomer={handleCreateCustomer}
         />
 
+        {/* Test Interrupt Button */}
+        {state.isTracking && (
+          <div className="flex justify-center mb-4">
+            <Button 
+              onClick={handleTestInterrupt}
+              variant="destructive"
+              size="sm"
+              className="bg-red-600 hover:bg-red-700"
+            >
+              🔧 TEST: Interrupt Current Task
+            </Button>
+          </div>
+        )}
+
         {/* Stats Grid */}
         <StatsGrid stats={stats} />
+
+        {/* Interrupted Tasks */}
+        <InterruptedTaskCard
+          interruptedTasks={interruptedTasks}
+          onCompleteTask={handleCompleteInterruptedTask}
+          onResumeTask={handleResumeInterruptedTask}
+          onRemoveTask={handleRemoveInterruptedTask}
+        />
 
         {/* Recent Tasks Card */}
         <RecentTasksCard
