@@ -87,27 +87,25 @@ export function IdleDialog({ isOpen, onChoice, initialIdleTime, currentTaskDescr
         </DialogHeader>
         
         <div className="flex flex-col space-y-3 mt-6">
-     
           <Button
             onClick={() => onChoice(1)}
-            variant="outline"
-            className="w-full"
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
           >
             Discard idle time and continue
-          </Button>
-          <Button
-            onClick={() => onChoice(3)}
-            variant="outline"
-            className="w-full"
-          >
-            Start a new time entry for idle time
           </Button>
           <Button
             onClick={() => onChoice(0)}
             variant="outline"
             className="w-full"
           >
-            Keep idle time
+            Keep idle time and continue
+          </Button>
+          <Button
+            onClick={() => onChoice(2)}
+            variant="outline"
+            className="w-full"
+          >
+            Stop and save session
           </Button>
         </div>
       </DialogContent>

@@ -270,7 +270,7 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
     
     try {
       switch (choice) {
-        case 0: // Continue tracking (keep idle time)
+        case 0: // Keep idle time and continue
           dispatch({ type: 'SET_IDLE', payload: false });
           break;
         case 1: // Discard idle time and continue
@@ -281,14 +281,10 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
           }
           dispatch({ type: 'SET_IDLE', payload: false });
           break;
-        case 2: // Stop tracking and save session
+        case 2: // Stop and save session
           if (stopTrackingRef.current) {
             await stopTrackingRef.current();
           }
-          break;
-        case 3: // Start a new time entry for idle time
-          // This could be implemented to create a separate idle time entry
-          dispatch({ type: 'SET_IDLE', payload: false });
           break;
         default:
           dispatch({ type: 'SET_IDLE', payload: false });
