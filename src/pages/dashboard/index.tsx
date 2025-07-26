@@ -10,6 +10,7 @@ import WorkspaceCard from './components/WorkspaceCard';
 import RecentTasksCard from './components/RecentTasksCard';
 import TaskForm from './components/TaskForm';
 import InterruptedTaskCard from './components/InterruptedTaskCard';
+import { Task } from '@/main/database';
 
 interface Project {
   id: string;
@@ -33,27 +34,11 @@ interface Customer {
   updatedAt: string;
 }
 
-interface Task {
-  id: string;
-  description: string;
-  projectId: string;
-  customerId?: string;
-  customerName?: string;
-  projectName?: string;
-  projectColor?: string;
-  startTime: string;
-  endTime?: string;
-  duration?: number;
-  isCompleted: boolean;
-  isPaid: boolean;
-  isArchived: boolean;
-  isInterrupted: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+
 
 const Dashboard: React.FC = () => {
   const { state, startTracking, stopTracking, interruptTask, formatElapsedTime } = useTracking();
+  const [task, setTask] = useState<Task | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [taskDescription, setTaskDescription] = useState('');
@@ -221,6 +206,7 @@ const Dashboard: React.FC = () => {
 
   const handleResumeTask = (task: Task) => {
     // Start tracking directly with the task details
+    setTask(task);
     startTracking(task.description, task.projectId, task.customerId);
   };
 
@@ -314,7 +300,7 @@ const Dashboard: React.FC = () => {
     const startTime = new Date(task.startTime);
     const now = new Date();
     const timeSinceStart = Math.floor((now.getTime() - startTime.getTime()) / 1000);
-    
+    setTask(task);
     startTracking(task.description, task.projectId, task.customerId, task.startTime, timeSinceStart);
     
     // Remove the interrupted task since we're resuming it
@@ -350,6 +336,7 @@ const Dashboard: React.FC = () => {
         {/* Workspace Card */}
         <WorkspaceCard
           state={state}
+          task={task}
           selectedProject={selectedProject}
           setSelectedProject={setSelectedProject}
           selectedCustomer={selectedCustomer}

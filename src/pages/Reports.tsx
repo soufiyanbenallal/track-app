@@ -17,23 +17,7 @@ import TagModal from '@/components/TagModal';
 import { formatDuration, formatHours, formatDate } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-interface Task {
-  id: string;
-  description: string;
-  projectName: string;
-  projectColor: string;
-  projectId: string;
-  customerName?: string;
-  customerId?: string;
-  tags?: string;
-  startTime: string;
-  endTime?: string;
-  duration?: number;
-  isCompleted: boolean;
-  isPaid: boolean;
-  isArchived: boolean;
-}
+import { Task } from '@/main/database';
 
 interface Project {
   id: string;

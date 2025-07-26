@@ -15,8 +15,12 @@ export interface Task {
   isPaid: boolean;
   isArchived: boolean;
   isInterrupted: boolean;
+  isDraft: boolean;
+  projectName: string;
   createdAt: string;
   updatedAt: string;
+  projectColor?: string;
+  customerName?: string;
 }
 
 export interface Project {

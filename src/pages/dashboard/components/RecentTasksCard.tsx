@@ -1,25 +1,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card,  CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, Play, Edit2 } from 'lucide-react';
-
-interface Task {
-  id: string;
-  description: string;
-  projectId: string;
-  projectName?: string;
-  projectColor?: string;
-  startTime: string;
-  endTime?: string;
-  customerName?: string;
-  duration?: number;
-  isCompleted: boolean;
-  isPaid: boolean;
-  isArchived: boolean;
-  isInterrupted: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Task } from '@/main/database';
 
 interface RecentTasksCardProps {
   recentTasks: Task[];

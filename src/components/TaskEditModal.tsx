@@ -5,22 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { X, Clock, Calendar, Tag, DollarSign } from 'lucide-react';
-
-interface Task {
-  id: string;
-  description: string;
-  projectId: string;
-  projectName?: string;
-  projectColor?: string;
-  startTime: string;
-  endTime?: string;
-  duration?: number;
-  isCompleted: boolean;
-  isPaid: boolean;
-  isArchived: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Task } from '@/main/database';
 
 interface TaskEditModalProps {
   task: Task | null;

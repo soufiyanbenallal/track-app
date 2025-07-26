@@ -2,25 +2,7 @@ import React from 'react';
 import { Check, Play, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-
-interface Task {
-  id: string;
-  description: string;
-  projectId: string;
-  customerId?: string;
-  customerName?: string;
-  projectName?: string;
-  projectColor?: string;
-  startTime: string;
-  endTime?: string;
-  duration?: number;
-  isCompleted: boolean;
-  isPaid: boolean;
-  isArchived: boolean;
-  isInterrupted: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Task } from '@/main/database';
 
 interface InterruptedTaskCardProps {
   interruptedTasks: Task[];

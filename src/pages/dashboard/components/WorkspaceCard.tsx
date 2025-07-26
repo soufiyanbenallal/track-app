@@ -5,6 +5,7 @@ import ProjectDropdown from '../../../components/ProjectDropdown';
 import CustomerDropdown from '../../../components/CustomerDropdown';
 import TimeEditHoverPopover from '../../../components/TimeEditHoverPopover';
 import { Play, Square, Plus, Tag, DollarSign } from 'lucide-react';
+import { Task } from '@/main/database';
 
 interface Project {
   id: string;
@@ -38,6 +39,7 @@ interface TrackingState {
 
 interface WorkspaceCardProps {
   state: TrackingState;
+  task: Task | null;
   selectedProject: Project | null;
   setSelectedProject: (project: Project | null) => void;
   selectedCustomer: Customer | null;
@@ -60,6 +62,7 @@ interface WorkspaceCardProps {
 
 export default function WorkspaceCard({
   state,
+  task,
   selectedProject,
   setSelectedProject,
   selectedCustomer,
