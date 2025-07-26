@@ -66,10 +66,9 @@ const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
 
   const TriggerButton = forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
     ({ className, ...props }, ref) => (
-      <Button
+      <button
         ref={ref}
-        variant="outline"
-        className="w-full justify-between bg-transparent border-0 hover:bg-slate-100 dark:hover:bg-slate-800 p-2"
+        className="flex items-center justify-between border-0 bg-transparent  p-2 min-w-40"
         {...props}
       >
         <div className="flex items-center gap-2">
@@ -82,9 +81,9 @@ const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <ChevronDown className="w-3 h-3 text-slate-400" />
+          <ChevronDown className="w-4 h-4 text-slate-400" />
         </div>
-      </Button>
+      </button>
     )
   );
   TriggerButton.displayName = 'TriggerButton';

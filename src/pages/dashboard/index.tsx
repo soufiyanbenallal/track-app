@@ -3,6 +3,7 @@ import { useTracking } from '../../contexts/TrackingContext';
 import TaskEditModal from '../../components/TaskEditModal';
 import TimeEditPopover from '../../components/TimeEditPopover';
 import ProjectCreateModal from '../../components/ProjectCreateModal';
+import CustomerModal from '../../components/CustomerModal';
 import StatsGrid from './components/StatsGrid';
 import WorkspaceCard from './components/WorkspaceCard';
 import RecentTasksCard from './components/RecentTasksCard';
@@ -18,10 +19,23 @@ interface Project {
   updatedAt: string;
 }
 
+interface Customer {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface Task {
   id: string;
   description: string;
   projectId: string;
+  customerId?: string;
+  customerName?: string;
   projectName?: string;
   projectColor?: string;
   startTime: string;
@@ -37,6 +51,7 @@ interface Task {
 const Dashboard: React.FC = () => {
   const { state, startTracking, stopTracking, formatElapsedTime } = useTracking();
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [taskDescription, setTaskDescription] = useState('');
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
@@ -46,9 +61,11 @@ const Dashboard: React.FC = () => {
   const [inlineEditValue, setInlineEditValue] = useState('');
   const [isTimeEditOpen, setIsTimeEditOpen] = useState(false);
   const [isProjectCreateModalOpen, setIsProjectCreateModalOpen] = useState(false);
+  const [isCustomerCreateModalOpen, setIsCustomerCreateModalOpen] = useState(false);
   const [currentTaskDescription, setCurrentTaskDescription] = useState('');
   const [isTaskDescriptionEditing, setIsTaskDescriptionEditing] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [stats, setStats] = useState({
     todayTime: 0,
     completedTasks: 0,
@@ -61,6 +78,7 @@ const Dashboard: React.FC = () => {
     loadStats();
     loadRecentTasks();
     loadProjects();
+    loadCustomers();
   }, []);
 
   const loadStats = async () => {
@@ -111,6 +129,17 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const loadCustomers = async () => {
+    try {
+      if (window.electronAPI) {
+        const customersData = await window.electronAPI.getCustomers();
+        setCustomers(customersData);
+      }
+    } catch (error) {
+      console.error('Error loading customers:', error);
+    }
+  };
+
   const handleCreateProject = () => {
     setIsProjectCreateModalOpen(true);
   };
@@ -128,19 +157,36 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleCreateCustomer = () => {
+    setIsCustomerCreateModalOpen(true);
+  };
+
+  const handleCustomerCreate = async (customerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      if (window.electronAPI) {
+        await window.electronAPI.createCustomer(customerData);
+        await loadCustomers(); // Reload customers after creation
+        setIsCustomerCreateModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      alert('Error creating customer');
+    }
+  };
+
   const handleStartTracking = () => {
     if (!selectedProject || !taskDescription.trim()) {
       alert('Please select a project and enter a task description');
       return;
     }
 
-    startTracking(taskDescription.trim(), selectedProject.id);
+    startTracking(taskDescription.trim(), selectedProject.id, selectedCustomer?.id);
     setIsFormVisible(false);
   };
 
   const handleResumeTask = (task: Task) => {
     // Start tracking directly with the task details
-    startTracking(task.description, task.projectId);
+    startTracking(task.description, task.projectId, task.customerId);
   };
 
   const handleEditTask = (task: Task) => {
@@ -236,12 +282,14 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Workspace Card */}
         <WorkspaceCard
           state={state}
           selectedProject={selectedProject}
           setSelectedProject={setSelectedProject}
+          selectedCustomer={selectedCustomer}
+          setSelectedCustomer={setSelectedCustomer}
           currentTaskDescription={currentTaskDescription}
           setCurrentTaskDescription={setCurrentTaskDescription}
           isTaskDescriptionEditing={isTaskDescriptionEditing}
@@ -253,6 +301,8 @@ const Dashboard: React.FC = () => {
           formatElapsedTime={formatElapsedTime}
           projects={projects}
           onCreateProject={handleCreateProject}
+          customers={customers}
+          onCreateCustomer={handleCreateCustomer}
         />
 
         {/* Stats Grid */}
@@ -311,6 +361,13 @@ const Dashboard: React.FC = () => {
           isOpen={isProjectCreateModalOpen}
           onClose={() => setIsProjectCreateModalOpen(false)}
           onCreateProject={handleProjectCreate}
+        />
+
+        {/* Customer Create Modal */}
+        <CustomerModal
+          open={isCustomerCreateModalOpen}
+          onOpenChange={setIsCustomerCreateModalOpen}
+          onSave={handleCustomerCreate}
         />
       </div>
     </div>

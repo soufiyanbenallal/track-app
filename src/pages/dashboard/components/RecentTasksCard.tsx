@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, RotateCcw, Edit2 } from 'lucide-react';
+import { Clock, Play, Edit2 } from 'lucide-react';
 
 interface Task {
   id: string;
@@ -11,6 +11,7 @@ interface Task {
   projectColor?: string;
   startTime: string;
   endTime?: string;
+  customerName?: string;
   duration?: number;
   isCompleted: boolean;
   isPaid: boolean;
@@ -57,28 +58,26 @@ const RecentTasksCard: React.FC<RecentTasksCardProps> = ({
     
     if (diffDays === 1) return 'Today';
     if (diffDays === 2) return 'Yesterday';
-    if (diffDays <= 7) return `${diffDays - 1} days ago`;
-    return date.toLocaleDateString();
+    if (diffDays <= 3) return `${diffDays - 1} days ago`;
+    return date.toLocaleDateString('en-US', { year: '2-digit', month: '2-digit', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   return (
     <Card className="relative overflow-hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-xl">
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500" />
       <CardHeader>
-        <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+        <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent pt-5">
           Recent Tasks
         </CardTitle>
-        <p className="text-slate-600 dark:text-slate-400">
-          Resume previous tasks or start new ones
-        </p>
+
       </CardHeader>
       <CardContent>
         {recentTasks.length > 0 ? (
-          <div className="space-y-3">
+          <div className="divide-y">
             {recentTasks.map((task) => (
               <div
                 key={task.id}
-                className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="flex items-center justify-between px-3 py-1 hover:bg-slate-100 transition-all"
               >
                 <div className="flex items-center gap-4 flex-1">
                   <div
@@ -99,7 +98,7 @@ const RecentTasksCard: React.FC<RecentTasksCardProps> = ({
                               onInlineEditCancel();
                             }
                           }}
-                          className="flex-1 px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="flex-1 px-2 py-0 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                           autoFocus
                         />
                         <Button
@@ -129,7 +128,9 @@ const RecentTasksCard: React.FC<RecentTasksCardProps> = ({
                       </p>
                     )}
                     <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
-                      <span>{task.projectName}</span>
+                      <span>{task.customerName || 'No customer'}</span>
+                      <span>•</span>
+                      <span>{task.projectName || 'No project'}</span>
                       <span>•</span>
                       <span>{formatTaskDate(task.startTime)}</span>
                       {task.duration && (
@@ -142,15 +143,7 @@ const RecentTasksCard: React.FC<RecentTasksCardProps> = ({
                   </div>
                 </div>
                 <div className="flex items-center gap-2 ml-4">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onResumeTask(task)}
-                    className="hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-600"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Resume
-                  </Button>
+              
                   <Button
                     size="sm"
                     variant="ghost"
@@ -158,6 +151,14 @@ const RecentTasksCard: React.FC<RecentTasksCardProps> = ({
                     className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
                   >
                     <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onResumeTask(task)}
+                    className="hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-600"
+                  >
+                    <Play className="w-4 h-4 " />
                   </Button>
                 </div>
               </div>

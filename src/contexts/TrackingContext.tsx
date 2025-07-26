@@ -8,17 +8,20 @@ interface TrackingState {
     id: string;
     description: string;
     projectId: string;
+    customerId?: string;
     startTime: string;
   } | null;
   elapsedTime: number;
   isIdle: boolean;
+  backupTaskId: string | null;
 }
 
 type TrackingAction =
-  | { type: 'START_TRACKING'; payload: { description: string; projectId: string } }
+  | { type: 'START_TRACKING'; payload: { description: string; projectId: string; customerId?: string } }
   | { type: 'STOP_TRACKING' }
   | { type: 'UPDATE_ELAPSED_TIME'; payload: number }
   | { type: 'SET_IDLE'; payload: boolean }
+  | { type: 'SET_BACKUP_TASK_ID'; payload: string | null }
   | { type: 'RESET' };
 
 const initialState: TrackingState = {
@@ -26,6 +29,7 @@ const initialState: TrackingState = {
   currentTask: null,
   elapsedTime: 0,
   isIdle: false,
+  backupTaskId: null,
 };
 
 function trackingReducer(state: TrackingState, action: TrackingAction): TrackingState {
@@ -38,10 +42,12 @@ function trackingReducer(state: TrackingState, action: TrackingAction): Tracking
           id: Date.now().toString(),
           description: action.payload.description,
           projectId: action.payload.projectId,
+          customerId: action.payload.customerId,
           startTime: new Date().toISOString(),
         },
         elapsedTime: 0,
         isIdle: false,
+        backupTaskId: null,
       };
     case 'STOP_TRACKING':
       return {
@@ -49,6 +55,7 @@ function trackingReducer(state: TrackingState, action: TrackingAction): Tracking
         isTracking: false,
         currentTask: null,
         elapsedTime: 0,
+        backupTaskId: null,
       };
     case 'UPDATE_ELAPSED_TIME':
       return {
@@ -60,6 +67,11 @@ function trackingReducer(state: TrackingState, action: TrackingAction): Tracking
         ...state,
         isIdle: action.payload,
       };
+    case 'SET_BACKUP_TASK_ID':
+      return {
+        ...state,
+        backupTaskId: action.payload,
+      };
     case 'RESET':
       return initialState;
     default:
@@ -69,7 +81,7 @@ function trackingReducer(state: TrackingState, action: TrackingAction): Tracking
 
 interface TrackingContextType {
   state: TrackingState;
-  startTracking: (description: string, projectId: string) => void;
+  startTracking: (description: string, projectId: string, customerId?: string) => void;
   stopTracking: () => Promise<void>;
   formatElapsedTime: () => string;
 }
@@ -80,19 +92,25 @@ const TrackingContext = createContext<TrackingContextType | undefined>(undefined
 function TrackingProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(trackingReducer, initialState);
 
-  const startTracking = useCallback((description: string, projectId: string) => {
-    dispatch({ type: 'START_TRACKING', payload: { description, projectId } });
+  const startTracking = useCallback((description: string, projectId: string, customerId?: string) => {
+    dispatch({ type: 'START_TRACKING', payload: { description, projectId, customerId } });
   }, []);
 
   const stopTracking = useCallback(async () => {
     if (state.currentTask && state.elapsedTime > 0) {
       try {
+        // Clean up backup task first
+        if (state.backupTaskId) {
+          await window.electronAPI.deleteTask(state.backupTaskId);
+        }
+        
         // Save the completed task to the database
         if (window.electronAPI) {
           const taskData = {
             id: state.currentTask.id,
             description: state.currentTask.description,
             projectId: state.currentTask.projectId,
+            customerId: state.currentTask.customerId,
             startTime: state.currentTask.startTime,
             endTime: new Date().toISOString(),
             duration: state.elapsedTime,
@@ -107,7 +125,7 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
     }
     
     dispatch({ type: 'STOP_TRACKING' });
-  }, [state.currentTask, state.elapsedTime]);
+  }, [state.currentTask, state.elapsedTime, state.backupTaskId]);
 
   const formatElapsedTime = useCallback(() => {
     const elapsed = state.elapsedTime;
@@ -151,6 +169,45 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
   // Recovery on app start
   useEffect(() => {
     const savedTracking = localStorage.getItem('activeTracking');
+    const unsavedTracking = localStorage.getItem('unsavedTracking');
+    
+    // Check for unsaved work first (from unexpected closure)
+    if (unsavedTracking) {
+      try {
+        const parsed = JSON.parse(unsavedTracking);
+        if (parsed.needsSaving) {
+          const hours = Math.floor(parsed.elapsedTime / 3600);
+          const minutes = Math.floor((parsed.elapsedTime % 3600) / 60);
+          const seconds = parsed.elapsedTime % 60;
+          const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          
+          const shouldRecover = confirm(
+            `You have unsaved work from a previous session. The app closed unexpectedly while tracking "${parsed.currentTask.description}" for ${timeString}. Do you want to recover and save this session?`
+          );
+          
+          if (shouldRecover) {
+            // Immediately save as completed task
+            window.electronAPI?.createTask({
+              id: parsed.currentTask.id,
+              description: parsed.currentTask.description,
+              projectId: parsed.currentTask.projectId,
+              customerId: parsed.currentTask.customerId,
+              startTime: parsed.currentTask.startTime,
+              endTime: new Date(parsed.timestamp).toISOString(),
+              duration: parsed.elapsedTime,
+              isCompleted: true
+            }).then(() => {
+              console.log('Recovered unsaved session successfully');
+            }).catch(console.error);
+          }
+        }
+      } catch (error) {
+        console.error('Error recovering unsaved tracking state:', error);
+      }
+      localStorage.removeItem('unsavedTracking');
+    }
+    
+    // Check for normal recovery (auto-saved state)
     if (savedTracking) {
       try {
         const parsed = JSON.parse(savedTracking);
@@ -159,7 +216,7 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
         // If less than 30 minutes since last save, offer recovery
         if (timeSinceLastSave < 30 * 60 * 1000) {
           const shouldRecover = confirm(
-            `You have an incomplete tracking session from ${formatDistanceToNow(new Date(parsed.timestamp), { addSuffix: true })}. Do you want to recover it?`
+            `You have an incomplete tracking session from ${formatDistanceToNow(new Date(parsed.timestamp), { addSuffix: true, locale: fr })}. Do you want to recover it?`
           );
           
           if (shouldRecover) {
@@ -167,7 +224,8 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
               type: 'START_TRACKING', 
               payload: { 
                 description: parsed.currentTask.description, 
-                projectId: parsed.currentTask.projectId 
+                projectId: parsed.currentTask.projectId,
+                customerId: parsed.currentTask.customerId
               }
             });
             // Update with recovered elapsed time
@@ -196,23 +254,38 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
         stopTracking();
       };
 
-      const handleUserIdle = () => {
+      const handleUserIdle = async (data: { idleTime: number }) => {
+        if (!state.isTracking) return;
+        
         dispatch({ type: 'SET_IDLE', payload: true });
         
-        // Show notification after longer idle period
-        setTimeout(() => {
-          if (state.isIdle && state.isTracking) {
-            const action = confirm(
-              'You\'ve been idle for a while. Do you want to:\n' +
-              '• OK - Continue tracking from when you left\n' +
-              '• Cancel - Stop tracking and save current session'
-            );
-            
-            if (!action) {
-              stopTracking();
-            }
+        // Show native modal immediately when idle is detected
+        try {
+          const choice = await window.electronAPI.showIdleDialog(data.idleTime);
+          
+          switch (choice) {
+            case 0: // Continue tracking (keep idle time)
+              dispatch({ type: 'SET_IDLE', payload: false });
+              break;
+            case 1: // Discard idle time and continue
+              if (state.currentTask) {
+                const idleSeconds = Math.floor(data.idleTime);
+                const newElapsedTime = Math.max(0, state.elapsedTime - idleSeconds);
+                dispatch({ type: 'UPDATE_ELAPSED_TIME', payload: newElapsedTime });
+              }
+              dispatch({ type: 'SET_IDLE', payload: false });
+              break;
+            case 2: // Stop tracking and save session
+              await stopTracking();
+              break;
+            default:
+              dispatch({ type: 'SET_IDLE', payload: false });
+              break;
           }
-        }, 15 * 60 * 1000); // Ask after 15 minutes of idle time
+        } catch (error) {
+          console.error('Error handling idle dialog:', error);
+          dispatch({ type: 'SET_IDLE', payload: false });
+        }
       };
 
       const handleUserActive = () => {
@@ -235,53 +308,67 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
         }
       };
     }
-  }, []); // Empty dependency array to run only once
+  }, [state.isTracking, state.currentTask, state.elapsedTime, stopTracking]);
 
   useEffect(() => {
-    const handleBeforeUnload = async (event: BeforeUnloadEvent) => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (state.isTracking && state.currentTask && state.elapsedTime > 0) {
         // Prevent immediate close
         event.preventDefault();
-        event.returnValue = '';
+        event.returnValue = 'You have an active tracking session. Closing now will save your current progress.';
         
-        // Save the current task
-        try {
-          await stopTracking();
-          // Assuming showToast is available globally or imported
-          // showToast('Current task saved successfully', 'success'); 
-        } catch (error) {
-          console.error('Error saving task before close:', error);
-          // Assuming showToast is available globally or imported
-          // showToast('Failed to save current task', 'error'); 
-        }
+        // Save the current task synchronously using a different approach
+        // Since we can't use async in beforeunload, we'll save to localStorage for recovery
+        const trackingState = {
+          currentTask: state.currentTask,
+          elapsedTime: state.elapsedTime,
+          isTracking: true,
+          timestamp: Date.now(),
+          needsSaving: true
+        };
+        localStorage.setItem('unsavedTracking', JSON.stringify(trackingState));
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [state.isTracking, state.currentTask, state.elapsedTime, stopTracking]);
+  }, [state.isTracking, state.currentTask, state.elapsedTime]);
 
-  // Add backup functionality
+  // Add backup functionality with single backup task
   useEffect(() => {
     if (!state.isTracking) return;
     
     const backupInterval = setInterval(async () => {
       if (state.currentTask && state.elapsedTime > 60) { // Only backup if > 1 minute
         try {
-          // Save as draft every 5 minutes while tracking
-          await window.electronAPI.saveDraftTask({
-            ...state.currentTask,
-            duration: state.elapsedTime,
-            description: `${state.currentTask.description} (Auto-backup)`
-          });
+          if (!state.backupTaskId) {
+            // Create initial backup task
+            const backupTask = await window.electronAPI.saveDraftTask({
+              ...state.currentTask,
+              duration: state.elapsedTime,
+              description: `${state.currentTask.description} (Auto-backup)`,
+              endTime: new Date().toISOString()
+            });
+            dispatch({ type: 'SET_BACKUP_TASK_ID', payload: backupTask?.id || null });
+          } else {
+            // Update existing backup task
+            await window.electronAPI.updateTask({
+              id: state.backupTaskId,
+              duration: state.elapsedTime,
+              endTime: new Date().toISOString()
+            });
+          }
         } catch (error) {
           console.error('Auto-backup failed:', error);
+          dispatch({ type: 'SET_BACKUP_TASK_ID', payload: null }); // Reset to create new backup on next interval
         }
       }
     }, 5 * 60 * 1000); // Every 5 minutes
     
-    return () => clearInterval(backupInterval);
-  }, [state.isTracking, state.currentTask, state.elapsedTime]);
+    return () => {
+      clearInterval(backupInterval);
+    };
+  }, [state.isTracking, state.currentTask, state.elapsedTime, state.backupTaskId]);
 
   const value: TrackingContextType = {
     state,

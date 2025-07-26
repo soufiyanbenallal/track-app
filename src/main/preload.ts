@@ -42,6 +42,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveDraftTask: (task: any) => ipcRenderer.invoke('db-save-draft-task', task),
   completeDraftTask: (taskId: string, finalEndTime: string, finalDuration: number) => ipcRenderer.invoke('db-complete-draft-task', taskId, finalEndTime, finalDuration),
   
+  // Idle dialog
+  showIdleDialog: (idleTime: number) => ipcRenderer.invoke('show-idle-dialog', idleTime),
+  
   // Notion operations
   syncTask: (task: any) => ipcRenderer.invoke('notion-sync-task', task),
   getNotionDatabases: () => ipcRenderer.invoke('notion-get-databases'),
@@ -57,8 +60,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onStopTracking: (callback: () => void) => {
     ipcRenderer.on('stop-tracking', callback);
   },
-  onUserIdle: (callback: () => void) => {
-    ipcRenderer.on('user-idle', callback);
+  onUserIdle: (callback: (data: { idleTime: number }) => void) => {
+    ipcRenderer.on('user-idle', (_, data) => callback(data));
   },
   onUserActive: (callback: () => void) => {
     ipcRenderer.on('user-active', callback);
@@ -71,8 +74,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeStopTracking: (callback: () => void) => {
     ipcRenderer.removeListener('stop-tracking', callback);
   },
-  removeUserIdle: (callback: () => void) => {
-    ipcRenderer.removeListener('user-idle', callback);
+  removeUserIdle: (callback: (data: { idleTime: number }) => void) => {
+    ipcRenderer.removeAllListeners('user-idle');
   },
   removeUserActive: (callback: () => void) => {
     ipcRenderer.removeListener('user-active', callback);
@@ -108,17 +111,18 @@ declare global {
       bulkArchivePaidTasks: () => Promise<void>;
       saveDraftTask: (task: any) => Promise<any>;
       completeDraftTask: (taskId: string, finalEndTime: string, finalDuration: number) => Promise<any>;
+      showIdleDialog: (idleTime: number) => Promise<number>;
       syncTask: (task: any) => Promise<any>;
       getNotionDatabases: () => Promise<any[]>;
       getSettings: () => Promise<any>;
       updateSettings: (settings: any) => Promise<any>;
       onStartTracking: (callback: () => void) => void;
       onStopTracking: (callback: () => void) => void;
-      onUserIdle: (callback: () => void) => void;
+      onUserIdle: (callback: (data: { idleTime: number }) => void) => void;
       onUserActive: (callback: () => void) => void;
       removeStartTracking: (callback: () => void) => void;
       removeStopTracking: (callback: () => void) => void;
-      removeUserIdle: (callback: () => void) => void;
+      removeUserIdle: (callback: (data: { idleTime: number }) => void) => void;
       removeUserActive: (callback: () => void) => void;
     };
   }

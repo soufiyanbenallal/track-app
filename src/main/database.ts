@@ -691,7 +691,7 @@ export class DatabaseService {
     this.db.close();
   }
 
-  async saveDraftTask(task: Partial<Task>): Promise<void> {
+  async saveDraftTask(task: Partial<Task>): Promise<Task> {
     const id = this.generateId();
     const now = new Date().toISOString();
     
@@ -712,6 +712,8 @@ export class DatabaseService {
       now,
       now
     );
+    
+    return this.getTaskById(id);
   }
 
   // Method to convert draft to completed task

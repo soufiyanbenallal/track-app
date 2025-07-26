@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Edit, Trash2, CheckCircle, XCircle, Tag, Plus, Archive, FileText, AlertTriangle } from 'lucide-react';
 import { Loading } from '@/components/ui/loading';
 import CustomerModal from '@/components/CustomerModal';
@@ -84,6 +85,7 @@ const Reports: React.FC = () => {
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [draftTasks, setDraftTasks] = useState<Task[]>([]);
+  const [activeTab, setActiveTab] = useState<'tasks' | 'archived' | 'drafted'>('tasks');
 
   // Toast utility function
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -100,7 +102,6 @@ const Reports: React.FC = () => {
     endDate: '',
     isPaid: undefined as boolean | undefined,
     isCompleted: undefined as boolean | undefined,
-    isArchived: false,
     search: '',
     minDuration: 300, // 5 minutes in seconds (default)
   });
@@ -125,7 +126,7 @@ const Reports: React.FC = () => {
   useEffect(() => {
     loadData();
     loadSettings();
-  }, [filters]);
+  }, [filters, activeTab]);
 
   useEffect(() => {
     generateStats();
@@ -338,8 +339,15 @@ const Reports: React.FC = () => {
     try {
       setLoading(true);
       if (window.electronAPI) {
+        // Create filters based on active tab
+        const tabFilters = {
+          ...filters,
+          isArchived: activeTab === 'archived',
+          isCompleted: activeTab === 'drafted' ? false : undefined
+        };
+        
         const [taskList, projectList, customerList, tagList] = await Promise.all([
-          window.electronAPI.getTasks(filters),
+          window.electronAPI.getTasks(tabFilters),
           window.electronAPI.getProjects(),
           window.electronAPI.getCustomers(),
           window.electronAPI.getTags()
@@ -355,7 +363,7 @@ const Reports: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters, showToast]);
+  }, [filters, activeTab, showToast]);
 
   const generateStats = useCallback(() => {
     const filteredTasks = tasks.filter(task => {
@@ -620,141 +628,132 @@ const Reports: React.FC = () => {
                 </Select>
               </li>
 
+            <li className="space-y-1">
+              <Label htmlFor="customer">Customer</Label>
+              <div className="flex gap-2">
+                <Select value={filters.customerId || "all"} onValueChange={(value) => handleFilterChange({ customerId: value === "all" ? "" : value })}>
+                  <SelectTrigger className="flex-1" aria-label="Select a customer">
+                    <SelectValue placeholder="All customers" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All customers</SelectItem>
+                    {customers.map(customer => (
+                      <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditingCustomer(null);
+                    setShowCustomerModal(true);
+                  }}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </li>
+
+            <li className="space-y-1">
+              <Label htmlFor="tags">Tags</Label>
+              <div className="flex gap-2">
+                <Select value={filters.tags || "all"} onValueChange={(value) => handleFilterChange({ tags: value === "all" ? "" : value })}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="All tags" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All tags</SelectItem>
+                    {tags.map(tag => (
+                      <SelectItem key={tag.id} value={tag.name}>{tag.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditingTag(null);
+                    setShowTagModal(true);
+                  }}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </li>
+
               <li className="space-y-1">
-                <Label htmlFor="customer">Customer</Label>
-                <div className="flex gap-2">
-                  <Select value={filters.customerId || "all"} onValueChange={(value) => handleFilterChange({ customerId: value === "all" ? "" : value })}>
-                    <SelectTrigger className="flex-1" aria-label="Select a customer">
-                      <SelectValue placeholder="All customers" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All customers</SelectItem>
-                      {customers.map(customer => (
-                        <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEditingCustomer(null);
-                      setShowCustomerModal(true);
-                    }}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
+                <Label htmlFor="startDate">Start date</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                value={dateRange.startDate}
+                onChange={(e) => handleDateRangeChange({ startDate: e.target.value })}
+                />
               </li>
 
               <li className="space-y-1">
-                <Label htmlFor="tags">Tags</Label>
-                <div className="flex gap-2">
-                  <Select value={filters.tags || "all"} onValueChange={(value) => handleFilterChange({ tags: value === "all" ? "" : value })}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="All tags" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All tags</SelectItem>
-                      {tags.map(tag => (
-                        <SelectItem key={tag.id} value={tag.name}>{tag.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEditingTag(null);
-                      setShowTagModal(true);
-                    }}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
+                <Label htmlFor="endDate">End date</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                value={dateRange.endDate}
+                onChange={(e) => handleDateRangeChange({ endDate: e.target.value })}
+                />
               </li>
 
-                <li className="space-y-1">
-                  <Label htmlFor="startDate">Start date</Label>
-                  <Input
-                    id="startDate"
-                    type="date"
-                  value={dateRange.startDate}
-                  onChange={(e) => handleDateRangeChange({ startDate: e.target.value })}
-                  />
-                </li>
+              <li className="space-y-1">
+                <Label htmlFor="paymentStatus">Payment </Label>
+                <Select 
+                  value={filters.isPaid === undefined ? 'all' : filters.isPaid.toString()} 
+                onValueChange={(value) => handleFilterChange({ 
+                    isPaid: value === 'all' ? undefined : value === 'true' 
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="true">Paid</SelectItem>
+                    <SelectItem value="false">Unpaid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </li>
 
-                <li className="space-y-1">
-                  <Label htmlFor="endDate">End date</Label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                  value={dateRange.endDate}
-                  onChange={(e) => handleDateRangeChange({ endDate: e.target.value })}
-                  />
-                </li>
+              <li className="space-y-1">
+                <Label htmlFor="completionStatus">Completion</Label>
+                <Select 
+                  value={filters.isCompleted === undefined ? 'all' : filters.isCompleted.toString()} 
+                onValueChange={(value) => handleFilterChange({ 
+                    isCompleted: value === 'all' ? undefined : value === 'true' 
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="true">Completed</SelectItem>
+                    <SelectItem value="false">In Progress</SelectItem>
+                  </SelectContent>
+                </Select>
+              </li>
 
-                <li className="space-y-1">
-                  <Label htmlFor="paymentStatus">Payment </Label>
-                  <Select 
-                    value={filters.isPaid === undefined ? 'all' : filters.isPaid.toString()} 
-                  onValueChange={(value) => handleFilterChange({ 
-                      isPaid: value === 'all' ? undefined : value === 'true' 
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="true">Paid</SelectItem>
-                      <SelectItem value="false">Unpaid</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </li>
-
-                <li className="space-y-1">
-                  <Label htmlFor="completionStatus">Completion</Label>
-                  <Select 
-                    value={filters.isCompleted === undefined ? 'all' : filters.isCompleted.toString()} 
-                  onValueChange={(value) => handleFilterChange({ 
-                      isCompleted: value === 'all' ? undefined : value === 'true' 
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="true">Completed</SelectItem>
-                      <SelectItem value="false">In Progress</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </li>
-
-                <li className="flex items-center space-x-2">
-                  <Checkbox
-                    id="archived"
-                    checked={filters.isArchived}
-                  onCheckedChange={(checked) => handleFilterChange({ isArchived: checked as boolean })}
-                  />
-                  <Label htmlFor="archived">Include archived</Label>
-                </li>
-
-                <li className="space-y-1">
-                  <Label htmlFor="minDuration">Min</Label>
-                  <Input
-                    id="minDuration"
-                    type="number"
-                    min="0"
-                    step="1"
-                    className='max-w-16'
-                    value={filters.minDuration / 60}
-                    onChange={(e) => handleFilterChange({ minDuration: Math.max(0, parseFloat(e.target.value) || 0) * 60 })}
-                    placeholder="5"
-                  />
-                </li>
-          </ul>
+              <li className="space-y-1">
+                <Label htmlFor="minDuration">Min</Label>
+                <Input
+                  id="minDuration"
+                  type="number"
+                  min="0"
+                  step="1"
+                  className='max-w-16'
+                  value={filters.minDuration / 60}
+                  onChange={(e) => handleFilterChange({ minDuration: Math.max(0, parseFloat(e.target.value) || 0) * 60 })}
+                  placeholder="5"
+                />
+              </li>
+        </ul>
 
         {/* Stats Cards */}
         {stats && (
@@ -826,21 +825,33 @@ const Reports: React.FC = () => {
           </Card>
         )}
 
-     
-
-          {/* Tasks List */}
+        {/* Tasks List */}
         <div className="bg-white/80 rounded-xl shadow-xl">
-          <div className="relative border-b border-white/10 bg-slate-900 rounded-t-xl h-10">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <input
-              id="search"
-              placeholder="Search..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange({ search: e.target.value })}
-              className="pl-10 h-10 bg-transparent border-none w-full text-white focus:outline-none"
-              aria-label="Search in tasks"
-            />
-          </div>
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'tasks' | 'archived' | 'drafted')} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 bg-slate-800 rounded-t-xl h-12 border-b border-white/10">
+              <TabsTrigger value="tasks" className="text-white data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+                Tasks
+              </TabsTrigger>
+              <TabsTrigger value="archived" className="text-white data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+                Archived
+              </TabsTrigger>
+              <TabsTrigger value="drafted" className="text-white data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+                Drafted
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="relative border-b border-white/10 bg-slate-900 h-10">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <input
+                id="search"
+                placeholder="Search..."
+                value={filters.search}
+                onChange={(e) => handleFilterChange({ search: e.target.value })}
+                className="pl-10 h-10 bg-transparent border-none w-full text-white focus:outline-none"
+                aria-label="Search in tasks"
+              />
+            </div>
+
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-1 px-2 border-b bg-slate-900  text-white">
               <div className="flex items-center gap-4">
                 <div className="flex items-center space-x-2">
@@ -903,90 +914,90 @@ const Reports: React.FC = () => {
               </div>
             </div>
 
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loading text="Loading..." />
-                </div>
-              ) : filteredTasks.length === 0 ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-muted-foreground">No tasks found</div>
-                </div>
-              ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full" role="table" aria-label="Task list">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-1 px-2 font-medium" scope="col">
-                      
-                      </th>
-                      <th className="text-left py-1 px-2 font-medium" scope="col">Project</th>
-                      <th className="text-left py-1 px-2 font-medium" scope="col">Date</th>
-                      <th className="text-left py-1 px-2 font-medium" scope="col">Duration</th>
-                      <th className="text-left py-1 px-2 font-medium" scope="col">Status</th>
-                      <th className="text-left py-1 px-2 font-medium max-w-20" scope="col"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                  {filteredTasks.map((task) => (
-                      <tr key={task.id} className="border-b hover:bg-muted/50">
-                        <td className="py-1 pl-4 relative">
-                        <div 
-                                className="w-1 rounded-full absolute left-1 inset-y-2"
-                                style={{ backgroundColor: task.projectColor }}
-                              />
-                          <Checkbox
-                            checked={selectedTasks.includes(task.id)}
-                            onCheckedChange={(checked) => handleSelectTask(task.id, checked as boolean)}
-                            aria-label={`Select task ${task.description}`}
-                          />
-                        </td>
-                        <td className="py-1 px-2">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loading text="Loading..." />
+              </div>
+            ) : filteredTasks.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-muted-foreground">No tasks found</div>
+              </div>
+            ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full" role="table" aria-label="Task list">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-1 px-2 font-medium" scope="col">
+                    
+                    </th>
+                    <th className="text-left py-1 px-2 font-medium" scope="col">Project</th>
+                    <th className="text-left py-1 px-2 font-medium" scope="col">Date</th>
+                    <th className="text-left py-1 px-2 font-medium" scope="col">Duration</th>
+                    <th className="text-left py-1 px-2 font-medium" scope="col">Status</th>
+                    <th className="text-left py-1 px-2 font-medium max-w-20" scope="col"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                {filteredTasks.map((task) => (
+                    <tr key={task.id} className="border-b hover:bg-muted/50">
+                      <td className="py-1 pl-4 relative">
+                      <div 
+                              className="w-1 rounded-full absolute left-1 inset-y-2"
+                              style={{ backgroundColor: task.projectColor }}
+                            />
+                        <Checkbox
+                          checked={selectedTasks.includes(task.id)}
+                          onCheckedChange={(checked) => handleSelectTask(task.id, checked as boolean)}
+                          aria-label={`Select task ${task.description}`}
+                        />
+                      </td>
+                      <td className="py-1 px-2">
 
-                          <div className="flex items-center gap-2">
-                            <span className={!task.customerName ? 'text-gray-400' :"text-blue-500"}>{task.customerName || 'No customer'}</span> -
-                            <span>{task.projectName}</span>
-                          </div>
-                          <p className="max-w-xs truncate text-xs">{task.description}</p>
+                        <div className="flex items-center gap-2">
+                          <span className={!task.customerName ? 'text-gray-400' :"text-blue-500"}>{task.customerName || 'No customer'}</span> -
+                          <span>{task.projectName}</span>
+                        </div>
+                        <p className="max-w-xs truncate text-xs">{task.description}</p>
 
-                        </td>
-                        <td className="py-1 px-2">{formatDate(task.startTime)}</td>
-                        <td className="py-1 px-2">{task.duration ? formatDuration(task.duration) : '-'}</td>
-                        <td className="py-1 px-2">
-                              <div className="flex gap-2">
-                                <Badge variant={task.isPaid ? "default" : "secondary"}>
-                              {task.isPaid ? "Paid" : "Unpaid"}
-                                </Badge>
-                           
-                              </div>
-                        </td>
-                        <td className="py-1 px-2">
-                          <div className="flex gap-2">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => handleEditTask(task)}
-                              aria-label={`Edit task ${task.description}`}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteTask(task.id)}
-                              aria-label={`Delete task ${task.description}`}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-            )}
-            </div>
-      </div>
+                      </td>
+                      <td className="py-1 px-2">{formatDate(task.startTime)}</td>
+                      <td className="py-1 px-2">{task.duration ? formatDuration(task.duration) : '-'}</td>
+                      <td className="py-1 px-2">
+                            <div className="flex gap-2">
+                              <Badge variant={task.isPaid ? "default" : "secondary"}>
+                            {task.isPaid ? "Paid" : "Unpaid"}
+                              </Badge>
+                         
+                            </div>
+                      </td>
+                      <td className="py-1 px-2">
+                        <div className="flex gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleEditTask(task)}
+                            aria-label={`Edit task ${task.description}`}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteTask(task.id)}
+                            aria-label={`Delete task ${task.description}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+          )}
+          </Tabs>
+        </div>
 
       {/* Edit Task Dialog */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
@@ -1056,6 +1067,7 @@ const Reports: React.FC = () => {
         tag={editingTag}
         onSave={handleTagSave}
       />
+      </div>
     </div>
   );
 };

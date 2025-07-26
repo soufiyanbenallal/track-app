@@ -4,6 +4,13 @@ import { DatabaseService } from './database';
 import { IdleDetector } from './idle-detector';
 import { NotionService } from './notion-service';
 
+interface Settings {
+  idleTimeoutMinutes?: number;
+  notionApiKey?: string;
+  notionWorkspaceId?: string;
+  autoSyncToNotion?: boolean;
+}
+
 class TrackApp {
   private mainWindow: BrowserWindow | null = null;
   private tray: Tray | null = null;
@@ -17,6 +24,21 @@ class TrackApp {
     this.notionService = new NotionService();
     
     this.initializeApp();
+    this.loadSettingsAndConfigureIdle();
+  }
+
+  private async loadSettingsAndConfigureIdle(): Promise<void> {
+    try {
+      const settings = await this.database.getSettings();
+      // Configure idle detector with user's setting (default 5 minutes if not set)
+      const idleTimeoutMinutes = settings.idleTimeoutMinutes || 5;
+      this.idleDetector.setIdleTimeout(idleTimeoutMinutes);
+      console.log(`Idle timeout configured to ${idleTimeoutMinutes} minutes`);
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      // Fallback to 5 minutes default
+      this.idleDetector.setIdleTimeout(5);
+    }
   }
 
   private initializeApp(): void {
@@ -240,6 +262,34 @@ class TrackApp {
       return await this.database.completeDraftTask(taskId, finalEndTime, finalDuration);
     });
 
+    // Show idle dialog
+    ipcMain.handle('show-idle-dialog', async (_, idleTimeSeconds) => {
+      if (!this.mainWindow) return null;
+      
+      const { dialog } = require('electron');
+      const idleMinutes = Math.floor(idleTimeSeconds / 60);
+      const remainingSeconds = idleTimeSeconds % 60;
+      const timeString = idleMinutes > 0 
+        ? `${idleMinutes} minute${idleMinutes !== 1 ? 's' : ''}${remainingSeconds > 0 ? ` and ${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''}` : ''}`
+        : `${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''}`;
+      
+      const result = await dialog.showMessageBox(this.mainWindow, {
+        type: 'question',
+        title: 'Idle Time Detected',
+        message: `You've been idle for ${timeString}.`,
+        detail: 'What would you like to do with the idle time?',
+        buttons: [
+          'Continue tracking (keep idle time)',
+          'Discard idle time and continue',
+          'Stop tracking and save session'
+        ],
+        defaultId: 1,
+        cancelId: 2
+      });
+      
+      return result.response;
+    });
+
     // Notion operations
     ipcMain.handle('notion-sync-task', async (_, task, project) => {
       return await this.notionService.syncTask(task, project);
@@ -255,32 +305,27 @@ class TrackApp {
     });
 
     ipcMain.handle('update-settings', async (_, settings) => {
-      return await this.database.updateSettings(settings);
+      const result = await this.database.updateSettings(settings);
+      
+      // Update idle detector if idleTimeoutMinutes changed
+      if (settings.idleTimeoutMinutes !== undefined) {
+        this.idleDetector.setIdleTimeout(settings.idleTimeoutMinutes);
+        console.log(`Idle timeout updated to ${settings.idleTimeoutMinutes} minutes`);
+      }
+      
+      return result;
     });
   }
 
   private setupIdleDetection(): void {
     this.idleDetector.onIdle(() => {
-      this.mainWindow?.webContents.send('user-idle');
-      
-      // Show system notification
-      const notification = new Notification({
-        title: 'Time Tracking Paused',
-        body: 'You appear to be away. Time tracking has been paused.',
-        icon: join(__dirname, 'assets/icon.png')
-      });
-      notification.show();
+      const idleTimeMs = this.idleDetector.getCurrentIdleTime();
+      const idleTimeSeconds = Math.floor(idleTimeMs / 1000);
+      this.mainWindow?.webContents.send('user-idle', { idleTime: idleTimeSeconds });
     });
 
     this.idleDetector.onActive(() => {
       this.mainWindow?.webContents.send('user-active');
-      
-      const notification = new Notification({
-        title: 'Time Tracking Resumed',
-        body: 'Welcome back! Time tracking has resumed.',
-        icon: join(__dirname, 'assets/icon.png')
-      });
-      notification.show();
     });
 
     // Update tray menu every minute to keep time current
