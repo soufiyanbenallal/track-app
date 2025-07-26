@@ -2,12 +2,14 @@ import React, { useState, useMemo, forwardRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ChevronDown, Plus, Tag, DollarSign, Search } from 'lucide-react';
+import { ChevronDown, Plus, Search } from 'lucide-react';
 
 interface Project {
   id: string;
   name: string;
   color: string;
+  customerId?: string;
+  customerName?: string;
   notionDatabaseId?: string;
   isArchived: boolean;
   createdAt: string;
@@ -19,40 +21,35 @@ interface ProjectDropdownProps {
   onProjectSelect: (project: Project | null) => void;
   projects: Project[];
   onCreateProject: () => void;
+  onCustomerChange?: (customerId: string | undefined) => void;
 }
 
 const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
   selectedProject,
   onProjectSelect,
   projects,
-  onCreateProject
+  onCreateProject,
+  onCustomerChange
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Group projects by client (for demo, we'll use a simple grouping)
+  // Group projects by customer
   const groupedProjects = useMemo(() => {
     const filtered = projects.filter(project => 
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.id.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // Simple grouping - in a real app, you'd have client data
-    const groups: { [key: string]: Project[] } = {
-      'NO CLIENT': [],
-      'BRAHIM': [],
-      'OUSSAMA': []
-    };
+    const groups: { [key: string]: Project[] } = {};
 
     filtered.forEach(project => {
-      // Simple logic to group projects - replace with actual client logic
-      if (project.name.includes('immobilier')) {
-        groups['BRAHIM'].push(project);
-      } else if (project.name.includes('Ecole') || project.name.includes('School')) {
-        groups['OUSSAMA'].push(project);
-      } else {
-        groups['NO CLIENT'].push(project);
+      const customerName = project.customerName || 'NO CLIENT';
+      if (!groups[customerName]) {
+        groups[customerName] = [];
       }
+      groups[customerName].push(project);
     });
 
     return groups;
@@ -60,6 +57,10 @@ const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
 
   const handleProjectSelect = (project: Project | null) => {
     onProjectSelect(project);
+    // Automatically set the customer if project has one
+    if (onCustomerChange && project?.customerId) {
+      onCustomerChange(project.customerId);
+    }
     setIsOpen(false);
     setSearchQuery('');
   };

@@ -74,7 +74,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeStopTracking: (callback: () => void) => {
     ipcRenderer.removeListener('stop-tracking', callback);
   },
-  removeUserIdle: (callback: (data: { idleTime: number }) => void) => {
+  removeUserIdle: (_callback: (data: { idleTime: number }) => void) => {
     ipcRenderer.removeAllListeners('user-idle');
   },
   removeUserActive: (callback: () => void) => {

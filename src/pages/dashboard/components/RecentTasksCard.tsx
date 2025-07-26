@@ -71,13 +71,13 @@ const RecentTasksCard: React.FC<RecentTasksCardProps> = ({
         </CardTitle>
 
       </CardHeader>
-      <CardContent>
+      <div>
         {recentTasks.length > 0 ? (
           <div className="divide-y">
             {recentTasks.map((task) => (
               <div
                 key={task.id}
-                className="flex items-center justify-between px-3 py-1 hover:bg-slate-100 transition-all"
+                className="flex items-center justify-between px-4 py-1 hover:bg-slate-100 transition-all"
               >
                 <div className="flex items-center gap-4 flex-1">
                   <div
@@ -171,7 +171,7 @@ const RecentTasksCard: React.FC<RecentTasksCardProps> = ({
             <p className="text-sm">Start tracking your first task to see it here</p>
           </div>
         )}
-      </CardContent>
+      </div>
     </Card>
   );
 };

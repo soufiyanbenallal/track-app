@@ -1,15 +1,10 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, Notification } from 'electron';
+import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } from 'electron';
 import { join } from 'path';
 import { DatabaseService } from './database';
 import { IdleDetector } from './idle-detector';
 import { NotionService } from './notion-service';
 
-interface Settings {
-  idleTimeoutMinutes?: number;
-  notionApiKey?: string;
-  notionWorkspaceId?: string;
-  autoSyncToNotion?: boolean;
-}
+
 
 class TrackApp {
   private mainWindow: BrowserWindow | null = null;

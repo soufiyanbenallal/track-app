@@ -10,6 +10,7 @@ interface TrackingState {
     projectId: string;
     customerId?: string;
     startTime: string;
+    initialDuration?: number;
   } | null;
   elapsedTime: number;
   isIdle: boolean;
@@ -17,7 +18,7 @@ interface TrackingState {
 }
 
 type TrackingAction =
-  | { type: 'START_TRACKING'; payload: { description: string; projectId: string; customerId?: string } }
+  | { type: 'START_TRACKING'; payload: { description: string; projectId: string; customerId?: string; startTime?: string; initialDuration?: number } }
   | { type: 'STOP_TRACKING' }
   | { type: 'UPDATE_ELAPSED_TIME'; payload: number }
   | { type: 'SET_IDLE'; payload: boolean }
@@ -43,9 +44,10 @@ function trackingReducer(state: TrackingState, action: TrackingAction): Tracking
           description: action.payload.description,
           projectId: action.payload.projectId,
           customerId: action.payload.customerId,
-          startTime: new Date().toISOString(),
+          startTime: action.payload.startTime || new Date().toISOString(),
+          initialDuration: action.payload.initialDuration || 0,
         },
-        elapsedTime: 0,
+        elapsedTime: action.payload.initialDuration || 0,
         isIdle: false,
         backupTaskId: null,
       };
@@ -81,7 +83,7 @@ function trackingReducer(state: TrackingState, action: TrackingAction): Tracking
 
 interface TrackingContextType {
   state: TrackingState;
-  startTracking: (description: string, projectId: string, customerId?: string) => void;
+  startTracking: (description: string, projectId: string, customerId?: string, startTime?: string, initialDuration?: number) => void;
   stopTracking: () => Promise<void>;
   formatElapsedTime: () => string;
 }
@@ -92,8 +94,8 @@ const TrackingContext = createContext<TrackingContextType | undefined>(undefined
 function TrackingProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(trackingReducer, initialState);
 
-  const startTracking = useCallback((description: string, projectId: string, customerId?: string) => {
-    dispatch({ type: 'START_TRACKING', payload: { description, projectId, customerId } });
+  const startTracking = useCallback((description: string, projectId: string, customerId?: string, startTime?: string, initialDuration?: number) => {
+    dispatch({ type: 'START_TRACKING', payload: { description, projectId, customerId, startTime, initialDuration } });
   }, []);
 
   const stopTracking = useCallback(async () => {
@@ -145,8 +147,9 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
       if (state.currentTask) {
         const startTime = new Date(state.currentTask.startTime);
         const now = new Date();
-        const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
-        dispatch({ type: 'UPDATE_ELAPSED_TIME', payload: elapsed });
+        const actualElapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+        const totalElapsed = (state.currentTask.initialDuration || 0) + actualElapsed;
+        dispatch({ type: 'UPDATE_ELAPSED_TIME', payload: totalElapsed });
       }
     }, 1000);
 
@@ -225,7 +228,9 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
               payload: { 
                 description: parsed.currentTask.description, 
                 projectId: parsed.currentTask.projectId,
-                customerId: parsed.currentTask.customerId
+                customerId: parsed.currentTask.customerId,
+                startTime: parsed.currentTask.startTime,
+                initialDuration: parsed.currentTask.initialDuration || 0
               }
             });
             // Update with recovered elapsed time

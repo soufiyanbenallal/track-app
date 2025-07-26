@@ -3,13 +3,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { X, Palette, Database } from 'lucide-react';
+import { X, Palette, Database, User } from 'lucide-react';
+import CustomerDropdown from './CustomerDropdown';
 
 interface Project {
   id: string;
   name: string;
   color: string;
+  customerId?: string;
   notionDatabaseId?: string;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Customer {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
@@ -19,15 +32,20 @@ interface ProjectCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  customers: Customer[];
+  onCreateCustomer: () => void;
 }
 
 const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
   isOpen,
   onClose,
-  onCreateProject
+  onCreateProject,
+  customers,
+  onCreateCustomer
 }) => {
   const [projectName, setProjectName] = useState('');
   const [selectedColor, setSelectedColor] = useState('#3b82f6');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [notionDatabaseId, setNotionDatabaseId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -57,6 +75,7 @@ const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
       await onCreateProject({
         name: projectName.trim(),
         color: selectedColor,
+        customerId: selectedCustomer?.id,
         notionDatabaseId: notionDatabaseId.trim() || undefined,
         isArchived: false
       });
@@ -64,6 +83,7 @@ const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
       // Reset form
       setProjectName('');
       setSelectedColor('#3b82f6');
+      setSelectedCustomer(null);
       setNotionDatabaseId('');
       onClose();
     } catch (error) {
@@ -78,6 +98,7 @@ const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
     if (!isLoading) {
       setProjectName('');
       setSelectedColor('#3b82f6');
+      setSelectedCustomer(null);
       setNotionDatabaseId('');
       onClose();
     }
@@ -111,6 +132,22 @@ const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
               disabled={isLoading}
               autoFocus
             />
+          </div>
+
+          {/* Customer Selection */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Client (optionnel)
+            </Label>
+            <div className="border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800">
+              <CustomerDropdown
+                selectedCustomer={selectedCustomer}
+                onCustomerSelect={setSelectedCustomer}
+                customers={customers}
+                onCreateCustomer={onCreateCustomer}
+              />
+            </div>
           </div>
 
           {/* Color Selection */}

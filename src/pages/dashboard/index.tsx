@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTracking } from '../../contexts/TrackingContext';
 import TaskEditModal from '../../components/TaskEditModal';
-import TimeEditPopover from '../../components/TimeEditPopover';
+
 import ProjectCreateModal from '../../components/ProjectCreateModal';
 import CustomerModal from '../../components/CustomerModal';
 import StatsGrid from './components/StatsGrid';
@@ -13,6 +13,7 @@ interface Project {
   id: string;
   name: string;
   color: string;
+  customerId?: string;
   notionDatabaseId?: string;
   isArchived: boolean;
   createdAt: string;
@@ -59,7 +60,7 @@ const Dashboard: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [inlineEditingTask, setInlineEditingTask] = useState<string | null>(null);
   const [inlineEditValue, setInlineEditValue] = useState('');
-  const [isTimeEditOpen, setIsTimeEditOpen] = useState(false);
+
   const [isProjectCreateModalOpen, setIsProjectCreateModalOpen] = useState(false);
   const [isCustomerCreateModalOpen, setIsCustomerCreateModalOpen] = useState(false);
   const [currentTaskDescription, setCurrentTaskDescription] = useState('');
@@ -175,13 +176,31 @@ const Dashboard: React.FC = () => {
   };
 
   const handleStartTracking = () => {
-    if (!selectedProject || !taskDescription.trim()) {
+    if (!selectedProject || !currentTaskDescription.trim()) {
       alert('Please select a project and enter a task description');
       return;
     }
 
-    startTracking(taskDescription.trim(), selectedProject.id, selectedCustomer?.id);
-    setIsFormVisible(false);
+    startTracking(currentTaskDescription.trim(), selectedProject.id, selectedCustomer?.id);
+  };
+
+  const handleStartWithTime = (startTime: string) => {
+    if (!selectedProject || !currentTaskDescription.trim()) {
+      alert('Please select a project and enter a task description');
+      return;
+    }
+
+    // Just use the custom start time, let the normal elapsed calculation work
+    const start = new Date(startTime);
+    const now = new Date();
+
+    if (start <= now) {
+      // Start with custom time, no initial duration needed
+      startTracking(currentTaskDescription.trim(), selectedProject.id, selectedCustomer?.id, startTime, 0);
+    } else {
+      // If start time is in the future, just start normally
+      startTracking(currentTaskDescription.trim(), selectedProject.id, selectedCustomer?.id);
+    }
   };
 
   const handleResumeTask = (task: Task) => {
@@ -246,28 +265,9 @@ const Dashboard: React.FC = () => {
     setInlineEditValue('');
   };
 
-  const handleTimeEditSave = (startTime: string, endTime: string, date: string) => {
-    // Convert the time and date to ISO string and start tracking
-    const [day, month, year] = date.split('/');
-    const [startHour, startMinute] = startTime.split(':');
-    const [endHour, endMinute] = endTime.split(':');
-    
-    const startDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(startHour), parseInt(startMinute));
-    const endDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(endHour), parseInt(endMinute));
-    
-    // Start tracking with the configured time
-    if (currentTaskDescription.trim()) {
-      startTracking(currentTaskDescription.trim(), selectedProject?.id || '');
-    }
-  };
 
-  const handleStartWithConfigurableTime = () => {
-    if (!selectedProject || !currentTaskDescription.trim()) {
-      alert('Please select a project and enter a task description');
-      return;
-    }
-    setIsTimeEditOpen(true);
-  };
+
+
 
   const handleStopTracking = async () => {
     try {
@@ -294,9 +294,10 @@ const Dashboard: React.FC = () => {
           setCurrentTaskDescription={setCurrentTaskDescription}
           isTaskDescriptionEditing={isTaskDescriptionEditing}
           setIsTaskDescriptionEditing={setIsTaskDescriptionEditing}
-          onStartWithConfigurableTime={handleStartWithConfigurableTime}
+          onStartWithConfigurableTime={() => {}}
           onStopTracking={handleStopTracking}
           onStartTracking={handleStartTracking}
+          onStartWithTime={handleStartWithTime}
           setIsFormVisible={setIsFormVisible}
           formatElapsedTime={formatElapsedTime}
           projects={projects}
@@ -346,21 +347,15 @@ const Dashboard: React.FC = () => {
           onDelete={handleDeleteTask}
         />
 
-        {/* Time Edit Popover */}
-        <TimeEditPopover
-          isOpen={isTimeEditOpen}
-          onClose={() => setIsTimeEditOpen(false)}
-          onSave={handleTimeEditSave}
-          initialStartTime="19:51"
-          initialEndTime="20:52"
-          initialDate="22/7/2025"
-        />
+
 
         {/* Project Create Modal */}
         <ProjectCreateModal
           isOpen={isProjectCreateModalOpen}
           onClose={() => setIsProjectCreateModalOpen(false)}
           onCreateProject={handleProjectCreate}
+          customers={customers}
+          onCreateCustomer={handleCreateCustomer}
         />
 
         {/* Customer Create Modal */}

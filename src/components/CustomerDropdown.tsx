@@ -62,8 +62,11 @@ const CustomerDropdown: React.FC<CustomerDropdownProps> = ({
           className="flex items-center justify-between border-0 bg-transparent p-2 min-w-40"
         >
           <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-slate-400" />
-            <span className="truncate">
+            <div
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: selectedCustomer ? '#3b82f6' : '#6b7280' }}
+            />
+            <span className={`truncate text-sm ${selectedCustomer ? 'text-slate-700 dark:text-slate-300' : 'text-slate-500 dark:text-slate-400'}`}>
               {selectedCustomer ? selectedCustomer.name : 'Select customer...'}
             </span>
           </div>

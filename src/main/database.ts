@@ -22,6 +22,7 @@ export interface Project {
   id: string;
   name: string;
   color: string;
+  customerId?: string;
   notionDatabaseId?: string;
   isArchived: boolean;
   createdAt: string;
@@ -73,10 +74,12 @@ export class DatabaseService {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         color TEXT NOT NULL,
+        customerId TEXT,
         notionDatabaseId TEXT,
         isArchived INTEGER DEFAULT 0,
         createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL
+        updatedAt TEXT NOT NULL,
+        FOREIGN KEY (customerId) REFERENCES customers (id)
       )
     `);
 
@@ -154,23 +157,32 @@ export class DatabaseService {
 
   private migrateDatabase(): void {
     try {
-      // Check if new columns exist
-      const tableInfo = this.db.prepare("PRAGMA table_info(tasks)").all() as any[];
-      const columns = tableInfo.map(col => col.name);
+      // Check if new columns exist in tasks table
+      const taskTableInfo = this.db.prepare("PRAGMA table_info(tasks)").all() as any[];
+      const taskColumns = taskTableInfo.map(col => col.name);
       
-      if (!columns.includes('isCompleted')) {
+      if (!taskColumns.includes('isCompleted')) {
         console.log('Adding isCompleted column to tasks table...');
         this.db.exec('ALTER TABLE tasks ADD COLUMN isCompleted INTEGER DEFAULT 0');
       }
       
-      if (!columns.includes('customerId')) {
+      if (!taskColumns.includes('customerId')) {
         console.log('Adding customerId column to tasks table...');
         this.db.exec('ALTER TABLE tasks ADD COLUMN customerId TEXT');
       }
       
-      if (!columns.includes('tags')) {
+      if (!taskColumns.includes('tags')) {
         console.log('Adding tags column to tasks table...');
         this.db.exec('ALTER TABLE tasks ADD COLUMN tags TEXT');
+      }
+      
+      // Check if new columns exist in projects table
+      const projectTableInfo = this.db.prepare("PRAGMA table_info(projects)").all() as any[];
+      const projectColumns = projectTableInfo.map(col => col.name);
+      
+      if (!projectColumns.includes('customerId')) {
+        console.log('Adding customerId column to projects table...');
+        this.db.exec('ALTER TABLE projects ADD COLUMN customerId TEXT');
       }
       
       console.log('Database migration completed successfully');
@@ -321,15 +333,20 @@ export class DatabaseService {
 
   // Project operations
   async getProjects(isArchived?: boolean): Promise<Project[]> {
-    let query = 'SELECT * FROM projects';
+    let query = `
+      SELECT p.*, c.name as customerName
+      FROM projects p
+      LEFT JOIN customers c ON p.customerId = c.id
+      WHERE 1=1
+    `;
     const params: any[] = [];
 
     if (isArchived !== undefined) {
-      query += ' WHERE isArchived = ?';
+      query += ' AND p.isArchived = ?';
       params.push(isArchived ? 1 : 0);
     }
 
-    query += ' ORDER BY name';
+    query += ' ORDER BY p.name';
 
     const stmt = this.db.prepare(query);
     return stmt.all(params) as Project[];
@@ -340,14 +357,15 @@ export class DatabaseService {
     const now = new Date().toISOString();
 
     const stmt = this.db.prepare(`
-      INSERT INTO projects (id, name, color, notionDatabaseId, isArchived, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO projects (id, name, color, customerId, notionDatabaseId, isArchived, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
       id,
       project.name,
       project.color,
+      project.customerId,
       project.notionDatabaseId,
       project.isArchived ? 1 : 0,
       now,

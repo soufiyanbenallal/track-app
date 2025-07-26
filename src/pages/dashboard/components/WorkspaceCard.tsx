@@ -1,14 +1,17 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ProjectDropdown from '../../../components/ProjectDropdown';
 import CustomerDropdown from '../../../components/CustomerDropdown';
+import TimeEditHoverPopover from '../../../components/TimeEditHoverPopover';
 import { Play, Square, Plus, Tag, DollarSign } from 'lucide-react';
 
 interface Project {
   id: string;
   name: string;
   color: string;
+  customerId?: string;
+  customerName?: string;
   notionDatabaseId?: string;
   isArchived: boolean;
   createdAt: string;
@@ -46,6 +49,7 @@ interface WorkspaceCardProps {
   onStartWithConfigurableTime: () => void;
   onStopTracking: () => void;
   onStartTracking: () => void;
+  onStartWithTime: (startTime: string) => void;
   setIsFormVisible: (visible: boolean) => void;
   formatElapsedTime: () => string;
   projects: Project[];
@@ -67,6 +71,7 @@ export default function WorkspaceCard({
   onStartWithConfigurableTime,
   onStopTracking,
   onStartTracking,
+  onStartWithTime,
   setIsFormVisible,
   formatElapsedTime,
   projects,
@@ -74,6 +79,8 @@ export default function WorkspaceCard({
   customers,
   onCreateCustomer
 }: WorkspaceCardProps) {
+  const [customStartTime, setCustomStartTime] = useState<string | null>(null);
+  const [, forceUpdate] = useState(0);
   const isTracking = useMemo(() => {
     return state.isTracking && state.currentTask;
   }, [state.isTracking, state.currentTask]);
@@ -86,7 +93,54 @@ export default function WorkspaceCard({
     return !state.isTracking && !state.currentTask;
   }, [state.isTracking, state.currentTask]);
 
+  // Reset custom start time when tracking starts
+  useEffect(() => {
+    if (isTracking) {
+      setCustomStartTime(null);
+    }
+  }, [isTracking]);
 
+  // Update display time every second when we have a custom start time but not tracking
+  useEffect(() => {
+    if (!isTracking && customStartTime) {
+      const interval = setInterval(() => {
+        // Force re-render to update display time
+        forceUpdate(prev => prev + 1);
+      }, 1000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isTracking, customStartTime]);
+
+  const getDisplayTime = () => {
+    if (isTracking) {
+      return formatElapsedTime();
+    }
+    
+    // Calculate time from custom start time to now
+    if (customStartTime) {
+      const startTime = new Date(customStartTime);
+      const now = new Date();
+      const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+      
+      if (elapsed >= 0) {
+        const hours = Math.floor(elapsed / 3600);
+        const minutes = Math.floor((elapsed % 3600) / 60);
+        const seconds = elapsed % 60;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }
+    }
+    
+    return '00:00:00';
+  };
+
+  const handleStartClick = () => {
+    if (customStartTime && selectedProject && currentTaskDescription.trim()) {
+      onStartWithTime(customStartTime);
+    } else {
+      onStartTracking();
+    }
+  };
       
   return (
 
@@ -103,6 +157,11 @@ export default function WorkspaceCard({
                     onProjectSelect={setSelectedProject}
                     projects={projects}
                     onCreateProject={onCreateProject}
+                    onCustomerChange={(customerId) => {
+                      // Find customer by ID and set it
+                      const customer = customers.find(c => c.id === customerId);
+                      setSelectedCustomer(customer || null);
+                    }}
                   />
                   <CustomerDropdown
                     selectedCustomer={selectedCustomer}
@@ -127,9 +186,16 @@ export default function WorkspaceCard({
                   />
               </div>
                 
-              <div className="text-xl font-bold text-slate-900 bg-slate-700/20 px-4 h-10 flex items-center justify-center rounded-xl min-w-32">
-                {isTracking ? formatElapsedTime() : '00:00:00'}
-              </div>
+              <TimeEditHoverPopover
+                isTracking={isTracking}
+                currentStartTime={state.currentTask?.startTime}
+                onTimeChange={setCustomStartTime}
+                getDisplayTime={getDisplayTime}
+              >
+                <div className="text-xl font-bold text-slate-900 bg-slate-700/20 px-4 h-10 flex items-center justify-center rounded-xl min-w-32">
+                  {getDisplayTime()}
+                </div>
+              </TimeEditHoverPopover>
               {
                 isTracking ? (
                   <Button
@@ -145,7 +211,7 @@ export default function WorkspaceCard({
                   </Button>
                 ) : (<Button
                   size="lg"
-                  onClick={onStartWithConfigurableTime}
+                  onClick={handleStartClick}
                   disabled={!currentTaskDescription.trim()}
                   className="w-10 h-10 rounded-full bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
