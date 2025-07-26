@@ -163,12 +163,12 @@ export default function WorkspaceCard({
                       setSelectedCustomer(customer || null);
                     }}
                   />
-                  <CustomerDropdown
+                  {/* <CustomerDropdown
                     selectedCustomer={selectedCustomer}
                     onCustomerSelect={setSelectedCustomer}
                     customers={customers}
                     onCreateCustomer={onCreateCustomer}
-                  />
+                  /> */}
                   <Input
                     value={currentTaskDescription}
                     onChange={(e) => setCurrentTaskDescription(e.target.value)}

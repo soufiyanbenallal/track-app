@@ -62,10 +62,7 @@ const CustomerDropdown: React.FC<CustomerDropdownProps> = ({
           className="flex items-center justify-between border-0 bg-transparent p-2 min-w-40"
         >
           <div className="flex items-center gap-2">
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: selectedCustomer ? '#3b82f6' : '#6b7280' }}
-            />
+      
             <span className={`truncate text-sm ${selectedCustomer ? 'text-slate-700 dark:text-slate-300' : 'text-slate-500 dark:text-slate-400'}`}>
               {selectedCustomer ? selectedCustomer.name : 'Select customer...'}
             </span>
@@ -99,7 +96,6 @@ const CustomerDropdown: React.FC<CustomerDropdownProps> = ({
             className="w-full px-4 py-3 text-left hover:bg-slate-800 transition-colors border-b border-slate-700"
           >
             <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-slate-400" />
               <span className="text-sm text-slate-400 italic">
                 No customer
               </span>
@@ -115,7 +111,6 @@ const CustomerDropdown: React.FC<CustomerDropdownProps> = ({
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-white font-medium truncate">
                     {customer.name}

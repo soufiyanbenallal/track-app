@@ -69,7 +69,7 @@ const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
     ({ className, ...props }, ref) => (
       <button
         ref={ref}
-        className="flex items-center justify-between border-0 bg-transparent  p-2 min-w-40"
+        className="flex items-center justify-between border-0 bg-transparent p-2 min-w-60"
         {...props}
       >
         <div className="flex items-center gap-2">
@@ -77,6 +77,11 @@ const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
             className="w-2 h-2 rounded-full"
             style={{ backgroundColor: selectedProject?.color || '#6b7280' }}
           />
+          {selectedProject?.customerName && (
+            <span className="text-sm text-slate-400">
+              {selectedProject?.customerName} :
+            </span>
+          )}
           <span className="text-sm text-slate-700 dark:text-slate-300">
             {selectedProject?.name || 'Select project'}
           </span>

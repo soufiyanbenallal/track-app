@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -93,6 +93,15 @@ const TrackingContext = createContext<TrackingContextType | undefined>(undefined
 // Component for Fast Refresh compatibility
 function TrackingProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(trackingReducer, initialState);
+  
+  // Refs to access latest values in event handlers
+  const stateRef = useRef(state);
+  const stopTrackingRef = useRef<(() => Promise<void>) | null>(null);
+
+  // Update refs when values change
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const startTracking = useCallback((description: string, projectId: string, customerId?: string, startTime?: string, initialDuration?: number) => {
     dispatch({ type: 'START_TRACKING', payload: { description, projectId, customerId, startTime, initialDuration } });
@@ -128,6 +137,11 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
     
     dispatch({ type: 'STOP_TRACKING' });
   }, [state.currentTask, state.elapsedTime, state.backupTaskId]);
+
+  // Update stopTracking ref
+  useEffect(() => {
+    stopTrackingRef.current = stopTracking;
+  }, [stopTracking]);
 
   const formatElapsedTime = useCallback(() => {
     const elapsed = state.elapsedTime;
@@ -248,72 +262,78 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
     }
   }, []); // Run once on mount
 
-  // Listen for Electron events
+  // Listen for Electron events - run only once on mount
   useEffect(() => {
-    if (window.electronAPI) {
-      const handleStartTracking = () => {
-        // This will be handled by the UI components
-      };
+    if (!window.electronAPI) return;
 
-      const handleStopTracking = () => {
-        stopTracking();
-      };
+    const handleStartTracking = () => {
+      // This will be handled by the UI components
+    };
 
-      const handleUserIdle = async (data: { idleTime: number }) => {
-        if (!state.isTracking) return;
+    const handleStopTracking = () => {
+      // Use a ref to access latest stopTracking function
+      if (stopTrackingRef.current) {
+        stopTrackingRef.current();
+      }
+    };
+
+    const handleUserIdle = async (data: { idleTime: number }) => {
+      // Use refs to access latest state
+      if (!stateRef.current.isTracking) return;
+      
+      dispatch({ type: 'SET_IDLE', payload: true });
+      
+      // Show native modal immediately when idle is detected
+      try {
+        const choice = await window.electronAPI.showIdleDialog(data.idleTime);
         
-        dispatch({ type: 'SET_IDLE', payload: true });
-        
-        // Show native modal immediately when idle is detected
-        try {
-          const choice = await window.electronAPI.showIdleDialog(data.idleTime);
-          
-          switch (choice) {
-            case 0: // Continue tracking (keep idle time)
-              dispatch({ type: 'SET_IDLE', payload: false });
-              break;
-            case 1: // Discard idle time and continue
-              if (state.currentTask) {
-                const idleSeconds = Math.floor(data.idleTime);
-                const newElapsedTime = Math.max(0, state.elapsedTime - idleSeconds);
-                dispatch({ type: 'UPDATE_ELAPSED_TIME', payload: newElapsedTime });
-              }
-              dispatch({ type: 'SET_IDLE', payload: false });
-              break;
-            case 2: // Stop tracking and save session
-              await stopTracking();
-              break;
-            default:
-              dispatch({ type: 'SET_IDLE', payload: false });
-              break;
-          }
-        } catch (error) {
-          console.error('Error handling idle dialog:', error);
-          dispatch({ type: 'SET_IDLE', payload: false });
+        switch (choice) {
+          case 0: // Continue tracking (keep idle time)
+            dispatch({ type: 'SET_IDLE', payload: false });
+            break;
+          case 1: // Discard idle time and continue
+            if (stateRef.current.currentTask) {
+              const idleSeconds = Math.floor(data.idleTime);
+              const newElapsedTime = Math.max(0, stateRef.current.elapsedTime - idleSeconds);
+              dispatch({ type: 'UPDATE_ELAPSED_TIME', payload: newElapsedTime });
+            }
+            dispatch({ type: 'SET_IDLE', payload: false });
+            break;
+          case 2: // Stop tracking and save session
+            if (stopTrackingRef.current) {
+              await stopTrackingRef.current();
+            }
+            break;
+          default:
+            dispatch({ type: 'SET_IDLE', payload: false });
+            break;
         }
-      };
-
-      const handleUserActive = () => {
+      } catch (error) {
+        console.error('Error handling idle dialog:', error);
         dispatch({ type: 'SET_IDLE', payload: false });
-      };
+      }
+    };
 
-      // Add event listeners
-      window.electronAPI.onStartTracking(handleStartTracking);
-      window.electronAPI.onStopTracking(handleStopTracking);
-      window.electronAPI.onUserIdle(handleUserIdle);
-      window.electronAPI.onUserActive(handleUserActive);
+    const handleUserActive = () => {
+      dispatch({ type: 'SET_IDLE', payload: false });
+    };
 
-      // Cleanup function to remove event listeners
-      return () => {
-        if (window.electronAPI) {
-          window.electronAPI.removeStartTracking(handleStartTracking);
-          window.electronAPI.removeStopTracking(handleStopTracking);
-          window.electronAPI.removeUserIdle(handleUserIdle);
-          window.electronAPI.removeUserActive(handleUserActive);
-        }
-      };
-    }
-  }, [state.isTracking, state.currentTask, state.elapsedTime, stopTracking]);
+    // Add event listeners
+    window.electronAPI.onStartTracking(handleStartTracking);
+    window.electronAPI.onStopTracking(handleStopTracking);
+    window.electronAPI.onUserIdle(handleUserIdle);
+    window.electronAPI.onUserActive(handleUserActive);
+
+    // Cleanup function to remove event listeners
+    return () => {
+      if (window.electronAPI) {
+        window.electronAPI.removeStartTracking(handleStartTracking);
+        window.electronAPI.removeStopTracking(handleStopTracking);
+        window.electronAPI.removeUserIdle(handleUserIdle);
+        window.electronAPI.removeUserActive(handleUserActive);
+      }
+    };
+  }, []); // Empty dependency array - run only once
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
