@@ -99,8 +99,20 @@ track-app/
 
 1. Create a Notion integration at [https://www.notion.so/my-integrations](https://www.notion.so/my-integrations)
 2. Get your API key and workspace ID
-3. Configure in the app settings
-4. Link projects to specific Notion databases
+3. Create a `.env` file in the project root with:
+   ```
+   NOTION_TOKEN=your_notion_api_key_here
+   NOTION_DATABASE_ID=your_database_id_here
+   ```
+4. The API key will be automatically loaded from environment variables
+5. Link projects to specific Notion databases in project settings
+6. Enable auto-sync to automatically send completed tasks to Notion
+
+#### Auto-sync Features
+- **Automatic Sync**: When enabled, completed tasks are automatically synchronized to Notion
+- **Project Linking**: Link each project to a specific Notion database
+- **Task Details**: Syncs task description, duration, start/end times, and payment status
+- **Error Handling**: Sync errors don't prevent task saving locally
 
 ### Idle Detection
 

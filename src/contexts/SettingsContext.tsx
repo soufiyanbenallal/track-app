@@ -33,7 +33,13 @@ function SettingsProvider({ children }: { children: React.ReactNode }) {
     try {
       if (window.electronAPI) {
         const savedSettings = await window.electronAPI.getSettings();
-        setSettings({ ...defaultSettings, ...savedSettings });
+        const loadedSettings = { ...defaultSettings, ...savedSettings };
+        setSettings(loadedSettings);
+        
+        // Set the Notion API key if it exists
+        if (loadedSettings.notionApiKey) {
+          await window.electronAPI.setNotionApiKey(loadedSettings.notionApiKey);
+        }
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -47,6 +53,11 @@ function SettingsProvider({ children }: { children: React.ReactNode }) {
       
       if (window.electronAPI) {
         await window.electronAPI.updateSettings(updatedSettings);
+        
+        // If Notion API key is being updated, set it in the Notion service
+        if (newSettings.notionApiKey) {
+          await window.electronAPI.setNotionApiKey(newSettings.notionApiKey);
+        }
       }
     } catch (error) {
       console.error('Error updating settings:', error);
@@ -58,9 +69,13 @@ function SettingsProvider({ children }: { children: React.ReactNode }) {
     if (!settings.notionApiKey) return false;
     
     try {
-      // This would be implemented in the main process
-      // For now, we'll just check if the API key is set
-      return !!settings.notionApiKey;
+      if (window.electronAPI) {
+        // Set the API key first
+        await window.electronAPI.setNotionApiKey(settings.notionApiKey);
+        // Then test the connection
+        return await window.electronAPI.testNotionConnection();
+      }
+      return false;
     } catch (error) {
       console.error('Notion connection test failed:', error);
       return false;

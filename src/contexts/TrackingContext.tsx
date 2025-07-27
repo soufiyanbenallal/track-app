@@ -163,7 +163,27 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
             isInterrupted: false
           };
           
-          await window.electronAPI.createTask(taskData);
+          const savedTask = await window.electronAPI.createTask(taskData);
+          
+          // Auto-sync to Notion if enabled
+          try {
+            const settings = await window.electronAPI.getSettings();
+            if (settings.autoSyncToNotion && settings.notionApiKey) {
+              // Get project information for Notion sync
+              const projects = await window.electronAPI.getProjects();
+              const project = projects.find((p: any) => p.id === state.currentTask?.projectId);
+              
+              if (project && project.notionDatabaseId) {
+                await window.electronAPI.syncTask(savedTask, project);
+                console.log('Task successfully synced to Notion');
+              } else {
+                console.log('Project not found or no Notion database ID configured for project');
+              }
+            }
+          } catch (notionError) {
+            console.error('Error syncing task to Notion:', notionError);
+            // Don't throw - we don't want Notion sync errors to break task saving
+          }
         }
       } catch (error) {
         console.error('Error saving task:', error);
