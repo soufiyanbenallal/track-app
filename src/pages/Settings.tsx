@@ -165,16 +165,22 @@ const Settings: React.FC = () => {
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <Label className="text-base font-medium">Clé API Notion</Label>
+              <div className="flex items-center gap-2">
+                <Label className="text-base font-medium">Clé API Notion</Label>
+                <Badge variant="secondary" className="text-xs">
+                  Chargée depuis .env
+                </Badge>
+              </div>
               <p className="text-sm text-muted-foreground">
-                Votre clé API pour l'intégration avec Notion
+                Votre clé API pour l'intégration avec Notion (configurée via les variables d'environnement)
               </p>
               <div className="flex gap-2">
                 <Input
                   type="password"
-                  value={notionApiKey}
+                  value={notionApiKey || '••••••••••••••••••••••••••••••••••••••••••••••••••••••'}
                   onChange={(e: { target: { value: any; }; }) => setNotionApiKey(e.target.value)}
-                  placeholder="Entrez votre clé API Notion"
+                  placeholder="Clé API chargée depuis .env"
+                  disabled={true}
                 />
                 <Button
                   variant="outline"

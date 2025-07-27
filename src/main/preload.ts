@@ -57,8 +57,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPausedIdleTime: () => ipcRenderer.invoke('get-paused-idle-time'),
   
   // Notion operations
-  syncTask: (task: any) => ipcRenderer.invoke('notion-sync-task', task),
+  syncTask: (task: any, project: any) => ipcRenderer.invoke('notion-sync-task', task, project),
   getNotionDatabases: () => ipcRenderer.invoke('notion-get-databases'),
+  setNotionApiKey: (apiKey: string) => ipcRenderer.invoke('notion-set-api-key', apiKey),
+  testNotionConnection: () => ipcRenderer.invoke('notion-test-connection'),
   
   // Settings
   getSettings: () => ipcRenderer.invoke('get-settings'),
@@ -132,8 +134,10 @@ declare global {
       pauseIdleDetection: () => Promise<void>;
       resumeIdleDetection: () => Promise<void>;
       getPausedIdleTime: () => Promise<number>;
-      syncTask: (task: any) => Promise<any>;
+      syncTask: (task: any, project: any) => Promise<any>;
       getNotionDatabases: () => Promise<any[]>;
+      setNotionApiKey: (apiKey: string) => Promise<boolean>;
+      testNotionConnection: () => Promise<boolean>;
       getSettings: () => Promise<any>;
       updateSettings: (settings: any) => Promise<any>;
       onStartTracking: (callback: () => void) => void;

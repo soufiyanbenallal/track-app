@@ -1,8 +1,12 @@
 import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } from 'electron';
 import { join } from 'path';
+import { config } from 'dotenv';
 import { DatabaseService } from './database';
 import { IdleDetector } from './idle-detector';
 import { NotionService } from './notion-service';
+
+// Load environment variables
+config();
 
 
 
@@ -29,6 +33,19 @@ class TrackApp {
       const idleTimeoutMinutes = settings.idleTimeoutMinutes || 5;
       this.idleDetector.setIdleTimeout(idleTimeoutMinutes);
       console.log(`Idle timeout configured to ${idleTimeoutMinutes} minutes`);
+      
+      // Initialize Notion service with API key - prioritize environment variable
+      const notionApiKey = process.env.NOTION_TOKEN || settings.notionApiKey;
+      if (notionApiKey) {
+        this.notionService.setApiKey(notionApiKey);
+        console.log('Notion API key configured from', process.env.NOTION_TOKEN ? 'environment' : 'settings');
+        
+        // Save to settings if loaded from environment and not already saved
+        if (process.env.NOTION_TOKEN && !settings.notionApiKey) {
+          await this.database.updateSettings({ notionApiKey: process.env.NOTION_TOKEN });
+          console.log('Notion API key saved to settings from environment');
+        }
+      }
     } catch (error) {
       console.error('Error loading settings:', error);
       // Fallback to 5 minutes default
@@ -337,6 +354,17 @@ class TrackApp {
       return await this.notionService.getDatabases();
     });
 
+    ipcMain.handle('notion-set-api-key', async (_, apiKey) => {
+      // Prioritize environment variable over provided API key
+      const notionApiKey = process.env.NOTION_TOKEN || apiKey;
+      this.notionService.setApiKey(notionApiKey);
+      return true;
+    });
+
+    ipcMain.handle('notion-test-connection', async () => {
+      return await this.notionService.testConnection();
+    });
+
     // Settings
     ipcMain.handle('get-settings', async () => {
       return await this.database.getSettings();
@@ -349,6 +377,13 @@ class TrackApp {
       if (settings.idleTimeoutMinutes !== undefined) {
         this.idleDetector.setIdleTimeout(settings.idleTimeoutMinutes);
         console.log(`Idle timeout updated to ${settings.idleTimeoutMinutes} minutes`);
+      }
+      
+      // Update Notion API key if changed - prioritize environment variable
+      if (settings.notionApiKey !== undefined) {
+        const notionApiKey = process.env.NOTION_TOKEN || settings.notionApiKey;
+        this.notionService.setApiKey(notionApiKey);
+        console.log('Notion API key updated from', process.env.NOTION_TOKEN ? 'environment' : 'settings');
       }
       
       return result;
