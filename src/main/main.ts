@@ -58,9 +58,13 @@ class TrackApp {
   }
 
   private createWindow(): void {
+    const iconPath = join(process.cwd(), 'assets', 'icon.icns');
+    console.log('Icon path:', iconPath); // Debug log
+    
     this.mainWindow = new BrowserWindow({
       width: 700,
       height: 700,
+      icon: iconPath,
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
