@@ -7,6 +7,21 @@ export interface NotionDatabase {
   properties: Record<string, any>;
 }
 
+// Local utility function to format duration
+// function formatDuration(seconds: number): string {
+//   const hours = Math.floor(seconds / 3600);
+//   const minutes = Math.floor((seconds % 3600) / 60);
+//   return `${hours}h ${minutes}m ${seconds}s`;
+// }
+function formatTime(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+function formatDate(dateString: string): string {
+  return new Date(dateString).toISOString();
+}
 export class NotionService {
   private client: Client | null = null;
   // private apiKey: string | null = null;
@@ -45,48 +60,98 @@ export class NotionService {
     }
 
     try {
+      // First, get the database to check available properties
+      // const database = await this.client.databases.retrieve({
+      //   database_id: project.notionDatabaseId
+      // });
+      
+      // const hasDescriptionProperty = 'Description' in database.properties;
+      
       const response = await this.client.pages.create({
         parent: {
           database_id: project.notionDatabaseId
         },
         properties: {
-          Name: {
+          'Task name': {
             title: [
               {
                 text: {
-                  content: task.description
+                  content: task.projectName
                 }
               }
             ]
           },
           Status: {
-            select: {
-              name: task.isPaid ? 'Paid' : 'Unpaid'
+            status: {
+              name: task.isPaid ? 'Done' : 'In Progress'
             }
           },
-          Duration: {
-            number: task.duration ? task.duration / 3600 : 0 // Convert seconds to hours
-          },
-          'Start Time': {
-            date: {
-              start: task.startTime
-            }
-          },
-          'End Time': {
-            date: {
-              start: task.endTime || new Date().toISOString()
-            }
-          },
-          Project: {
+          Customer: {
             rich_text: [
               {
                 text: {
-                  content: project.name
+                  content: task.customerName || 'No customer'
                 }
               }
             ]
+          },
+          Working: {
+            rich_text: [
+              {
+                text: {
+                  content: formatTime(task.duration || 0) 
+                }
+              }
+            ]
+          },
+          Worked: {
+            rich_text: [
+              {
+                text: {
+                  content: `${new Date(task.startTime).toLocaleTimeString('en-GB', { hour12: false })} - ${new Date(task.endTime || new Date().toISOString()).toLocaleTimeString('en-GB', { hour12: false })}`
+                }
+              }
+            ]
+          },
+          Due: {
+            date: {
+              start: formatDate(task.endTime || task.startTime ||new Date().toISOString())
+            }
+          },
+          Paid: {
+            checkbox: task.isPaid ? true : false
+          },
+          // Only add Description property if it exists in the database
+          // ...(hasDescriptionProperty && {
+          //   Description: {
+          //     rich_text: [
+          //       {
+          //         text: {
+          //           content: task.description || ''
+          //         }
+          //       }
+          //     ]
+          //   }
+          // })
+        },
+        
+        // Add the task description as page content/children
+        children: [
+          {
+            object: 'block',
+            type: 'paragraph',
+            paragraph: {
+              rich_text: [
+                {
+                  type: 'text',
+                  text: {
+                    content: task.description || ''
+                  }
+                }
+              ]
+            }
           }
-        }
+        ]
       });
 
       return response;
@@ -96,16 +161,24 @@ export class NotionService {
     }
   }
 
-  async updateTask(task: Task, _project: Project, notionPageId: string): Promise<any> {
+  async updateTask(task: Task, project: Project, notionPageId: string): Promise<any> {
     if (!this.client) {
       throw new Error('Notion API key not set');
     }
 
     try {
+      // First, get the database to check available properties
+      const database = await this.client.databases.retrieve({
+        database_id: project.notionDatabaseId!
+      });
+      
+      const hasDescriptionProperty = 'Description' in database.properties;
+      
+      // Update page properties
       const response = await this.client.pages.update({
         page_id: notionPageId,
         properties: {
-          Name: {
+          'Task name': {
             title: [
               {
                 text: {
@@ -115,20 +188,90 @@ export class NotionService {
             ]
           },
           Status: {
-            select: {
-              name: task.isPaid ? 'Paid' : 'Unpaid'
+            status: {
+              name: task.isPaid ? 'Done' : 'In Progress'
             }
           },
-          Duration: {
-            number: task.duration ? task.duration / 3600 : 0
+          Working: {
+            rich_text: [
+              {
+                text: {
+                  content: task.duration ? (task.duration / 3600).toFixed(2) + ' hours' : '0 hours'
+                }
+              }
+            ]
           },
-          'End Time': {
-            date: {
-              start: task.endTime || new Date().toISOString()
+          Worked: {
+            rich_text: [
+              {
+                text: {
+                  content: `${new Date(task.startTime).toLocaleTimeString('en-GB', { hour12: false })} - ${new Date(task.endTime || new Date().toISOString()).toLocaleTimeString('en-GB', { hour12: false })}`
+                }
+              }
+            ]
+          },
+          paid: {
+            date: task.isPaid ? {
+              start: new Date().toISOString().split('T')[0]
+            } : null
+          },
+          // Only add Description property if it exists in the database
+          ...(hasDescriptionProperty && {
+            Description: {
+              rich_text: [
+                {
+                  text: {
+                    content: task.description || ''
+                  }
+                }
+              ]
             }
-          }
+          })
         }
       });
+
+      // Update page content with description
+      if (task.description) {
+        try {
+          // First, get existing blocks to replace the first paragraph
+          const blocks = await this.client.blocks.children.list({
+            block_id: notionPageId
+          });
+
+          // Delete existing content blocks
+          if (blocks.results.length > 0) {
+            for (const block of blocks.results) {
+              await this.client.blocks.delete({
+                block_id: block.id
+              });
+            }
+          }
+
+          // Add new content with description
+          await this.client.blocks.children.append({
+            block_id: notionPageId,
+            children: [
+              {
+                object: 'block',
+                type: 'paragraph',
+                paragraph: {
+                  rich_text: [
+                    {
+                      type: 'text',
+                      text: {
+                        content: task.description
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          });
+        } catch (blockError) {
+          console.error('Error updating page content:', blockError);
+          // Continue execution even if block update fails
+        }
+      }
 
       return response;
     } catch (error) {

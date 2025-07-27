@@ -20,7 +20,7 @@
         "object": "user",
         "id": "ee6fc145-9c27-4ec6-b00f-d22dca55074e"
       },
-      "last_edited_time": "2025-07-27T13:06:00.000Z",
+      "last_edited_time": "2025-07-27T13:55:00.000Z",
       "title": [
         {
           "type": "text",
@@ -60,6 +60,12 @@
           "name": "paid",
           "type": "date",
           "date": {}
+        },
+        "Customer": {
+          "id": "s%5DuI",
+          "name": "Customer",
+          "type": "rich_text",
+          "rich_text": {}
         },
         "Task name": {
           "id": "title",
@@ -139,9 +145,9 @@
           "type": "date",
           "date": {}
         },
-        "Summary": {
-          "id": "notion%3A%2F%2Ftasks%2Fai_summary_property",
-          "name": "Summary",
+        "Description": {
+          "id": "description_property",
+          "name": "Description",
           "type": "rich_text",
           "rich_text": {}
         }
@@ -160,5 +166,5 @@
   "has_more": false,
   "type": "page_or_database",
   "page_or_database": {},
-  "request_id": "298a75a1-4c0b-4767-b403-7a1b2244227a"
+  "request_id": "90405cb9-e168-4bc1-8fe2-f5010a4fee68"
 }
