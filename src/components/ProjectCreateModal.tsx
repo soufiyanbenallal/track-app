@@ -48,6 +48,30 @@ const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [notionDatabaseId, setNotionDatabaseId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [notionDatabases, setNotionDatabases] = useState<any[]>([]);
+
+  // Load Notion databases when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      loadNotionDatabases();
+    }
+  }, [isOpen]);
+
+  const loadNotionDatabases = async () => {
+    try {
+      if (window.electronAPI) {
+        const databases = await window.electronAPI.getNotionDatabases();
+        setNotionDatabases(databases);
+        
+        // Auto-select database if there's only one or if we have a default from env
+        if (databases.length === 1) {
+          setNotionDatabaseId(databases[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading Notion databases:', error);
+    }
+  };
 
   const colorOptions = [
     '#3b82f6', // blue
@@ -174,23 +198,43 @@ const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
             </div>
           </div>
 
-          {/* Notion Database ID (Optional) */}
+          {/* Notion Database Selection (Optional) */}
           <div className="space-y-2">
             <Label htmlFor="notion-database" className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
               <Database className="w-4 h-4" />
-              ID Base de données Notion (optionnel)
+              Base de données Notion (optionnel)
             </Label>
-            <Input
-              id="notion-database"
-              type="text"
-              value={notionDatabaseId}
-              onChange={(e) => setNotionDatabaseId(e.target.value)}
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100"
-              disabled={isLoading}
-            />
+            {notionDatabases.length > 0 ? (
+              <select
+                id="notion-database"
+                value={notionDatabaseId}
+                onChange={(e) => setNotionDatabaseId(e.target.value)}
+                className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                disabled={isLoading}
+              >
+                <option value="">Aucune synchronisation Notion</option>
+                {notionDatabases.map((db) => (
+                  <option key={db.id} value={db.id}>
+                    {db.title}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                id="notion-database"
+                type="text"
+                value={notionDatabaseId}
+                onChange={(e) => setNotionDatabaseId(e.target.value)}
+                placeholder="ID de base de données Notion (optionnel)"
+                className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100"
+                disabled={isLoading}
+              />
+            )}
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Laissez vide si vous ne souhaitez pas synchroniser avec Notion
+              {notionDatabases.length > 0 
+                ? "Sélectionnez une base de données pour synchroniser automatiquement les tâches"
+                : "Laissez vide si vous ne souhaitez pas synchroniser avec Notion"
+              }
             </p>
           </div>
 

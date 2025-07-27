@@ -33,10 +33,23 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
     color: '#007bff',
     notionDatabaseId: ''
   });
+  const [notionDatabases, setNotionDatabases] = useState<any[]>([]);
 
   useEffect(() => {
     loadProjects();
+    loadNotionDatabases();
   }, []);
+
+  const loadNotionDatabases = async () => {
+    try {
+      if (window.electronAPI) {
+        const databases = await window.electronAPI.getNotionDatabases();
+        setNotionDatabases(databases);
+      }
+    } catch (error) {
+      console.error('Error loading Notion databases:', error);
+    }
+  };
 
   const loadProjects = async () => {
     try {
@@ -185,14 +198,36 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notionDatabaseId">ID de base de données Notion (optionnel)</Label>
-              <Input
-                id="notionDatabaseId"
-                type="text"
-                value={formData.notionDatabaseId}
-                onChange={(e) => setFormData({ ...formData, notionDatabaseId: e.target.value })}
-                placeholder="ID de la base de données Notion"
-              />
+              <Label htmlFor="notionDatabaseId">Base de données Notion (optionnel)</Label>
+              {notionDatabases.length > 0 ? (
+                <select
+                  id="notionDatabaseId"
+                  value={formData.notionDatabaseId}
+                  onChange={(e) => setFormData({ ...formData, notionDatabaseId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Aucune synchronisation Notion</option>
+                  {notionDatabases.map((db) => (
+                    <option key={db.id} value={db.id}>
+                      {db.title}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <Input
+                  id="notionDatabaseId"
+                  type="text"
+                  value={formData.notionDatabaseId}
+                  onChange={(e) => setFormData({ ...formData, notionDatabaseId: e.target.value })}
+                  placeholder="ID de la base de données Notion"
+                />
+              )}
+              <p className="text-xs text-muted-foreground">
+                {notionDatabases.length > 0 
+                  ? "Sélectionnez une base de données pour synchroniser automatiquement les tâches"
+                  : "Entrez l'ID de votre base de données Notion ou laissez vide"
+                }
+              </p>
             </div>
 
             <DialogFooter>
