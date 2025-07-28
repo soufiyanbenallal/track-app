@@ -133,10 +133,10 @@ const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
       <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-            Nouveau projet
+            New Project
           </DialogTitle>
           <DialogDescription className="text-slate-600 dark:text-slate-400">
-            Créez un nouveau projet pour organiser vos tâches et suivre votre temps de travail.
+            Create a new project to organize your tasks and track your work time.
           </DialogDescription>
         </DialogHeader>
         
@@ -144,14 +144,14 @@ const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
           {/* Project Name */}
           <div className="space-y-2">
             <Label htmlFor="project-name" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              Nom du projet
+              Project Name
             </Label>
             <Input
               id="project-name"
               type="text"
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
-              placeholder="Entrez le nom du projet"
+              placeholder="Enter project name"
               className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100"
               disabled={isLoading}
               autoFocus
@@ -162,7 +162,7 @@ const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
               <User className="w-4 h-4" />
-              Client (optionnel)
+              Customer (optional)
             </Label>
             <div className="border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800">
               <CustomerDropdown
@@ -178,7 +178,7 @@ const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
               <Palette className="w-4 h-4" />
-              Couleur
+              Color
             </Label>
             <div className="grid grid-cols-5 gap-2">
               {colorOptions.map((color) => (
@@ -202,7 +202,7 @@ const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
           <div className="space-y-2">
             <Label htmlFor="notion-database" className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
               <Database className="w-4 h-4" />
-              Base de données Notion (optionnel)
+              Notion Database (optional)
             </Label>
             {notionDatabases.length > 0 ? (
               <select
@@ -212,7 +212,7 @@ const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
                 className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 disabled={isLoading}
               >
-                <option value="">Aucune synchronisation Notion</option>
+                <option value="">No Notion sync</option>
                 {notionDatabases.map((db) => (
                   <option key={db.id} value={db.id}>
                     {db.title}
@@ -225,15 +225,15 @@ const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
                 type="text"
                 value={notionDatabaseId}
                 onChange={(e) => setNotionDatabaseId(e.target.value)}
-                placeholder="ID de base de données Notion (optionnel)"
+                placeholder="Notion database ID (optional)"
                 className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100"
                 disabled={isLoading}
               />
             )}
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {notionDatabases.length > 0 
-                ? "Sélectionnez une base de données pour synchroniser automatiquement les tâches"
-                : "Laissez vide si vous ne souhaitez pas synchroniser avec Notion"
+                ? "Select a database to automatically sync tasks"
+                : "Leave empty if you don't want to sync with Notion"
               }
             </p>
           </div>
@@ -247,14 +247,14 @@ const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
               disabled={isLoading}
               className="flex-1 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
             >
-              Annuler
+              Cancel
             </Button>
             <Button
               type="submit"
               disabled={isLoading || !projectName.trim()}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
             >
-              {isLoading ? 'Création...' : 'Créer le projet'}
+              {isLoading ? 'Creating...' : 'Create Project'}
             </Button>
           </div>
         </form>

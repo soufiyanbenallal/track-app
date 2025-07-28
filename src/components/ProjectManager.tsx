@@ -69,39 +69,41 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
     e.preventDefault();
     
     try {
-      if (window.electronAPI) {
-        if (editingProject) {
-          await window.electronAPI.updateProject({
-            ...editingProject,
-            ...formData
-          });
-        } else {
-          await window.electronAPI.createProject({
-            ...formData,
-            isArchived: false
-          });
-        }
+              if (window.electronAPI) {
+          if (editingProject) {
+            await window.electronAPI.updateProject({
+              ...editingProject,
+              ...formData
+            });
+            alert('Project updated successfully');
+          } else {
+            await window.electronAPI.createProject({
+              ...formData,
+              isArchived: false
+            });
+            alert('Project created successfully');
+          }
         
         await loadProjects();
         resetForm();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving project:', error);
-      alert('Erreur lors de la sauvegarde du projet');
+      alert('Error saving project');
     }
   };
 
   const handleDelete = async (projectId: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce projet ?\n\n⚠️ Attention : Toutes les tâches associées à ce projet seront également supprimées définitivement.')) {
+    if (confirm('Are you sure you want to delete this project?\n\n⚠️ Warning: All tasks associated with this project will also be permanently deleted.')) {
       try {
         if (window.electronAPI) {
           await window.electronAPI.deleteProject(projectId);
           await loadProjects();
-          alert('Projet et toutes ses tâches supprimés avec succès');
+          alert('Project and all its tasks deleted successfully');
         }
       } catch (error: any) {
         console.error('Error deleting project:', error);
-        const errorMessage = error?.message || 'Erreur lors de la suppression du projet';
+        const errorMessage = error?.message || 'Error deleting project';
         alert(errorMessage);
       }
     }
@@ -135,7 +137,7 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loading text="Chargement des projets..." />
+        <Loading text="Loading projects..." />
       </div>
     );
   }
@@ -143,13 +145,13 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Projets</h3>
+        <h3 className="text-lg font-semibold">Projects</h3>
         <Button 
           size="sm"
           onClick={() => setShowForm(true)}
         >
           <Plus className="w-4 h-4 mr-2" />
-          Nouveau projet
+          New Project
         </Button>
       </div>
 
@@ -158,28 +160,28 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingProject ? 'Modifier le projet' : 'Nouveau projet'}
+              {editingProject ? 'Edit Project' : 'New Project'}
             </DialogTitle>
             <DialogDescription>
-              {editingProject ? 'Modifiez les détails du projet' : 'Créez un nouveau projet de suivi'}
+              {editingProject ? 'Edit project details' : 'Create a new tracking project'}
             </DialogDescription>
           </DialogHeader>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="projectName">Nom du projet</Label>
+              <Label htmlFor="projectName">Project Name</Label>
               <Input
                 id="projectName"
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Nom du projet"
+                placeholder="Project name"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Couleur</Label>
+              <Label>Color</Label>
               <div className="grid grid-cols-5 gap-2">
                 {colorOptions.map(color => (
                   <button
@@ -198,7 +200,7 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notionDatabaseId">Base de données Notion (optionnel)</Label>
+              <Label htmlFor="notionDatabaseId">Notion Database (optional)</Label>
               {notionDatabases.length > 0 ? (
                 <select
                   id="notionDatabaseId"
@@ -206,7 +208,7 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
                   onChange={(e) => setFormData({ ...formData, notionDatabaseId: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="">Aucune synchronisation Notion</option>
+                  <option value="">No Notion sync</option>
                   {notionDatabases.map((db) => (
                     <option key={db.id} value={db.id}>
                       {db.title}
@@ -219,23 +221,23 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
                   type="text"
                   value={formData.notionDatabaseId}
                   onChange={(e) => setFormData({ ...formData, notionDatabaseId: e.target.value })}
-                  placeholder="ID de la base de données Notion"
+                  placeholder="Notion database ID"
                 />
               )}
               <p className="text-xs text-muted-foreground">
                 {notionDatabases.length > 0 
-                  ? "Sélectionnez une base de données pour synchroniser automatiquement les tâches"
-                  : "Entrez l'ID de votre base de données Notion ou laissez vide"
+                  ? "Select a database to automatically sync tasks"
+                  : "Enter your Notion database ID or leave empty"
                 }
               </p>
             </div>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={resetForm}>
-                Annuler
+                Cancel
               </Button>
               <Button type="submit">
-                {editingProject ? 'Modifier' : 'Créer'}
+                {editingProject ? 'Update' : 'Create'}
               </Button>
             </DialogFooter>
           </form>
@@ -247,10 +249,10 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
         {projects.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-3">
-              <p className="text-muted-foreground mb-4">Aucun projet créé</p>
+              <p className="text-muted-foreground mb-4">No projects created</p>
               <Button onClick={() => setShowForm(true)}>
                 <Plus className="w-4 h-4 mr-2" />
-                Créer votre premier projet
+                Create your first project
               </Button>
             </CardContent>
           </Card>
@@ -278,7 +280,7 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
                         <div className="flex items-center gap-1 mt-1">
                           <Database className="w-3 h-3 text-muted-foreground" />
                           <Badge variant="secondary" className="text-xs">
-                            Connecté à Notion
+                            Connected to Notion
                           </Badge>
                         </div>
                       )}

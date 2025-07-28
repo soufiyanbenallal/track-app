@@ -78,7 +78,10 @@ const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
             style={{ backgroundColor: selectedProject?.color || '#6b7280' }}
           />
           {selectedProject?.customerName && (
-            <span className="text-sm text-slate-400">
+            <span className="text-sm "
+            style={{ color: selectedProject?.color || '#6b7280' }}
+            
+            >
               {selectedProject?.customerName} :
             </span>
           )}

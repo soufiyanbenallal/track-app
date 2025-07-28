@@ -64,27 +64,27 @@ const TagModal: React.FC<TagModalProps> = ({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {tag ? 'Modifier le tag' : 'Nouveau tag'}
+            {tag ? 'Edit Tag' : 'New Tag'}
           </DialogTitle>
           <DialogDescription>
-            {tag ? 'Modifiez les informations du tag' : 'Ajoutez un nouveau tag'}
+            {tag ? 'Edit tag information' : 'Add a new tag'}
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nom *</Label>
+            <Label htmlFor="name">Name *</Label>
             <Input
               id="name"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Nom du tag"
+              placeholder="Tag name"
               required
             />
           </div>
           
           <div className="space-y-2">
-            <Label>Couleur</Label>
+            <Label>Color</Label>
             <div className="flex flex-wrap gap-2">
               {predefinedColors.map((color) => (
                 <button
@@ -108,10 +108,10 @@ const TagModal: React.FC<TagModalProps> = ({
           
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Annuler
+              Cancel
             </Button>
             <Button type="submit">
-              {tag ? 'Modifier' : 'Créer'}
+              {tag ? 'Update' : 'Create'}
             </Button>
           </DialogFooter>
         </form>

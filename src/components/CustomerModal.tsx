@@ -68,21 +68,21 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {customer ? 'Modifier le client' : 'Nouveau client'}
+            {customer ? 'Edit Customer' : 'New Customer'}
           </DialogTitle>
           <DialogDescription>
-            {customer ? 'Modifiez les informations du client' : 'Ajoutez un nouveau client'}
+            {customer ? 'Edit customer information' : 'Add a new customer'}
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nom *</Label>
+            <Label htmlFor="name">Name *</Label>
             <Input
               id="name"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Nom du client"
+              placeholder="Customer name"
               required
             />
           </div>
@@ -94,37 +94,37 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              placeholder="email@exemple.com"
+              placeholder="email@example.com"
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="phone">Téléphone</Label>
+            <Label htmlFor="phone">Phone</Label>
             <Input
               id="phone"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              placeholder="+33 6 12 34 56 78"
+              placeholder="+1 234 567 8900"
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="address">Adresse</Label>
+            <Label htmlFor="address">Address</Label>
             <Textarea
               id="address"
               value={form.address}
               onChange={(e) => setForm({ ...form, address: e.target.value })}
-              placeholder="Adresse complète"
+              placeholder="Complete address"
               rows={3}
             />
           </div>
           
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Annuler
+              Cancel
             </Button>
             <Button type="submit">
-              {customer ? 'Modifier' : 'Créer'}
+              {customer ? 'Update' : 'Create'}
             </Button>
           </DialogFooter>
         </form>

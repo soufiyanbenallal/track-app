@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { X, Clock, Calendar, Tag, DollarSign } from 'lucide-react';
+import { X, Clock, Calendar,  DollarSign } from 'lucide-react';
 import { Task } from '@/main/database';
 
 interface TaskEditModalProps {
@@ -151,8 +151,6 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
             <span className="text-sm text-slate-600 dark:text-slate-400">
               {task.projectName}
             </span>
-            <Tag className="w-4 h-4 text-slate-400" />
-            <DollarSign className="w-4 h-4 text-slate-400" />
           </div>
 
           {/* Duration Display */}
