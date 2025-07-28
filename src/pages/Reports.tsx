@@ -500,6 +500,29 @@ const Reports: React.FC = () => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedTasks.length === 0) return;
+    
+    const taskCount = selectedTasks.length;
+    if (confirm(`Are you sure you want to delete ${taskCount} selected task${taskCount > 1 ? 's' : ''}? This action cannot be undone.`)) {
+      try {
+        if (window.electronAPI) {
+          // Delete each task individually since there's no bulk delete method
+          for (const taskId of selectedTasks) {
+            await window.electronAPI.deleteTask(taskId);
+          }
+          setSelectedTasks([]);
+          setSelectAll(false);
+          showToast(`${taskCount} task${taskCount > 1 ? 's' : ''} deleted successfully`, 'success');
+          loadData();
+        }
+      } catch (error) {
+        console.error('Error bulk deleting tasks:', error);
+        showToast('Error deleting tasks', 'error');
+      }
+    }
+  };
+
   const handleSelectAll = (checked: boolean) => {
     setSelectAll(checked);
     if (checked) {
@@ -884,6 +907,17 @@ const Reports: React.FC = () => {
                   <Archive className="w-4 h-4 mr-2" />
                   <span className="hidden sm:inline">Archive paid</span>
                   <span className="sm:hidden">Archive</span>
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleBulkDelete}
+                  disabled={selectedTasks.length === 0}
+                  className="text-xs sm:text-sm"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Delete selected</span>
+                  <span className="sm:hidden">Delete</span>
                 </Button>
                 <Button
                   variant="secondary"
