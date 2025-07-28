@@ -14,11 +14,13 @@ interface TrackingState {
   elapsedTime: number;
   isIdle: boolean;
   currentInterruptedTaskId: string | null;
+  isStoppingTracking: boolean;
 }
 
 type TrackingAction =
   | { type: 'START_TRACKING'; payload: { description: string; projectId: string; customerId?: string; startTime?: string; initialDuration?: number } }
   | { type: 'STOP_TRACKING' }
+  | { type: 'SET_STOPPING_TRACKING'; payload: boolean }
   | { type: 'UPDATE_ELAPSED_TIME'; payload: number }
   | { type: 'SET_IDLE'; payload: boolean }
   | { type: 'SET_INTERRUPTED_TASK_ID'; payload: string | null }
@@ -31,6 +33,7 @@ const initialState: TrackingState = {
   elapsedTime: 0,
   isIdle: false,
   currentInterruptedTaskId: null,
+  isStoppingTracking: false,
 };
 
 function trackingReducer(state: TrackingState, action: TrackingAction): TrackingState {
@@ -58,6 +61,11 @@ function trackingReducer(state: TrackingState, action: TrackingAction): Tracking
         currentTask: null,
         elapsedTime: 0,
         currentInterruptedTaskId: null,
+      };
+    case 'SET_STOPPING_TRACKING':
+      return {
+        ...state,
+        isStoppingTracking: action.payload,
       };
     case 'UPDATE_ELAPSED_TIME':
       return {
@@ -140,8 +148,16 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
   }, [state.currentTask, state.elapsedTime]);
 
   const stopTracking = useCallback(async () => {
-    if (state.currentTask && state.elapsedTime > 0) {
-      try {
+    // Prevent multiple stop operations
+    if (state.isStoppingTracking) {
+      return;
+    }
+
+    // Set loading state
+    dispatch({ type: 'SET_STOPPING_TRACKING', payload: true });
+
+    try {
+      if (state.currentTask && state.elapsedTime > 0) {
         // Clean up any interrupted task for this session
         if (state.currentInterruptedTaskId) {
           await window.electronAPI.removeInterruptedTask(state.currentInterruptedTaskId);
@@ -165,44 +181,38 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
           
           const savedTask = await window.electronAPI.createTask(taskData);
           
-          // Auto-sync to Notion if enabled
-          try {
-            const settings = await window.electronAPI.getSettings();
-            if (settings.autoSyncToNotion && settings.notionApiKey) {
-              // Get project information for Notion sync
-              const projects = await window.electronAPI.getProjects();
-              const project = projects.find((p: any) => p.id === state.currentTask?.projectId);
-              
-              console.log('🔍 Auto-sync check:', {
-                autoSyncEnabled: settings.autoSyncToNotion,
-                hasApiKey: !!settings.notionApiKey,
-                projectId: state.currentTask?.projectId,
-                projectFound: !!project,
-                projectName: project?.name,
-                hasNotionDb: !!project?.notionDatabaseId
+          // Queue Notion sync for background processing (non-blocking)
+          const settings = await window.electronAPI.getSettings();
+          if (settings.autoSyncToNotion && settings.notionApiKey) {
+            // Get project information for Notion sync
+            const projects = await window.electronAPI.getProjects();
+            const project = projects.find((p: any) => p.id === state.currentTask?.projectId);
+            
+            if (project && project.notionDatabaseId) {
+              // Queue for background sync - don't wait for completion
+              window.electronAPI.queueNotionSync(savedTask, project).then(() => {
+                console.log('✅ Task queued for Notion sync:', project.name);
+              }).catch((error: any) => {
+                console.error('Background Notion sync failed:', error);
               });
-              
-              if (project && project.notionDatabaseId) {
-                await window.electronAPI.syncTask(savedTask, project);
-                console.log('✅ Task successfully synced to Notion:', project.name);
-              } else if (project && !project.notionDatabaseId) {
-                console.log('⚠️  Project found but no Notion database linked. Configure Notion database in project settings to enable sync:', project.name);
-              } else {
-                console.log('❌ Project not found for sync. Project ID:', state.currentTask?.projectId);
-              }
+            } else if (project && !project.notionDatabaseId) {
+              console.log('⚠️  Project found but no Notion database linked. Configure Notion database in project settings to enable sync:', project.name);
+            } else {
+              console.log('❌ Project not found for sync. Project ID:', state.currentTask?.projectId);
             }
-          } catch (notionError) {
-            console.error('Error syncing task to Notion:', notionError);
-            // Don't throw - we don't want Notion sync errors to break task saving
           }
         }
-      } catch (error) {
-        console.error('Error saving task:', error);
       }
+      
+      dispatch({ type: 'STOP_TRACKING' });
+    } catch (error) {
+      console.error('Error saving task:', error);
+      throw error; // Re-throw to let UI handle the error
+    } finally {
+      // Always clear loading state
+      dispatch({ type: 'SET_STOPPING_TRACKING', payload: false });
     }
-    
-    dispatch({ type: 'STOP_TRACKING' });
-  }, [state.currentTask, state.elapsedTime, state.currentInterruptedTaskId]);
+  }, [state.currentTask, state.elapsedTime, state.currentInterruptedTaskId, state.isStoppingTracking]);
 
   // Update stopTracking ref
   useEffect(() => {

@@ -35,6 +35,7 @@ interface TrackingState {
   currentTask: any;
   elapsedTime: number;
   isIdle: boolean;
+  isStoppingTracking: boolean;
 }
 
 interface WorkspaceCardProps {
@@ -204,13 +205,20 @@ export default function WorkspaceCard({
                   <Button
                     size="lg"
                     onClick={()=>{
-                      onStopTracking();
-                      setIsTaskDescriptionEditing(true);
-                      setCurrentTaskDescription('');
+                      if (!state.isStoppingTracking) {
+                        onStopTracking();
+                        setIsTaskDescriptionEditing(true);
+                        setCurrentTaskDescription('');
+                      }
                     }}
-                    className="w-10 h-10 rounded-full bg-red-600 hover:bg-red-700"
+                    disabled={state.isStoppingTracking}
+                    className="w-10 h-10 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Square className="w-6 h-6" />
+                    {state.isStoppingTracking ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <Square className="w-6 h-6" />
+                    )}
                   </Button>
                 ) : (<Button
                   size="lg"
