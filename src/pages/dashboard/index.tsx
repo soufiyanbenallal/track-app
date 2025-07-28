@@ -362,25 +362,20 @@ const Dashboard: React.FC = () => {
         {/* Workspace Card */}
         <WorkspaceCard
           state={state}
-          task={task}
           selectedProject={selectedProject}
           setSelectedProject={setSelectedProject}
-          selectedCustomer={selectedCustomer}
           setSelectedCustomer={setSelectedCustomer}
           currentTaskDescription={currentTaskDescription}
           setCurrentTaskDescription={setCurrentTaskDescription}
           isTaskDescriptionEditing={isTaskDescriptionEditing}
           setIsTaskDescriptionEditing={setIsTaskDescriptionEditing}
-          onStartWithConfigurableTime={() => {}}
           onStopTracking={handleStopTracking}
           onStartTracking={handleStartTracking}
           onStartWithTime={handleStartWithTime}
-          setIsFormVisible={setIsFormVisible}
           formatElapsedTime={formatElapsedTime}
           projects={projects}
           onCreateProject={handleCreateProject}
           customers={customers}
-          onCreateCustomer={handleCreateCustomer}
         />
 
         {/* Test Interrupt Button */}
