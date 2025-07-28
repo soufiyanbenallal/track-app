@@ -183,11 +183,50 @@ class TrackApp {
     });
 
     ipcMain.handle('db-update-task', async (_, task) => {
-      return await this.database.updateTask(task);
+      const result = await this.database.updateTask(task);
+      
+      // Queue Notion sync for background processing
+      try {
+        const settings = await this.database.getSettings();
+        if (settings.autoSyncToNotion && settings.notionApiKey) {
+          const projects = await this.database.getProjects();
+          const project = projects.find((p: any) => p.id === task.projectId);
+          
+          if (project && project.notionDatabaseId) {
+            this.queueNotionUpdate(task, project, 'description');
+          }
+        }
+      } catch (error) {
+        console.error('Error queuing Notion update:', error);
+      }
+      
+      return result;
     });
 
     ipcMain.handle('db-delete-task', async (_, id) => {
-      return await this.database.deleteTask(id);
+      // Get the task before deleting it for Notion sync
+      const tasks = await this.database.getTasks({});
+      const task = tasks.find(t => t.id === id);
+      const result = await this.database.deleteTask(id);
+      
+      // Queue Notion sync for background processing
+      if (task) {
+        try {
+          const settings = await this.database.getSettings();
+          if (settings.autoSyncToNotion && settings.notionApiKey) {
+            const projects = await this.database.getProjects();
+            const project = projects.find((p: any) => p.id === task.projectId);
+            
+            if (project && project.notionDatabaseId) {
+              this.queueNotionUpdate(task, project, 'deletion');
+            }
+          }
+        } catch (error) {
+          console.error('Error queuing Notion deletion:', error);
+        }
+      }
+      
+      return result;
     });
 
     // Time statistics
@@ -353,15 +392,11 @@ class TrackApp {
     });
 
     ipcMain.handle('notion-queue-sync', async (_, task, project) => {
-      // Queue the sync for background processing
       this.queueNotionSync(task, project);
-      return { queued: true };
     });
 
     ipcMain.handle('notion-update-task', async (_, task, project, updateType) => {
-      // Queue the update for background processing
       this.queueNotionUpdate(task, project, updateType);
-      return { queued: true };
     });
 
     ipcMain.handle('notion-get-databases', async () => {

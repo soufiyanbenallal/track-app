@@ -60,7 +60,7 @@ export class NotionService {
     }
 
     try {
-      // First, search for existing project task in the database
+      // First, search for existing project task in the database using project name
       const existingTask = await this.findExistingProjectTask(project.notionDatabaseId, project.name);
       
       if (existingTask) {
@@ -161,7 +161,7 @@ export class NotionService {
             title: [
               {
                 text: {
-                  content: project.name
+                  content: project.name // Use project name as the task name
                 }
               }
             ]
@@ -428,6 +428,7 @@ export class NotionService {
     }
 
     try {
+      // Find the existing project task using project name
       const existingTask = await this.findExistingProjectTask(project.notionDatabaseId, project.name);
       
       if (existingTask) {
@@ -436,6 +437,8 @@ export class NotionService {
         } else if (updateType === 'deletion') {
           return await this.removeTaskSession(existingTask.id, task);
         }
+      } else {
+        console.log(`Project "${project.name}" not found in Notion database`);
       }
       
       return null;
@@ -477,6 +480,7 @@ export class NotionService {
                   ]
                 }
               });
+              console.log(`✅ Updated task description in Notion: ${task.description}`);
               break;
             }
           }
@@ -498,6 +502,7 @@ export class NotionService {
       });
 
       let removedDuration = 0;
+      let removedBlock = false;
 
       // Find and remove the block that contains the task session
       for (const block of blocks.results) {
@@ -515,6 +520,8 @@ export class NotionService {
                 block_id: block.id
               });
               removedDuration = task.duration || 0;
+              removedBlock = true;
+              console.log(`✅ Removed task session from Notion: ${task.description}`);
               break;
             }
           }
@@ -549,10 +556,11 @@ export class NotionService {
               }
             }
           });
+          console.log(`✅ Updated total working time in Notion: ${formatTime(newTotalSeconds)}`);
         }
       }
 
-      return { removed: true, removedDuration };
+      return { removed: removedBlock, removedDuration };
     } catch (error) {
       console.error('Error removing task session from Notion:', error);
       throw error;
