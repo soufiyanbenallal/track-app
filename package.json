@@ -14,6 +14,7 @@
     "dist": "npm run build && electron-builder",
     "dist:mac": "npm run build && electron-builder --mac",
     "dist:mac:unsigned": "npm run build && electron-builder --mac --publish never",
+    "dist:mac:dir": "npm run build && electron-builder --mac --dir --publish never",
     "test:prod": "npm run build && electron .",
     "test:prod:mac": "npm run build && electron . --mac",
     "test:quick": "./quick-test.sh",
