@@ -1,6 +1,6 @@
 {
   "name": "track-app",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Time tracking desktop app for developers with Notion integration",
   "main": "dist/main.js",
   "homepage": "./",
@@ -13,6 +13,14 @@
     "build:main": "tsc -p tsconfig.main.json",
     "dist": "npm run build && electron-builder",
     "dist:mac": "npm run build && electron-builder --mac",
+    "test:prod": "npm run build && electron .",
+    "test:prod:mac": "npm run build && electron . --mac",
+    "test:quick": "./quick-test.sh",
+    "test:full": "./test-prod.sh",
+    "test:debug": "./debug-prod.sh",
+    "status": "./check-status.sh",
+    "clean": "rm -rf dist release node_modules/.cache",
+    "clean:all": "rm -rf dist release node_modules pnpm-lock.yaml && pnpm install",
     "postinstall": "electron-builder install-app-deps"
   },
   "keywords": [
@@ -68,15 +76,18 @@
     "date-fns": "^2.30.0",
     "dotenv": "^17.2.1",
     "electron-store": "^8.1.0",
+    "form-data": "^4.0.4",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.525.0",
+    "node-fetch": "^2.7.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hotkeys-hook": "^4.4.1",
     "react-router-dom": "^6.20.1",
     "tailwind-merge": "^3.3.1",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "whatwg-url": "^5.0.0"
   },
   "build": {
     "appId": "com.trackapp.dev",
@@ -86,7 +97,15 @@
     },
     "files": [
       "dist/**/*",
-      "node_modules/**/*"
+      "node_modules/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules",
+        "to": "node_modules"
+      }
     ],
     "mac": {
       "category": "public.app-category.productivity",
@@ -95,7 +114,6 @@
         {
           "target": "dmg",
           "arch": [
-            "x64",
             "arm64"
           ]
         }

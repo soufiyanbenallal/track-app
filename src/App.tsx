@@ -16,9 +16,11 @@ function App() {
           
           <main className="flex-1 overflow-auto pb-16">
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route index element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<Dashboard />} />
             </Routes>
           </main>
           <BottomNavigation />
