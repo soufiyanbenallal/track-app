@@ -65,11 +65,27 @@ const Dashboard: React.FC = () => {
 
   // Load statistics and recent tasks
   useEffect(() => {
-    loadStats();
-    loadRecentTasks();
-    loadProjects();
-    loadCustomers();
-    loadInterruptedTasks();
+    const initializeData = async () => {
+      try {
+        // Wait a bit for electronAPI to be available
+        if (!window.electronAPI) {
+          console.log('Waiting for electronAPI to be available...');
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        await Promise.all([
+          loadStats(),
+          loadRecentTasks(),
+          loadProjects(),
+          loadCustomers(),
+          loadInterruptedTasks()
+        ]);
+      } catch (error) {
+        console.error('Error initializing dashboard data:', error);
+      }
+    };
+    
+    initializeData();
   }, []);
 
   const loadInterruptedTasks = async () => {
@@ -77,6 +93,8 @@ const Dashboard: React.FC = () => {
       if (window.electronAPI) {
         const tasks = await window.electronAPI.getInterruptedTasks();
         setInterruptedTasks(tasks);
+      } else {
+        console.warn('electronAPI not available for loading interrupted tasks');
       }
     } catch (error) {
       console.error('Error loading interrupted tasks:', error);
@@ -102,6 +120,8 @@ const Dashboard: React.FC = () => {
           activeProjects,
           productivity
         });
+      } else {
+        console.warn('electronAPI not available for loading stats');
       }
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -114,6 +134,8 @@ const Dashboard: React.FC = () => {
         // Get recent tasks (last 10 completed tasks)
         const tasks = await window.electronAPI.getTasks({ isArchived: false });
         setRecentTasks(tasks.slice(0, 10));
+      } else {
+        console.warn('electronAPI not available for loading recent tasks');
       }
     } catch (error) {
       console.error('Error loading recent tasks:', error);
@@ -125,6 +147,8 @@ const Dashboard: React.FC = () => {
       if (window.electronAPI) {
         const projectsData = await window.electronAPI.getProjects();
         setProjects(projectsData);
+      } else {
+        console.warn('electronAPI not available for loading projects');
       }
     } catch (error) {
       console.error('Error loading projects:', error);
@@ -136,6 +160,8 @@ const Dashboard: React.FC = () => {
       if (window.electronAPI) {
         const customersData = await window.electronAPI.getCustomers();
         setCustomers(customersData);
+      } else {
+        console.warn('electronAPI not available for loading customers');
       }
     } catch (error) {
       console.error('Error loading customers:', error);

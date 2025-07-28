@@ -56,6 +56,17 @@ class TrackApp {
   }
 
   private initializeApp(): void {
+    // Set security preferences
+    app.on('web-contents-created', (_, contents) => {
+      // Prevent navigation to external URLs
+      contents.on('will-navigate', (event: any, navigationUrl: string) => {
+        const parsedUrl = new URL(navigationUrl);
+        if (parsedUrl.origin !== 'file://') {
+          event.preventDefault();
+        }
+      });
+    });
+
     app.whenReady().then(() => {
       this.createWindow();
       this.createTray();
@@ -77,17 +88,23 @@ class TrackApp {
   }
 
   private createWindow(): void {
-    const iconPath = join(process.cwd(), 'assets', 'icon.icns');
+    // Use app.getAppPath() for development and __dirname for production
+    const iconPath = process.env.NODE_ENV === 'development' 
+      ? join(process.cwd(), 'assets', 'icon.icns')
+      : join(__dirname, '../../assets/icon.icns');
     console.log('Icon path:', iconPath); // Debug log
     
     this.mainWindow = new BrowserWindow({
-      width: 700,
+      width: 1000,
       height: 700,
       icon: iconPath,
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        preload: join(__dirname, 'preload.js')
+        preload: join(__dirname, 'preload.js'),
+        webSecurity: true,
+        allowRunningInsecureContent: false,
+        experimentalFeatures: false
       },
       titleBarStyle: 'default',
       show: true,
@@ -103,7 +120,7 @@ class TrackApp {
       this.mainWindow.loadURL('http://localhost:3000');
       this.mainWindow.webContents.openDevTools();
     } else {
-      this.mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+      this.mainWindow.loadFile(join(__dirname, 'renderer/index.html'));
     }
 
     this.mainWindow.once('ready-to-show', () => {
@@ -116,7 +133,10 @@ class TrackApp {
   }
 
   private createTray(): void {
-    const iconPath = join(__dirname, '../../assets/icon.png');
+    // Use app.getAppPath() for development and __dirname for production
+    const iconPath = process.env.NODE_ENV === 'development' 
+      ? join(process.cwd(), 'assets', 'icon.png')
+      : join(__dirname, '../../assets/icon.png');
     const icon = nativeImage.createFromPath(iconPath);
     
     this.tray = new Tray(icon);
