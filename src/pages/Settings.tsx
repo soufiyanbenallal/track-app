@@ -47,9 +47,9 @@ const Settings: React.FC = () => {
         idleTimeoutMinutes: idleTimeout,
         autoSyncToNotion: autoSync,
       });
-      alert('Paramètres sauvegardés avec succès');
+      alert('Settings saved successfully');
     } catch (error) {
-      alert('Erreur lors de la sauvegarde des paramètres');
+      alert('Error saving settings');
     }
   };
 
@@ -79,11 +79,11 @@ const Settings: React.FC = () => {
   const getConnectionStatusText = () => {
     switch (connectionStatus) {
       case 'success':
-        return 'Connexion réussie';
+        return 'Connection successful';
       case 'error':
-        return 'Échec de la connexion';
+        return 'Connection failed';
       default:
-        return 'Non testé';
+        return 'Not tested';
     }
   };
 
@@ -104,26 +104,26 @@ const Settings: React.FC = () => {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
           <SettingsIcon className="w-8 h-8" />
-          Paramètres
+          Settings
         </h1>
-        <p className="text-muted-foreground">Configurez votre application de suivi du temps</p>
+        <p className="text-muted-foreground">Configure your time tracking application</p>
       </div>
 
       {/* General Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>Paramètres généraux</CardTitle>
-          <CardDescription>Configurez le comportement de base de l'application</CardDescription>
+          <CardTitle>General Settings</CardTitle>
+          <CardDescription>Configure the basic behavior of the application</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Clock className="w-5 h-5 text-muted-foreground" />
-                <Label className="text-base font-medium">Temps d'inactivité</Label>
+                <Label className="text-base font-medium">Idle Timeout</Label>
               </div>
               <p className="text-sm text-muted-foreground">
-                Le suivi sera automatiquement mis en pause après cette durée d'inactivité
+                Tracking will be automatically paused after this period of inactivity
               </p>
               <div className="flex items-center gap-2">
                 <Input
@@ -141,10 +141,10 @@ const Settings: React.FC = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-muted-foreground" />
-                <Label className="text-base font-medium">Synchronisation automatique</Label>
+                <Label className="text-base font-medium">Auto Sync</Label>
               </div>
               <p className="text-sm text-muted-foreground">
-                Synchronise automatiquement les tâches terminées avec Notion
+                Automatically sync completed tasks with Notion
               </p>
               <div className="flex items-center gap-3">
                 <Switch
@@ -152,7 +152,7 @@ const Settings: React.FC = () => {
                   onCheckedChange={setAutoSync}
                 />
                 <span className="text-sm text-muted-foreground">
-                  {autoSync ? 'Activé' : 'Désactivé'}
+                  {autoSync ? 'Enabled' : 'Disabled'}
                 </span>
               </div>
             </div>
@@ -163,27 +163,27 @@ const Settings: React.FC = () => {
       {/* Notion Integration */}
       <Card>
         <CardHeader>
-          <CardTitle>Intégration Notion</CardTitle>
-          <CardDescription>Connectez votre application à Notion pour synchroniser vos données</CardDescription>
+          <CardTitle>Notion Integration</CardTitle>
+          <CardDescription>Connect your application to Notion to sync your data</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Label className="text-base font-medium">Clé API Notion</Label>
+                <Label className="text-base font-medium">Notion API Key</Label>
                 <Badge variant="secondary" className="text-xs">
-                  Chargée depuis .env
+                  Loaded from .env
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Votre clé API pour l'intégration avec Notion (configurée via les variables d'environnement)
+                Your API key for Notion integration (configured via environment variables)
               </p>
               <div className="flex gap-2">
                 <Input
                   type="password"
                   value={notionApiKey || '••••••••••••••••••••••••••••••••••••••••••••••••••••••'}
                   onChange={(e: { target: { value: any; }; }) => setNotionApiKey(e.target.value)}
-                  placeholder="Clé API chargée depuis .env"
+                  placeholder="API key loaded from .env"
                   disabled={true}
                 />
                 <Button
@@ -192,21 +192,21 @@ const Settings: React.FC = () => {
                   onClick={() => window.open('https://www.notion.so/my-integrations', '_blank')}
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
-                  Obtenir
+                  Get
                 </Button>
               </div>
             </div>
 
             <div className="space-y-4">
-              <Label className="text-base font-medium">ID de l'espace de travail</Label>
+              <Label className="text-base font-medium">Workspace ID</Label>
               <p className="text-sm text-muted-foreground">
-                L'ID de votre espace de travail Notion
+                The ID of your Notion workspace
               </p>
               <Input
                 type="text"
                 value={notionWorkspaceId}
                 onChange={(e: { target: { value: any; }; }) => setNotionWorkspaceId(e.target.value)}
-                placeholder="Entrez l'ID de votre espace de travail"
+                placeholder="Enter your workspace ID"
               />
             </div>
           </div>
@@ -219,7 +219,7 @@ const Settings: React.FC = () => {
               onClick={handleTestNotionConnection}
               disabled={testingConnection || !notionApiKey}
             >
-              {testingConnection ? 'Test en cours...' : 'Tester la connexion'}
+              {testingConnection ? 'Testing...' : 'Test Connection'}
             </Button>
             <div className="flex items-center gap-2">
               {getConnectionStatusIcon()}
@@ -235,10 +235,10 @@ const Settings: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Database className="w-5 h-5 text-muted-foreground" />
-                  <Label className="text-base font-medium">Bases de données disponibles</Label>
+                  <Label className="text-base font-medium">Available Databases</Label>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Bases de données Notion accessibles
+                  Accessible Notion databases
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {notionDatabases.map((db: { title: any; }, index: any) => (
@@ -256,19 +256,19 @@ const Settings: React.FC = () => {
       {/* Project and Customer Management */}
       <Card>
         <CardHeader>
-          <CardTitle>Gestion des projets et clients</CardTitle>
-          <CardDescription>Créez et gérez vos projets et clients de suivi du temps</CardDescription>
+          <CardTitle>Project and Customer Management</CardTitle>
+          <CardDescription>Create and manage your time tracking projects and customers</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="projects" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="projects" className="flex items-center gap-2">
                 <FolderOpen className="w-4 h-4" />
-                Projets
+                Projects
               </TabsTrigger>
               <TabsTrigger value="customers" className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                Clients
+                Customers
               </TabsTrigger>
             </TabsList>
             
@@ -286,7 +286,7 @@ const Settings: React.FC = () => {
       {/* Save Button */}
       <div className="flex justify-end">
         <Button onClick={handleSaveSettings} size="lg">
-          Sauvegarder les paramètres
+          Save Settings
         </Button>
       </div>
     </div>
