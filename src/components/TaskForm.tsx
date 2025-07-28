@@ -21,12 +21,12 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="task-description">Description de la tâche</Label>
+        <Label htmlFor="task-description">Task Description</Label>
         <Textarea
           id="task-description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Décrivez ce que vous allez faire..."
+          placeholder="Describe what you're going to do..."
           rows={3}
           required
         />
@@ -34,10 +34,10 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
       
       <div className="flex gap-3 justify-end">
         <Button type="button" variant="outline" onClick={onCancel}>
-          Annuler
+          Cancel
         </Button>
         <Button type="submit" disabled={!description.trim()}>
-          Démarrer
+          Start
         </Button>
       </div>
     </form>

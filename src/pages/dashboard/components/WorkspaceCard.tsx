@@ -2,9 +2,9 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ProjectDropdown from '../../../components/ProjectDropdown';
-import CustomerDropdown from '../../../components/CustomerDropdown';
+// import CustomerDropdown from '../../../components/CustomerDropdown';
 import TimeEditHoverPopover from '../../../components/TimeEditHoverPopover';
-import { Play, Square, Plus, Tag, DollarSign } from 'lucide-react';
+import { Play, Square } from 'lucide-react';
 import { Task } from '@/main/database';
 
 interface Project {
@@ -147,7 +147,6 @@ export default function WorkspaceCard({
   };
       
   return (
-
       <div className="pb-6 border-b border-gray-300">
         {/* state.isTracking && state.currentTask  */}
        

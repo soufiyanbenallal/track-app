@@ -6,7 +6,7 @@ interface LoadingProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const Loading: React.FC<LoadingProps> = ({ text = 'Chargement...', size = 'md' }) => {
+export const Loading: React.FC<LoadingProps> = ({ text = 'Loading...', size = 'md' }) => {
   const sizeClasses = {
     sm: 'w-4 h-4',
     md: 'w-6 h-6',

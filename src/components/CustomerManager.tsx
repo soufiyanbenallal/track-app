@@ -64,33 +64,35 @@ const CustomerManager = ({ onCustomerSelect, selectedCustomer }: CustomerManager
             ...editingCustomer,
             ...formData
           });
+          alert('Customer updated successfully');
         } else {
           await window.electronAPI.createCustomer({
             ...formData,
             isArchived: false
           });
+          alert('Customer created successfully');
         }
         
         await loadCustomers();
         resetForm();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving customer:', error);
-      alert('Erreur lors de la sauvegarde du client');
+      alert('Error saving customer');
     }
   };
 
   const handleDelete = async (customerId: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce client ?\n\n⚠️ Attention : Toutes les tâches associées à ce client seront également supprimées définitivement.')) {
+    if (confirm('Are you sure you want to delete this customer?\n\n⚠️ Warning: All tasks associated with this customer will also be permanently deleted.')) {
       try {
         if (window.electronAPI) {
           await window.electronAPI.deleteCustomer(customerId);
           await loadCustomers();
-          alert('Client et toutes ses tâches supprimés avec succès');
+          alert('Customer and all associated tasks deleted successfully');
         }
       } catch (error: any) {
         console.error('Error deleting customer:', error);
-        const errorMessage = error?.message || 'Erreur lors de la suppression du client';
+        const errorMessage = error?.message || 'Error deleting customer';
         alert(errorMessage);
       }
     }
@@ -121,7 +123,7 @@ const CustomerManager = ({ onCustomerSelect, selectedCustomer }: CustomerManager
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loading text="Chargement des clients..." />
+        <Loading text="Loading customers..." />
       </div>
     );
   }
@@ -129,13 +131,13 @@ const CustomerManager = ({ onCustomerSelect, selectedCustomer }: CustomerManager
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Clients</h3>
+        <h3 className="text-lg font-semibold">Customers</h3>
         <Button 
           size="sm"
           onClick={() => setShowForm(true)}
         >
           <Plus className="w-4 h-4 mr-2" />
-          Nouveau client
+          New Customer
         </Button>
       </div>
 
@@ -144,22 +146,22 @@ const CustomerManager = ({ onCustomerSelect, selectedCustomer }: CustomerManager
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingCustomer ? 'Modifier le client' : 'Nouveau client'}
+              {editingCustomer ? 'Edit Customer' : 'New Customer'}
             </DialogTitle>
             <DialogDescription>
-              {editingCustomer ? 'Modifiez les détails du client' : 'Créez un nouveau client'}
+              {editingCustomer ? 'Edit customer details' : 'Create a new customer'}
             </DialogDescription>
           </DialogHeader>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="customerName">Nom du client</Label>
+              <Label htmlFor="customerName">Customer Name</Label>
               <Input
                 id="customerName"
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Nom du client"
+                placeholder="Customer name"
                 required
               />
             </div>
@@ -171,38 +173,38 @@ const CustomerManager = ({ onCustomerSelect, selectedCustomer }: CustomerManager
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="email@exemple.com"
+                placeholder="email@example.com"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="customerPhone">Téléphone</Label>
+              <Label htmlFor="customerPhone">Phone</Label>
               <Input
                 id="customerPhone"
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+33 1 23 45 67 89"
+                placeholder="+1 234 567 8900"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="customerAddress">Adresse</Label>
+              <Label htmlFor="customerAddress">Address</Label>
               <Input
                 id="customerAddress"
                 type="text"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="Adresse complète"
+                placeholder="Complete address"
               />
             </div>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={resetForm}>
-                Annuler
+                Cancel
               </Button>
               <Button type="submit">
-                {editingCustomer ? 'Modifier' : 'Créer'}
+                {editingCustomer ? 'Update' : 'Create'}
               </Button>
             </DialogFooter>
           </form>
@@ -214,10 +216,10 @@ const CustomerManager = ({ onCustomerSelect, selectedCustomer }: CustomerManager
         {customers.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-3">
-              <p className="text-muted-foreground mb-4">Aucun client créé</p>
+              <p className="text-muted-foreground mb-4">No customers created</p>
               <Button onClick={() => setShowForm(true)}>
                 <Plus className="w-4 h-4 mr-2" />
-                Créer votre premier client
+                Create your first customer
               </Button>
             </CardContent>
           </Card>
