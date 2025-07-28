@@ -13,6 +13,7 @@
     "build:main": "tsc -p tsconfig.main.json",
     "dist": "npm run build && electron-builder",
     "dist:mac": "npm run build && electron-builder --mac",
+    "dist:mac:unsigned": "npm run build && electron-builder --mac --publish never",
     "test:prod": "npm run build && electron .",
     "test:prod:mac": "npm run build && electron . --mac",
     "test:quick": "./quick-test.sh",
@@ -87,6 +88,7 @@
     "react-router-dom": "^6.20.1",
     "tailwind-merge": "^3.3.1",
     "uuid": "^9.0.1",
+    "webidl-conversions": "^3.0.1",
     "whatwg-url": "^5.0.0"
   },
   "build": {
@@ -101,18 +103,21 @@
       "assets/**/*",
       "package.json"
     ],
+    "asar": true,
     "extraResources": [
       {
         "from": "node_modules",
         "to": "node_modules"
       }
     ],
+    "includeSubNodeModules": true,
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "assets/icon.icns",
+      "identity": null,
       "target": [
         {
-          "target": "dmg",
+          "target": "zip",
           "arch": [
             "arm64"
           ]
@@ -124,6 +129,9 @@
     },
     "linux": {
       "target": "AppImage"
+    },
+    "dmg": {
+      "sign": false
     }
   },
   "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"

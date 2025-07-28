@@ -5,7 +5,7 @@ import ProjectDropdown from '../../../components/ProjectDropdown';
 // import CustomerDropdown from '../../../components/CustomerDropdown';
 import TimeEditHoverPopover from '../../../components/TimeEditHoverPopover';
 import { Play, Square } from 'lucide-react';
-import { Task } from '@/main/database';
+// import { Task } from '@/main/database';
 
 interface Project {
   id: string;
@@ -40,48 +40,37 @@ interface TrackingState {
 
 interface WorkspaceCardProps {
   state: TrackingState;
-  task: Task | null;
   selectedProject: Project | null;
   setSelectedProject: (project: Project | null) => void;
-  selectedCustomer: Customer | null;
   setSelectedCustomer: (customer: Customer | null) => void;
   currentTaskDescription: string;
   setCurrentTaskDescription: (description: string) => void;
   isTaskDescriptionEditing: boolean;
   setIsTaskDescriptionEditing: (editing: boolean) => void;
-  onStartWithConfigurableTime: () => void;
   onStopTracking: () => void;
   onStartTracking: () => void;
   onStartWithTime: (startTime: string) => void;
-  setIsFormVisible: (visible: boolean) => void;
   formatElapsedTime: () => string;
   projects: Project[];
   onCreateProject: () => void;
   customers: Customer[];
-  onCreateCustomer: () => void;
 }
 
 export default function WorkspaceCard({
   state,
-  task,
   selectedProject,
   setSelectedProject,
-  selectedCustomer,
   setSelectedCustomer,
   currentTaskDescription,
   setCurrentTaskDescription,
-  isTaskDescriptionEditing,
   setIsTaskDescriptionEditing,
-  onStartWithConfigurableTime,
   onStopTracking,
   onStartTracking,
   onStartWithTime,
-  setIsFormVisible,
   formatElapsedTime,
   projects,
   onCreateProject,
   customers,
-  onCreateCustomer
 }: WorkspaceCardProps) {
   const [customStartTime, setCustomStartTime] = useState<string | null>(null);
   const [, forceUpdate] = useState(0);
@@ -89,13 +78,13 @@ export default function WorkspaceCard({
     return state.isTracking && state.currentTask;
   }, [state.isTracking, state.currentTask]);
 
-  const isPaused = useMemo(() => {
-    return state.isTracking && !state.currentTask;
-  }, [state.isTracking, state.currentTask]);
+  // const isPaused = useMemo(() => {
+  //   return state.isTracking && !state.currentTask;
+  // }, [state.isTracking, state.currentTask]);
 
-  const isIdle = useMemo(() => {
-    return !state.isTracking && !state.currentTask;
-  }, [state.isTracking, state.currentTask]);
+  // const isIdle = useMemo(() => {
+  //   return !state.isTracking && !state.currentTask;
+  // }, [state.isTracking, state.currentTask]);
 
   // Reset custom start time when tracking starts
   useEffect(() => {
@@ -166,12 +155,7 @@ export default function WorkspaceCard({
                       setSelectedCustomer(customer || null);
                     }}
                   />
-                  {/* <CustomerDropdown
-                    selectedCustomer={selectedCustomer}
-                    onCustomerSelect={setSelectedCustomer}
-                    customers={customers}
-                    onCreateCustomer={onCreateCustomer}
-                  /> */}
+            
                   <Input
                     value={currentTaskDescription}
                     onChange={(e) => setCurrentTaskDescription(e.target.value)}
