@@ -58,6 +58,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Notion operations
   syncTask: (task: any, project: any) => ipcRenderer.invoke('notion-sync-task', task, project),
+  queueNotionSync: (task: any, project: any) => ipcRenderer.invoke('notion-queue-sync', task, project),
+  updateNotionTask: (task: any, project: any, updateType: 'description' | 'deletion') => ipcRenderer.invoke('notion-update-task', task, project, updateType),
   getNotionDatabases: () => ipcRenderer.invoke('notion-get-databases'),
   setNotionApiKey: (apiKey: string) => ipcRenderer.invoke('notion-set-api-key', apiKey),
   testNotionConnection: () => ipcRenderer.invoke('notion-test-connection'),
@@ -135,6 +137,8 @@ declare global {
       resumeIdleDetection: () => Promise<void>;
       getPausedIdleTime: () => Promise<number>;
       syncTask: (task: any, project: any) => Promise<any>;
+      queueNotionSync: (task: any, project: any) => Promise<any>;
+      updateNotionTask: (task: any, project: any, updateType: 'description' | 'deletion') => Promise<any>;
       getNotionDatabases: () => Promise<any[]>;
       setNotionApiKey: (apiKey: string) => Promise<boolean>;
       testNotionConnection: () => Promise<boolean>;

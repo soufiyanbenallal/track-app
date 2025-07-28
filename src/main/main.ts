@@ -16,6 +16,8 @@ class TrackApp {
   private database: DatabaseService;
   private idleDetector: IdleDetector;
   private notionService: NotionService;
+  private notionSyncQueue: Array<{ task: any; project: any; operation: 'sync' | 'update'; updateType?: 'description' | 'deletion' }> = [];
+  private isProcessingQueue = false;
 
   constructor() {
     this.database = new DatabaseService();
@@ -350,6 +352,18 @@ class TrackApp {
       return await this.notionService.syncTask(task, project);
     });
 
+    ipcMain.handle('notion-queue-sync', async (_, task, project) => {
+      // Queue the sync for background processing
+      this.queueNotionSync(task, project);
+      return { queued: true };
+    });
+
+    ipcMain.handle('notion-update-task', async (_, task, project, updateType) => {
+      // Queue the update for background processing
+      this.queueNotionUpdate(task, project, updateType);
+      return { queued: true };
+    });
+
     ipcMain.handle('notion-get-databases', async () => {
       return await this.notionService.getDatabases();
     });
@@ -388,6 +402,46 @@ class TrackApp {
       
       return result;
     });
+  }
+
+  private queueNotionSync(task: any, project: any): void {
+    this.notionSyncQueue.push({ task, project, operation: 'sync' });
+    this.processNotionSyncQueue();
+  }
+
+  private queueNotionUpdate(task: any, project: any, updateType: 'description' | 'deletion'): void {
+    this.notionSyncQueue.push({ task, project, operation: 'update', updateType });
+    this.processNotionSyncQueue();
+  }
+
+  private async processNotionSyncQueue(): Promise<void> {
+    if (this.isProcessingQueue || this.notionSyncQueue.length === 0) {
+      return;
+    }
+
+    this.isProcessingQueue = true;
+
+    while (this.notionSyncQueue.length > 0) {
+      const { task, project, operation, updateType } = this.notionSyncQueue.shift()!;
+      
+      try {
+        if (operation === 'sync') {
+          await this.notionService.syncTask(task, project);
+          console.log('✅ Background Notion sync completed for task:', task.description);
+        } else if (operation === 'update' && updateType) {
+          await this.notionService.handleTaskUpdate(task, project, updateType);
+          console.log(`✅ Background Notion ${updateType} update completed for task:`, task.description);
+        }
+      } catch (error) {
+        console.error(`❌ Background Notion ${operation} failed for task:`, task.description, error);
+        // Continue processing other items in queue even if one fails
+      }
+      
+      // Add a small delay to avoid overwhelming the Notion API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    this.isProcessingQueue = false;
   }
 
   private setupIdleDetection(): void {
