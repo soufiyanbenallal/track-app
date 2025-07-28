@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import ProjectManager from '../components/ProjectManager';
+import CustomerManager from '../components/CustomerManager';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Clock, 
   MessageSquare, 
@@ -16,7 +18,9 @@ import {
   CheckCircle, 
   XCircle, 
   AlertCircle,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  FolderOpen,
+  Users
 } from 'lucide-react';
 
 const Settings: React.FC = () => {
@@ -249,14 +253,33 @@ const Settings: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Project Management */}
+      {/* Project and Customer Management */}
       <Card>
         <CardHeader>
-          <CardTitle>Gestion des projets</CardTitle>
-          <CardDescription>Créez et gérez vos projets de suivi du temps</CardDescription>
+          <CardTitle>Gestion des projets et clients</CardTitle>
+          <CardDescription>Créez et gérez vos projets et clients de suivi du temps</CardDescription>
         </CardHeader>
         <CardContent>
-          <ProjectManager  />
+          <Tabs defaultValue="projects" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="projects" className="flex items-center gap-2">
+                <FolderOpen className="w-4 h-4" />
+                Projets
+              </TabsTrigger>
+              <TabsTrigger value="customers" className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Clients
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="projects" className="mt-6">
+              <ProjectManager />
+            </TabsContent>
+            
+            <TabsContent value="customers" className="mt-6">
+              <CustomerManager />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
