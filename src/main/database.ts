@@ -26,6 +26,7 @@ export interface Project {
   name: string;
   color: string;
   customerId?: string;
+  customerName?: string;
   notionDatabaseId?: string;
   isArchived: boolean;
   createdAt: string;
@@ -235,12 +236,23 @@ export class DatabaseService {
   // Project operations
   async getProjects(isArchived?: boolean): Promise<Project[]> {
     const projects = this.projectsStore.get('projects', []) as Project[];
+    const customers = await this.getCustomers();
     
+    let filteredProjects = projects;
     if (isArchived !== undefined) {
-      return projects.filter(project => project.isArchived === isArchived);
+      filteredProjects = projects.filter(project => project.isArchived === isArchived);
     }
     
-    return projects.sort((a, b) => a.name.localeCompare(b.name));
+    // Add customer information to projects
+    const projectsWithCustomers = filteredProjects.map(project => {
+      const customer = customers.find(c => c.id === project.customerId);
+      return {
+        ...project,
+        customerName: customer?.name
+      };
+    });
+    
+    return projectsWithCustomers.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async createProject(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project> {
@@ -453,9 +465,14 @@ export class DatabaseService {
       defaultDateRange: '7'
     };
 
+    // Load default settings
     Object.keys(defaultSettings).forEach(key => {
       settings[key] = this.settingsStore.get(key, defaultSettings[key as keyof typeof defaultSettings]);
     });
+
+    // Load Notion-specific settings
+    settings.notionApiKey = this.settingsStore.get('notionApiKey', '');
+    settings.notionWorkspaceId = this.settingsStore.get('notionWorkspaceId', '');
 
     return settings as Settings;
   }

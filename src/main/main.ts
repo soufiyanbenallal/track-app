@@ -31,22 +31,25 @@ class TrackApp {
   private async loadSettingsAndConfigureIdle(): Promise<void> {
     try {
       const settings = await this.database.getSettings();
+      console.log('🔧 Loaded settings:', {
+        idleTimeoutMinutes: settings.idleTimeoutMinutes,
+        autoSyncToNotion: settings.autoSyncToNotion,
+        hasNotionApiKey: !!settings.notionApiKey,
+        notionApiKeyLength: settings.notionApiKey?.length || 0
+      });
+      
       // Configure idle detector with user's setting (default 5 minutes if not set)
       const idleTimeoutMinutes = settings.idleTimeoutMinutes || 5;
       this.idleDetector.setIdleTimeout(idleTimeoutMinutes);
       console.log(`Idle timeout configured to ${idleTimeoutMinutes} minutes`);
       
-      // Initialize Notion service with API key - prioritize environment variable
-      const notionApiKey = process.env.NOTION_TOKEN || settings.notionApiKey;
+      // Initialize Notion service with API key from settings
+      const notionApiKey = settings.notionApiKey;
       if (notionApiKey) {
         this.notionService.setApiKey(notionApiKey);
-        console.log('Notion API key configured from', process.env.NOTION_TOKEN ? 'environment' : 'settings');
-        
-        // Save to settings if loaded from environment and not already saved
-        if (process.env.NOTION_TOKEN && !settings.notionApiKey) {
-          await this.database.updateSettings({ notionApiKey: process.env.NOTION_TOKEN });
-          console.log('Notion API key saved to settings from environment');
-        }
+        console.log('✅ Notion API key configured from settings');
+      } else {
+        console.log('⚠️ No Notion API key found in settings');
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -201,18 +204,18 @@ class TrackApp {
     ipcMain.handle('db-create-task', async (_, task) => {
       const result = await this.database.createTask(task);
       
-      // Queue Notion sync for background processing
-      try {
-        const settings = await this.database.getSettings();
-        const notionApiKey = process.env.NOTION_TOKEN || settings.notionApiKey;
-        
-        console.log('🔍 Notion sync check:', {
-          autoSyncToNotion: settings.autoSyncToNotion,
-          hasNotionApiKey: !!notionApiKey,
-          hasEnvToken: !!process.env.NOTION_TOKEN,
-          hasSettingsKey: !!settings.notionApiKey,
-          taskProjectId: task.projectId
-        });
+              // Queue Notion sync for background processing
+        try {
+          const settings = await this.database.getSettings();
+          const notionApiKey = settings.notionApiKey || '';
+          
+          console.log('🔍 Notion sync check:', {
+            notionApiKey: notionApiKey,
+            autoSyncToNotion: settings.autoSyncToNotion,
+            hasNotionApiKey: !!notionApiKey,
+            hasSettingsKey: !!settings.notionApiKey,
+            taskProjectId: task.projectId
+          });
         
         if (settings.autoSyncToNotion && notionApiKey) {
           const projects = await this.database.getProjects();
@@ -473,9 +476,8 @@ class TrackApp {
     });
 
     ipcMain.handle('notion-set-api-key', async (_, apiKey) => {
-      // Prioritize environment variable over provided API key
-      const notionApiKey = process.env.NOTION_TOKEN || apiKey;
-      this.notionService.setApiKey(notionApiKey);
+      // Use provided API key
+      this.notionService.setApiKey(apiKey);
       return true;
     });
 
@@ -485,10 +487,24 @@ class TrackApp {
 
     // Settings
     ipcMain.handle('get-settings', async () => {
-      return await this.database.getSettings();
+      const settings = await this.database.getSettings();
+      console.log('🔧 Retrieved settings for renderer:', {
+        idleTimeoutMinutes: settings.idleTimeoutMinutes,
+        autoSyncToNotion: settings.autoSyncToNotion,
+        hasNotionApiKey: !!settings.notionApiKey,
+        notionApiKeyLength: settings.notionApiKey?.length || 0
+      });
+      return settings;
     });
 
     ipcMain.handle('update-settings', async (_, settings) => {
+      console.log('🔧 Updating settings:', {
+        idleTimeoutMinutes: settings.idleTimeoutMinutes,
+        autoSyncToNotion: settings.autoSyncToNotion,
+        hasNotionApiKey: !!settings.notionApiKey,
+        notionApiKeyLength: settings.notionApiKey?.length || 0
+      });
+      
       const result = await this.database.updateSettings(settings);
       
       // Update idle detector if idleTimeoutMinutes changed
@@ -497,11 +513,10 @@ class TrackApp {
         console.log(`Idle timeout updated to ${settings.idleTimeoutMinutes} minutes`);
       }
       
-      // Update Notion API key if changed - prioritize environment variable
+      // Update Notion API key if changed
       if (settings.notionApiKey !== undefined) {
-        const notionApiKey = process.env.NOTION_TOKEN || settings.notionApiKey;
-        this.notionService.setApiKey(notionApiKey);
-        console.log('Notion API key updated from', process.env.NOTION_TOKEN ? 'environment' : 'settings');
+        this.notionService.setApiKey(settings.notionApiKey);
+        console.log('✅ Notion API key updated from settings');
       }
       
       return result;

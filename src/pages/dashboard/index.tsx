@@ -233,6 +233,9 @@ const Dashboard: React.FC = () => {
   const handleResumeTask = (task: Task) => {
     // Start tracking directly with the task details
     setTask(task);
+    setSelectedProject(projects.find(p => p.id === task.projectId) || null);
+    setSelectedCustomer(customers.find(c => c.id === task.customerId) || null);
+    setCurrentTaskDescription(task.description);
     startTracking(task.description, task.projectId, task.customerId);
   };
 

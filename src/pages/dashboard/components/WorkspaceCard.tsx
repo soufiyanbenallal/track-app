@@ -138,7 +138,6 @@ export default function WorkspaceCard({
   return (
       <div className="pb-6 border-b border-gray-300">
         {/* state.isTracking && state.currentTask  */}
-       
           {/* // New task input view */}
           <div className="space-y-4">
             <div className="flex items-center gap-4">

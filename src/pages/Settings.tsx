@@ -39,6 +39,14 @@ const Settings: React.FC = () => {
     }
   }, [settings.notionApiKey]);
 
+  // Sync local state with settings when they are loaded
+  useEffect(() => {
+    setNotionApiKey(settings.notionApiKey || '');
+    setNotionWorkspaceId(settings.notionWorkspaceId || '');
+    setIdleTimeout(settings.idleTimeoutMinutes || 5);
+    setAutoSync(settings.autoSyncToNotion || false);
+  }, [settings]);
+
   const handleSaveSettings = async () => {
     try {
       await updateSettings({

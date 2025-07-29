@@ -12,6 +12,7 @@ interface Project {
   id: string;
   name: string;
   color: string;
+  customerId?: string;
   notionDatabaseId?: string;
   isArchived: boolean;
   createdAt: string;
@@ -31,13 +32,16 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
   const [formData, setFormData] = useState({
     name: '',
     color: '#007bff',
+    customerId: '',
     notionDatabaseId: ''
   });
   const [notionDatabases, setNotionDatabases] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
 
   useEffect(() => {
     loadProjects();
     loadNotionDatabases();
+    loadCustomers();
   }, []);
 
   const loadNotionDatabases = async () => {
@@ -48,6 +52,17 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
       }
     } catch (error) {
       console.error('Error loading Notion databases:', error);
+    }
+  };
+
+  const loadCustomers = async () => {
+    try {
+      if (window.electronAPI) {
+        const customerList = await window.electronAPI.getCustomers();
+        setCustomers(customerList);
+      }
+    } catch (error) {
+      console.error('Error loading customers:', error);
     }
   };
 
@@ -114,6 +129,7 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
     setFormData({
       name: project.name,
       color: project.color,
+      customerId: project.customerId || '',
       notionDatabaseId: project.notionDatabaseId || ''
     });
     setShowForm(true);
@@ -123,6 +139,7 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
     setFormData({
       name: '',
       color: '#007bff',
+      customerId: '',
       notionDatabaseId: ''
     });
     setEditingProject(null);
@@ -197,6 +214,23 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
                   />
                 ))}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="customerId">Customer (optional)</Label>
+              <select
+                id="customerId"
+                value={formData.customerId}
+                onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">No customer</option>
+                {customers.map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="space-y-2">
@@ -276,14 +310,21 @@ const ProjectManager = ({ onProjectSelect, selectedProject }: ProjectManagerProp
                     />
                     <div>
                       <h4 className="font-medium">{project.name}</h4>
-                      {project.notionDatabaseId && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <Database className="w-3 h-3 text-muted-foreground" />
-                          <Badge variant="secondary" className="text-xs">
-                            Connected to Notion
+                      <div className="flex items-center gap-2 mt-1">
+                        {project.customerId && (
+                          <Badge variant="outline" className="text-xs">
+                            {customers.find(c => c.id === project.customerId)?.name || 'Unknown Customer'}
                           </Badge>
-                        </div>
-                      )}
+                        )}
+                        {project.notionDatabaseId && (
+                          <div className="flex items-center gap-1">
+                            <Database className="w-3 h-3 text-muted-foreground" />
+                            <Badge variant="secondary" className="text-xs">
+                              Connected to Notion
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
