@@ -172,19 +172,19 @@ const Settings: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Label className="text-base font-medium">Notion API Key</Label>
                 <Badge variant="secondary" className="text-xs">
-                  Loaded from .env
+                  Required
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Your API key for Notion integration (configured via environment variables)
+                Your API key for Notion integration. Get it from your Notion integrations page.
               </p>
               <div className="flex gap-2">
                 <Input
                   type="password"
-                  value={notionApiKey || '••••••••••••••••••••••••••••••••••••••••••••••••••••••'}
+                  value={notionApiKey}
                   onChange={(e: { target: { value: any; }; }) => setNotionApiKey(e.target.value)}
-                  placeholder="API key loaded from .env"
-                  disabled={true}
+                  placeholder="Enter your Notion API key"
+                  disabled={false}
                 />
                 <Button
                   variant="outline"

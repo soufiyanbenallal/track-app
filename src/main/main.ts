@@ -420,7 +420,12 @@ class TrackApp {
     });
 
     ipcMain.handle('notion-get-databases', async () => {
-      return await this.notionService.getDatabases();
+      try {
+        return await this.notionService.getDatabases();
+      } catch (error) {
+        console.error('Error getting Notion databases:', error);
+        throw error;
+      }
     });
 
     ipcMain.handle('notion-set-api-key', async (_, apiKey) => {

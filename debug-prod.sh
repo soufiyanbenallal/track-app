@@ -31,7 +31,7 @@ echo "🔍 Checking critical dependencies..."
 check_module "whatwg-url"
 check_module "node-fetch"
 check_module "@notionhq/client"
-check_module "better-sqlite3"
+# Removed SQLite dependency - now using electron-store for NoSQL storage
 
 echo ""
 echo "🔍 Checking build output..."

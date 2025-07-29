@@ -22,8 +22,7 @@
     "test:debug": "./debug-prod.sh",
     "status": "./check-status.sh",
     "clean": "rm -rf dist release node_modules/.cache",
-    "clean:all": "rm -rf dist release node_modules pnpm-lock.yaml && pnpm install",
-    "postinstall": "electron-builder install-app-deps"
+    "clean:all": "rm -rf dist release node_modules pnpm-lock.yaml && pnpm install"
   },
   "keywords": [
     "electron",
@@ -36,11 +35,9 @@
   "license": "MIT",
   "devDependencies": {
     "@shadcn/ui": "^0.0.4",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.19.9",
     "@types/react": "18.2.45",
     "@types/react-dom": "18.2.18",
-    "@types/sqlite3": "^3.1.11",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
     "@vitejs/plugin-react": "^4.2.1",
@@ -72,12 +69,11 @@
     "@radix-ui/react-switch": "^1.1.2",
     "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-toast": "^1.2.14",
-    "better-sqlite3": "^12.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^2.30.0",
     "dotenv": "^17.2.1",
-    "electron-store": "^8.1.0",
+    "electron-store": "^8.2.0",
     "form-data": "^4.0.4",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
@@ -89,8 +85,7 @@
     "react-router-dom": "^6.20.1",
     "tailwind-merge": "^3.3.1",
     "uuid": "^9.0.1",
-    "webidl-conversions": "^3.0.1",
-    "whatwg-url": "^5.0.0"
+    "webidl-conversions": "^3.0.1"
   },
   "build": {
     "appId": "com.trackapp.dev",
@@ -103,12 +98,10 @@
       "dist/**",
       "node_modules/**",
       "assets/**",
-      "package.json"
+      "package.json",
+      "!node_modules/.cache/**"
     ],
-    "asar": true,
-    "asarUnpack": [
-      "node_modules/better-sqlite3/**"
-    ],
+    "asar": false,
     "extraResources": [
       {
         "from": "node_modules",

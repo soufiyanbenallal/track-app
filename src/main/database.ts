@@ -1,6 +1,4 @@
-import Database from 'better-sqlite3';
-import { join } from 'path';
-import { app } from 'electron';
+import Store from 'electron-store';
 
 export interface Task {
   id: string;
@@ -64,87 +62,23 @@ export interface Settings {
 }
 
 export class DatabaseService {
-  private db: Database.Database;
+  private tasksStore: Store;
+  private projectsStore: Store;
+  private customersStore: Store;
+  private tagsStore: Store;
+  private settingsStore: Store;
 
   constructor() {
-    const dbPath = join(app.getPath('userData'), 'track-app.db');
-    this.db = new Database(dbPath);
-    this.initializeTables();
+    this.tasksStore = new Store({ name: 'tasks' });
+    this.projectsStore = new Store({ name: 'projects' });
+    this.customersStore = new Store({ name: 'customers' });
+    this.tagsStore = new Store({ name: 'tags' });
+    this.settingsStore = new Store({ name: 'settings' });
+    
+    this.initializeDefaultSettings();
   }
 
-  private initializeTables(): void {
-    // Projects table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS projects (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        color TEXT NOT NULL,
-        customerId TEXT,
-        notionDatabaseId TEXT,
-        isArchived INTEGER DEFAULT 0,
-        createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL,
-        FOREIGN KEY (customerId) REFERENCES customers (id)
-      )
-    `);
-
-    // Customers table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS customers (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT,
-        phone TEXT,
-        address TEXT,
-        isArchived INTEGER DEFAULT 0,
-        createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL
-      )
-    `);
-
-    // Tags table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS tags (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        color TEXT NOT NULL,
-        isArchived INTEGER DEFAULT 0,
-        createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL
-      )
-    `);
-
-    // Tasks table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS tasks (
-        id TEXT PRIMARY KEY,
-        description TEXT NOT NULL,
-        projectId TEXT NOT NULL,
-        customerId TEXT,
-        tags TEXT,
-        startTime TEXT NOT NULL,
-        endTime TEXT,
-        duration INTEGER,
-        isCompleted INTEGER DEFAULT 0,
-        isPaid INTEGER DEFAULT 0,
-        isArchived INTEGER DEFAULT 0,
-        isInterrupted INTEGER DEFAULT 0,
-        createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL,
-        FOREIGN KEY (projectId) REFERENCES projects (id),
-        FOREIGN KEY (customerId) REFERENCES customers (id)
-      )
-    `);
-
-    // Settings table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS settings (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL
-      )
-    `);
-
-    // Insert default settings if they don't exist
+  private initializeDefaultSettings(): void {
     const defaultSettings = {
       idleTimeoutMinutes: 5,
       autoSyncToNotion: false,
@@ -153,53 +87,10 @@ export class DatabaseService {
     };
 
     Object.entries(defaultSettings).forEach(([key, value]) => {
-      const stmt = this.db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
-      stmt.run(key, JSON.stringify(value));
+      if (!this.settingsStore.has(key)) {
+        this.settingsStore.set(key, value);
+      }
     });
-
-    // Database migration: Add new columns if they don't exist
-    this.migrateDatabase();
-  }
-
-  private migrateDatabase(): void {
-    try {
-      // Check if new columns exist in tasks table
-      const taskTableInfo = this.db.prepare("PRAGMA table_info(tasks)").all() as any[];
-      const taskColumns = taskTableInfo.map(col => col.name);
-      
-      if (!taskColumns.includes('isCompleted')) {
-        console.log('Adding isCompleted column to tasks table...');
-        this.db.exec('ALTER TABLE tasks ADD COLUMN isCompleted INTEGER DEFAULT 0');
-      }
-      
-      if (!taskColumns.includes('customerId')) {
-        console.log('Adding customerId column to tasks table...');
-        this.db.exec('ALTER TABLE tasks ADD COLUMN customerId TEXT');
-      }
-      
-      if (!taskColumns.includes('tags')) {
-        console.log('Adding tags column to tasks table...');
-        this.db.exec('ALTER TABLE tasks ADD COLUMN tags TEXT');
-      }
-      
-      if (!taskColumns.includes('isInterrupted')) {
-        console.log('Adding isInterrupted column to tasks table...');
-        this.db.exec('ALTER TABLE tasks ADD COLUMN isInterrupted INTEGER DEFAULT 0');
-      }
-      
-      // Check if new columns exist in projects table
-      const projectTableInfo = this.db.prepare("PRAGMA table_info(projects)").all() as any[];
-      const projectColumns = projectTableInfo.map(col => col.name);
-      
-      if (!projectColumns.includes('customerId')) {
-        console.log('Adding customerId column to projects table...');
-        this.db.exec('ALTER TABLE projects ADD COLUMN customerId TEXT');
-      }
-      
-      console.log('Database migration completed successfully');
-    } catch (error) {
-      console.error('Database migration error:', error);
-    }
   }
 
   // Task operations
@@ -214,386 +105,356 @@ export class DatabaseService {
     isArchived?: boolean;
     search?: string;
   }): Promise<Task[]> {
-    let query = `
-      SELECT t.*, p.name as projectName, p.color as projectColor, c.name as customerName
-      FROM tasks t
-      LEFT JOIN projects p ON t.projectId = p.id
-      LEFT JOIN customers c ON t.customerId = c.id
-      WHERE 1=1
-    `;
-    const params: any[] = [];
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    let filteredTasks = tasks;
 
     if (filters?.projectId) {
-      query += ' AND t.projectId = ?';
-      params.push(filters.projectId);
+      filteredTasks = filteredTasks.filter(task => task.projectId === filters.projectId);
     }
 
     if (filters?.customerId) {
-      query += ' AND t.customerId = ?';
-      params.push(filters.customerId);
+      filteredTasks = filteredTasks.filter(task => task.customerId === filters.customerId);
     }
 
     if (filters?.tags) {
-      query += ' AND t.tags LIKE ?';
-      params.push(`%${filters.tags}%`);
+      filteredTasks = filteredTasks.filter(task => 
+        task.tags && task.tags.includes(filters.tags!)
+      );
     }
 
     if (filters?.startDate) {
-      query += ' AND t.startTime >= ?';
-      params.push(filters.startDate);
+      filteredTasks = filteredTasks.filter(task => task.startTime >= filters.startDate!);
     }
 
     if (filters?.endDate) {
-      query += ' AND t.startTime <= ?';
-      params.push(filters.endDate);
+      filteredTasks = filteredTasks.filter(task => task.startTime <= filters.endDate!);
     }
 
     if (filters?.isPaid !== undefined) {
-      query += ' AND t.isPaid = ?';
-      params.push(filters.isPaid ? 1 : 0);
+      filteredTasks = filteredTasks.filter(task => task.isPaid === filters.isPaid);
     }
 
     if (filters?.isCompleted !== undefined) {
-      query += ' AND t.isCompleted = ?';
-      params.push(filters.isCompleted ? 1 : 0);
+      filteredTasks = filteredTasks.filter(task => task.isCompleted === filters.isCompleted);
     }
 
     if (filters?.isArchived !== undefined) {
-      query += ' AND t.isArchived = ?';
-      params.push(filters.isArchived ? 1 : 0);
+      filteredTasks = filteredTasks.filter(task => task.isArchived === filters.isArchived);
     }
 
     if (filters?.search) {
-      query += ' AND (t.description LIKE ? OR p.name LIKE ? OR c.name LIKE ?)';
-      const searchTerm = `%${filters.search}%`;
-      params.push(searchTerm, searchTerm, searchTerm);
+      const searchTerm = filters.search.toLowerCase();
+      filteredTasks = filteredTasks.filter(task => 
+        task.description.toLowerCase().includes(searchTerm) ||
+        task.projectName.toLowerCase().includes(searchTerm) ||
+        (task.customerName && task.customerName.toLowerCase().includes(searchTerm))
+      );
     }
 
-    query += ' ORDER BY t.startTime DESC';
-
-    const stmt = this.db.prepare(query);
-    return stmt.all(params) as Task[];
+    // Add project and customer information
+    const projects = await this.getProjects();
+    const customers = await this.getCustomers();
+    
+    return filteredTasks.map(task => {
+      const project = projects.find(p => p.id === task.projectId);
+      const customer = customers.find(c => c.id === task.customerId);
+      
+      return {
+        ...task,
+        projectName: project?.name || 'Unknown Project',
+        projectColor: project?.color || '#000000',
+        customerName: customer?.name || undefined
+      };
+    }).sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
   }
 
   async createTask(task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Promise<Task> {
     const id = this.generateId();
     const now = new Date().toISOString();
+    const projects = await this.getProjects();
+    const customers = await this.getCustomers();
+    
+    const project = projects.find(p => p.id === task.projectId);
+    const customer = customers.find(c => c.id === task.customerId);
 
-    const stmt = this.db.prepare(`
-      INSERT INTO tasks (id, description, projectId, customerId, tags, startTime, endTime, duration, isCompleted, isPaid, isArchived, isInterrupted, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
+    const newTask: Task = {
       id,
-      task.description,
-      task.projectId,
-      task.customerId,
-      task.tags,
-      task.startTime,
-      task.endTime,
-      task.duration,
-      task.isCompleted ? 1 : 0,
-      task.isPaid ? 1 : 0,
-      task.isArchived ? 1 : 0,
-      task.isInterrupted ? 1 : 0,
-      now,
-      now
-    );
+      description: task.description,
+      projectId: task.projectId,
+      customerId: task.customerId,
+      tags: task.tags,
+      startTime: task.startTime,
+      endTime: task.endTime,
+      duration: task.duration,
+      isCompleted: task.isCompleted,
+      isPaid: task.isPaid,
+      isArchived: task.isArchived,
+      isInterrupted: task.isInterrupted,
+      isDraft: task.isDraft,
+      projectName: project?.name || 'Unknown Project',
+      createdAt: now,
+      updatedAt: now,
+      projectColor: project?.color || '#000000',
+      customerName: customer?.name
+    };
 
-    return this.getTaskById(id);
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    tasks.push(newTask);
+    this.tasksStore.set('tasks', tasks);
+
+    return newTask;
   }
 
   async updateTask(task: Partial<Task> & { id: string }): Promise<Task> {
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    const taskIndex = tasks.findIndex(t => t.id === task.id);
+    
+    if (taskIndex === -1) {
+      throw new Error(`Task with id ${task.id} not found`);
+    }
+
     const now = new Date().toISOString();
-    const updates: string[] = [];
-    const params: any[] = [];
+    const updatedTask = {
+      ...tasks[taskIndex],
+      ...task,
+      updatedAt: now
+    };
 
-    Object.entries(task).forEach(([key, value]) => {
-      if (key !== 'id' && key !== 'createdAt') {
-        updates.push(`${key} = ?`);
-        params.push(value);
-      }
-    });
+    tasks[taskIndex] = updatedTask;
+    this.tasksStore.set('tasks', tasks);
 
-    updates.push('updatedAt = ?');
-    params.push(now);
-    params.push(task.id);
-
-    const query = `UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`;
-    const stmt = this.db.prepare(query);
-    stmt.run(params);
-
-    return this.getTaskById(task.id);
+    return updatedTask;
   }
 
   async deleteTask(id: string): Promise<void> {
-    const stmt = this.db.prepare('DELETE FROM tasks WHERE id = ?');
-    stmt.run(id);
-  }
-
-  private async getTaskById(id: string): Promise<Task> {
-    const stmt = this.db.prepare(`
-      SELECT t.*, p.name as projectName, p.color as projectColor, c.name as customerName
-      FROM tasks t
-      LEFT JOIN projects p ON t.projectId = p.id
-      LEFT JOIN customers c ON t.customerId = c.id
-      WHERE t.id = ?
-    `);
-    return stmt.get(id) as Task;
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    const filteredTasks = tasks.filter(task => task.id !== id);
+    this.tasksStore.set('tasks', filteredTasks);
   }
 
   // Project operations
   async getProjects(isArchived?: boolean): Promise<Project[]> {
-    let query = `
-      SELECT p.*, c.name as customerName
-      FROM projects p
-      LEFT JOIN customers c ON p.customerId = c.id
-      WHERE 1=1
-    `;
-    const params: any[] = [];
-
+    const projects = this.projectsStore.get('projects', []) as Project[];
+    
     if (isArchived !== undefined) {
-      query += ' AND p.isArchived = ?';
-      params.push(isArchived ? 1 : 0);
+      return projects.filter(project => project.isArchived === isArchived);
     }
-
-    query += ' ORDER BY p.name';
-
-    const stmt = this.db.prepare(query);
-    return stmt.all(params) as Project[];
+    
+    return projects.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async createProject(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project> {
     const id = this.generateId();
     const now = new Date().toISOString();
 
-    const stmt = this.db.prepare(`
-      INSERT INTO projects (id, name, color, customerId, notionDatabaseId, isArchived, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
+    const newProject: Project = {
       id,
-      project.name,
-      project.color,
-      project.customerId,
-      project.notionDatabaseId,
-      project.isArchived ? 1 : 0,
-      now,
-      now
-    );
+      name: project.name,
+      color: project.color,
+      customerId: project.customerId,
+      notionDatabaseId: project.notionDatabaseId,
+      isArchived: project.isArchived,
+      createdAt: now,
+      updatedAt: now
+    };
 
-    return this.getProjectById(id);
+    const projects = this.projectsStore.get('projects', []) as Project[];
+    projects.push(newProject);
+    this.projectsStore.set('projects', projects);
+
+    return newProject;
   }
 
   async updateProject(project: Partial<Project> & { id: string }): Promise<Project> {
+    const projects = this.projectsStore.get('projects', []) as Project[];
+    const projectIndex = projects.findIndex(p => p.id === project.id);
+    
+    if (projectIndex === -1) {
+      throw new Error(`Project with id ${project.id} not found`);
+    }
+
     const now = new Date().toISOString();
-    const updates: string[] = [];
-    const params: any[] = [];
+    const updatedProject = {
+      ...projects[projectIndex],
+      ...project,
+      updatedAt: now
+    };
 
-    Object.entries(project).forEach(([key, value]) => {
-      if (key !== 'id' && key !== 'createdAt') {
-        updates.push(`${key} = ?`);
-        params.push(value);
-      }
-    });
+    projects[projectIndex] = updatedProject;
+    this.projectsStore.set('projects', projects);
 
-    updates.push('updatedAt = ?');
-    params.push(now);
-    params.push(project.id);
-
-    const query = `UPDATE projects SET ${updates.join(', ')} WHERE id = ?`;
-    const stmt = this.db.prepare(query);
-    stmt.run(params);
-
-    return this.getProjectById(project.id);
+    return updatedProject;
   }
 
   async deleteProject(id: string): Promise<void> {
-    // Check if there are any tasks associated with this project (both active and archived)
-    const taskCheckStmt = this.db.prepare('SELECT COUNT(*) as count FROM tasks WHERE projectId = ?');
-    const taskCount = taskCheckStmt.get(id) as { count: number };
+    // Delete all tasks associated with this project
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    const filteredTasks = tasks.filter(task => task.projectId !== id);
+    this.tasksStore.set('tasks', filteredTasks);
     
-    if (taskCount.count > 0) {
-      // Delete all tasks associated with this project first
-      const deleteTasksStmt = this.db.prepare('DELETE FROM tasks WHERE projectId = ?');
-      deleteTasksStmt.run(id);
-      console.log(`Deleted ${taskCount.count} tasks associated with project ${id}`);
-    }
-    
-    // Now delete the project
-    const stmt = this.db.prepare('DELETE FROM projects WHERE id = ?');
-    stmt.run(id);
-  }
-
-  private async getProjectById(id: string): Promise<Project> {
-    const stmt = this.db.prepare('SELECT * FROM projects WHERE id = ?');
-    return stmt.get(id) as Project;
+    // Delete the project
+    const projects = this.projectsStore.get('projects', []) as Project[];
+    const filteredProjects = projects.filter(project => project.id !== id);
+    this.projectsStore.set('projects', filteredProjects);
   }
 
   // Customer operations
   async getCustomers(): Promise<Customer[]> {
-    const stmt = this.db.prepare('SELECT * FROM customers WHERE isArchived = 0 ORDER BY name');
-    return stmt.all() as Customer[];
+    const customers = this.customersStore.get('customers', []) as Customer[];
+    return customers.filter(customer => !customer.isArchived).sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async createCustomer(customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): Promise<Customer> {
     const id = this.generateId();
     const now = new Date().toISOString();
 
-    const stmt = this.db.prepare(`
-      INSERT INTO customers (id, name, email, phone, address, isArchived, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
+    const newCustomer: Customer = {
       id,
-      customer.name,
-      customer.email,
-      customer.phone,
-      customer.address,
-      customer.isArchived ? 1 : 0,
-      now,
-      now
-    );
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+      address: customer.address,
+      isArchived: customer.isArchived,
+      createdAt: now,
+      updatedAt: now
+    };
 
-    return this.getCustomerById(id);
+    const customers = this.customersStore.get('customers', []) as Customer[];
+    customers.push(newCustomer);
+    this.customersStore.set('customers', customers);
+
+    return newCustomer;
   }
 
   async updateCustomer(customer: Partial<Customer> & { id: string }): Promise<Customer> {
+    const customers = this.customersStore.get('customers', []) as Customer[];
+    const customerIndex = customers.findIndex(c => c.id === customer.id);
+    
+    if (customerIndex === -1) {
+      throw new Error(`Customer with id ${customer.id} not found`);
+    }
+
     const now = new Date().toISOString();
-    const updates: string[] = [];
-    const params: any[] = [];
+    const updatedCustomer = {
+      ...customers[customerIndex],
+      ...customer,
+      updatedAt: now
+    };
 
-    Object.entries(customer).forEach(([key, value]) => {
-      if (key !== 'id' && key !== 'createdAt') {
-        updates.push(`${key} = ?`);
-        params.push(value);
-      }
-    });
+    customers[customerIndex] = updatedCustomer;
+    this.customersStore.set('customers', customers);
 
-    updates.push('updatedAt = ?');
-    params.push(now);
-    params.push(customer.id);
-
-    const query = `UPDATE customers SET ${updates.join(', ')} WHERE id = ?`;
-    const stmt = this.db.prepare(query);
-    stmt.run(params);
-
-    return this.getCustomerById(customer.id);
+    return updatedCustomer;
   }
 
   async deleteCustomer(id: string): Promise<void> {
-    const stmt = this.db.prepare('DELETE FROM customers WHERE id = ?');
-    stmt.run(id);
-  }
-
-  private async getCustomerById(id: string): Promise<Customer> {
-    const stmt = this.db.prepare('SELECT * FROM customers WHERE id = ?');
-    return stmt.get(id) as Customer;
+    const customers = this.customersStore.get('customers', []) as Customer[];
+    const filteredCustomers = customers.filter(customer => customer.id !== id);
+    this.customersStore.set('customers', filteredCustomers);
   }
 
   // Tag operations
   async getTags(): Promise<Tag[]> {
-    const stmt = this.db.prepare('SELECT * FROM tags WHERE isArchived = 0 ORDER BY name');
-    return stmt.all() as Tag[];
+    const tags = this.tagsStore.get('tags', []) as Tag[];
+    return tags.filter(tag => !tag.isArchived).sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async createTag(tag: Omit<Tag, 'id' | 'createdAt' | 'updatedAt'>): Promise<Tag> {
     const id = this.generateId();
     const now = new Date().toISOString();
 
-    const stmt = this.db.prepare(`
-      INSERT INTO tags (id, name, color, isArchived, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
+    const newTag: Tag = {
       id,
-      tag.name,
-      tag.color,
-      tag.isArchived ? 1 : 0,
-      now,
-      now
-    );
+      name: tag.name,
+      color: tag.color,
+      isArchived: tag.isArchived,
+      createdAt: now,
+      updatedAt: now
+    };
 
-    return this.getTagById(id);
+    const tags = this.tagsStore.get('tags', []) as Tag[];
+    tags.push(newTag);
+    this.tagsStore.set('tags', tags);
+
+    return newTag;
   }
 
   async updateTag(tag: Partial<Tag> & { id: string }): Promise<Tag> {
+    const tags = this.tagsStore.get('tags', []) as Tag[];
+    const tagIndex = tags.findIndex(t => t.id === tag.id);
+    
+    if (tagIndex === -1) {
+      throw new Error(`Tag with id ${tag.id} not found`);
+    }
+
     const now = new Date().toISOString();
-    const updates: string[] = [];
-    const params: any[] = [];
+    const updatedTag = {
+      ...tags[tagIndex],
+      ...tag,
+      updatedAt: now
+    };
 
-    Object.entries(tag).forEach(([key, value]) => {
-      if (key !== 'id' && key !== 'createdAt') {
-        updates.push(`${key} = ?`);
-        params.push(value);
-      }
-    });
+    tags[tagIndex] = updatedTag;
+    this.tagsStore.set('tags', tags);
 
-    updates.push('updatedAt = ?');
-    params.push(now);
-    params.push(tag.id);
-
-    const query = `UPDATE tags SET ${updates.join(', ')} WHERE id = ?`;
-    const stmt = this.db.prepare(query);
-    stmt.run(params);
-
-    return this.getTagById(tag.id);
+    return updatedTag;
   }
 
   async deleteTag(id: string): Promise<void> {
-    const stmt = this.db.prepare('DELETE FROM tags WHERE id = ?');
-    stmt.run(id);
-  }
-
-  private async getTagById(id: string): Promise<Tag> {
-    const stmt = this.db.prepare('SELECT * FROM tags WHERE id = ?');
-    return stmt.get(id) as Tag;
+    const tags = this.tagsStore.get('tags', []) as Tag[];
+    const filteredTags = tags.filter(tag => tag.id !== id);
+    this.tagsStore.set('tags', filteredTags);
   }
 
   // Bulk operations
   async bulkUpdateTaskStatus(taskIds: string[], updates: Partial<Task>): Promise<void> {
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
     const now = new Date().toISOString();
-    const updateFields: string[] = [];
-    const params: any[] = [];
 
-    Object.entries(updates).forEach(([key, value]) => {
-      if (key !== 'id' && key !== 'createdAt') {
-        updateFields.push(`${key} = ?`);
-        params.push(value);
+    const updatedTasks = tasks.map(task => {
+      if (taskIds.includes(task.id)) {
+        return {
+          ...task,
+          ...updates,
+          updatedAt: now
+        };
       }
+      return task;
     });
 
-    updateFields.push('updatedAt = ?');
-    params.push(now);
-
-    const placeholders = taskIds.map(() => '?').join(',');
-    const query = `UPDATE tasks SET ${updateFields.join(', ')} WHERE id IN (${placeholders})`;
-    
-    const stmt = this.db.prepare(query);
-    stmt.run(...params, ...taskIds);
+    this.tasksStore.set('tasks', updatedTasks);
   }
 
   async bulkArchivePaidTasks(): Promise<void> {
-    const stmt = this.db.prepare(`
-      UPDATE tasks 
-      SET isArchived = 1, updatedAt = ? 
-      WHERE isPaid = 1 AND isArchived = 0
-    `);
-    stmt.run(new Date().toISOString());
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    const now = new Date().toISOString();
+
+    const updatedTasks = tasks.map(task => {
+      if (task.isPaid && !task.isArchived) {
+        return {
+          ...task,
+          isArchived: true,
+          updatedAt: now
+        };
+      }
+      return task;
+    });
+
+    this.tasksStore.set('tasks', updatedTasks);
   }
 
   // Settings operations
   async getSettings(): Promise<Settings> {
-    const stmt = this.db.prepare('SELECT key, value FROM settings');
-    const rows = stmt.all() as { key: string; value: string }[];
-
     const settings: any = {};
-    rows.forEach(row => {
-      settings[row.key] = JSON.parse(row.value);
+    const defaultSettings = {
+      idleTimeoutMinutes: 5,
+      autoSyncToNotion: false,
+      hourlyRate: 100,
+      defaultDateRange: '7'
+    };
+
+    Object.keys(defaultSettings).forEach(key => {
+      settings[key] = this.settingsStore.get(key, defaultSettings[key as keyof typeof defaultSettings]);
     });
 
     return settings as Settings;
@@ -601,37 +462,21 @@ export class DatabaseService {
 
   async updateSettings(settings: Partial<Settings>): Promise<void> {
     Object.entries(settings).forEach(([key, value]) => {
-      const stmt = this.db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
-      stmt.run(key, JSON.stringify(value));
+      this.settingsStore.set(key, value);
     });
   }
 
   // Time calculation utilities
   async getTotalTimeForPeriod(startDate: string, endDate: string): Promise<number> {
-    try {
-      // Try with isCompleted column first
-      const stmt = this.db.prepare(`
-        SELECT COALESCE(SUM(duration), 0) as totalTime
-        FROM tasks
-        WHERE startTime >= ? AND startTime <= ? AND isCompleted = 1
-      `);
-      const result = stmt.get(startDate, endDate) as { totalTime: number };
-      return result.totalTime || 0;
-    } catch (error) {
-      // Fallback: try without isCompleted column (for older databases)
-      try {
-        const stmt = this.db.prepare(`
-          SELECT COALESCE(SUM(duration), 0) as totalTime
-          FROM tasks
-          WHERE startTime >= ? AND startTime <= ? AND duration IS NOT NULL
-        `);
-        const result = stmt.get(startDate, endDate) as { totalTime: number };
-        return result.totalTime || 0;
-      } catch (fallbackError) {
-        console.error('Error getting total time for period:', error);
-        return 0;
-      }
-    }
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    const filteredTasks = tasks.filter(task => 
+      task.startTime >= startDate && 
+      task.startTime <= endDate && 
+      task.isCompleted && 
+      task.duration
+    );
+    
+    return filteredTasks.reduce((total, task) => total + (task.duration || 0), 0);
   }
 
   async getTotalTimeForToday(): Promise<number> {
@@ -663,66 +508,22 @@ export class DatabaseService {
   }
 
   async getCompletedTasksCount(): Promise<number> {
-    try {
-      // Try with isCompleted column first
-      const stmt = this.db.prepare(`
-        SELECT COUNT(*) as count
-        FROM tasks
-        WHERE isCompleted = 1
-      `);
-      const result = stmt.get() as { count: number };
-      return result.count || 0;
-    } catch (error) {
-      // Fallback: try without isCompleted column (for older databases)
-      try {
-        const stmt = this.db.prepare(`
-          SELECT COUNT(*) as count
-          FROM tasks
-          WHERE duration IS NOT NULL
-        `);
-        const result = stmt.get() as { count: number };
-        return result.count || 0;
-      } catch (fallbackError) {
-        console.error('Error getting completed tasks count:', error);
-        return 0;
-      }
-    }
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    return tasks.filter(task => task.isCompleted).length;
   }
 
   async getActiveProjectsCount(): Promise<number> {
-    try {
-      // Try with isCompleted column first
-      const stmt = this.db.prepare(`
-        SELECT COUNT(DISTINCT projectId) as count
-        FROM tasks
-        WHERE isCompleted = 1 AND isArchived = 0
-      `);
-      const result = stmt.get() as { count: number };
-      return result.count || 0;
-    } catch (error) {
-      // Fallback: try without isCompleted column (for older databases)
-      try {
-        const stmt = this.db.prepare(`
-          SELECT COUNT(DISTINCT projectId) as count
-          FROM tasks
-          WHERE duration IS NOT NULL AND isArchived = 0
-        `);
-        const result = stmt.get() as { count: number };
-        return result.count || 0;
-      } catch (fallbackError) {
-        console.error('Error getting active projects count:', error);
-        return 0;
-      }
-    }
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    const completedTaskProjectIds = new Set(
+      tasks.filter(task => task.isCompleted && !task.isArchived).map(task => task.projectId)
+    );
+    return completedTaskProjectIds.size;
   }
 
   async getTasksByProject(projectId: string): Promise<Task[]> {
-    const stmt = this.db.prepare(`
-      SELECT * FROM tasks
-      WHERE projectId = ? AND isCompleted = 1
-      ORDER BY startTime DESC
-    `);
-    return stmt.all(projectId) as Task[];
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    return tasks.filter(task => task.projectId === projectId && task.isCompleted)
+      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
   }
 
   private generateId(): string {
@@ -730,118 +531,167 @@ export class DatabaseService {
   }
 
   close(): void {
-    this.db.close();
+    // electron-store automatically saves data, no need to close
   }
 
   async saveDraftTask(task: Partial<Task>): Promise<Task> {
     const id = this.generateId();
     const now = new Date().toISOString();
+    const projects = await this.getProjects();
     
-    const stmt = this.db.prepare(`
-      INSERT INTO tasks (id, description, projectId, customerId, tags, startTime, endTime, duration, isCompleted, isPaid, isArchived, isInterrupted, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, ?, ?)
-    `);
+    if (!task.projectId) {
+      throw new Error('Project ID is required for draft task');
+    }
+    if (!task.startTime) {
+      throw new Error('Start time is required for draft task');
+    }
     
-    stmt.run(
+    const project = projects.find(p => p.id === task.projectId);
+
+    const newTask: Task = {
       id,
-      task.description || 'Interrupted session',
-      task.projectId,
-      task.customerId || null,
-      task.tags || null,
-      task.startTime,
-      now, // Set endTime to when interruption occurred
-      task.duration || 0,
-      now,
-      now
-    );
-    
-    return this.getTaskById(id);
+      description: task.description || 'Interrupted session',
+      projectId: task.projectId,
+      customerId: task.customerId,
+      tags: task.tags,
+      startTime: task.startTime,
+      endTime: now,
+      duration: task.duration || 0,
+      isCompleted: false,
+      isPaid: false,
+      isArchived: false,
+      isInterrupted: false,
+      isDraft: true,
+      projectName: project?.name || 'Unknown Project',
+      createdAt: now,
+      updatedAt: now,
+      projectColor: project?.color || '#000000'
+    };
+
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    tasks.push(newTask);
+    this.tasksStore.set('tasks', tasks);
+
+    return newTask;
   }
 
-  // Method to convert draft to completed task
   async completeDraftTask(taskId: string, finalEndTime: string, finalDuration: number): Promise<void> {
-    const stmt = this.db.prepare(`
-      UPDATE tasks 
-      SET endTime = ?, duration = ?, isCompleted = 1, updatedAt = ?
-      WHERE id = ?
-    `);
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
     
-    stmt.run(finalEndTime, finalDuration, new Date().toISOString(), taskId);
+    if (taskIndex !== -1) {
+      tasks[taskIndex] = {
+        ...tasks[taskIndex],
+        endTime: finalEndTime,
+        duration: finalDuration,
+        isCompleted: true,
+        updatedAt: new Date().toISOString()
+      };
+      this.tasksStore.set('tasks', tasks);
+    }
   }
 
-  // New methods for interrupted task handling
   async saveInterruptedTask(task: Partial<Task>): Promise<Task> {
     const id = this.generateId();
     const now = new Date().toISOString();
+    const projects = await this.getProjects();
     
-    const stmt = this.db.prepare(`
-      INSERT INTO tasks (id, description, projectId, customerId, tags, startTime, endTime, duration, isCompleted, isPaid, isArchived, isInterrupted, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 1, ?, ?)
-    `);
+    if (!task.projectId) {
+      throw new Error('Project ID is required for interrupted task');
+    }
+    if (!task.startTime) {
+      throw new Error('Start time is required for interrupted task');
+    }
     
-    stmt.run(
+    const project = projects.find(p => p.id === task.projectId);
+
+    const newTask: Task = {
       id,
-      task.description || 'Interrupted session',
-      task.projectId,
-      task.customerId || null,
-      task.tags || null,
-      task.startTime,
-      task.endTime || now,
-      task.duration || 0,
-      now,
-      now
-    );
-    
-    return this.getTaskById(id);
+      description: task.description || 'Interrupted session',
+      projectId: task.projectId,
+      customerId: task.customerId,
+      tags: task.tags,
+      startTime: task.startTime,
+      endTime: task.endTime || now,
+      duration: task.duration || 0,
+      isCompleted: false,
+      isPaid: false,
+      isArchived: false,
+      isInterrupted: true,
+      isDraft: false,
+      projectName: project?.name || 'Unknown Project',
+      createdAt: now,
+      updatedAt: now,
+      projectColor: project?.color || '#000000'
+    };
+
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    tasks.push(newTask);
+    this.tasksStore.set('tasks', tasks);
+
+    return newTask;
   }
 
   async getInterruptedTasks(): Promise<Task[]> {
-    const stmt = this.db.prepare(`
-      SELECT t.*, p.name as projectName, p.color as projectColor, c.name as customerName
-      FROM tasks t
-      LEFT JOIN projects p ON t.projectId = p.id
-      LEFT JOIN customers c ON t.customerId = c.id
-      WHERE t.isInterrupted = 1 AND t.isArchived = 0
-      ORDER BY t.updatedAt DESC
-    `);
-    return stmt.all() as Task[];
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    const projects = await this.getProjects();
+    const customers = await this.getCustomers();
+    
+    return tasks
+      .filter(task => task.isInterrupted && !task.isArchived)
+      .map(task => {
+        const project = projects.find(p => p.id === task.projectId);
+        const customer = customers.find(c => c.id === task.customerId);
+        
+        return {
+          ...task,
+          projectName: project?.name || 'Unknown Project',
+          projectColor: project?.color || '#000000',
+          customerName: customer?.name
+        };
+      })
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
 
   async completeInterruptedTask(taskId: string): Promise<void> {
-    const stmt = this.db.prepare(`
-      UPDATE tasks 
-      SET isCompleted = 1, isInterrupted = 0, updatedAt = ?
-      WHERE id = ?
-    `);
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
     
-    stmt.run(new Date().toISOString(), taskId);
+    if (taskIndex !== -1) {
+      tasks[taskIndex] = {
+        ...tasks[taskIndex],
+        isCompleted: true,
+        isInterrupted: false,
+        updatedAt: new Date().toISOString()
+      };
+      this.tasksStore.set('tasks', tasks);
+    }
   }
 
   async removeInterruptedTask(taskId: string): Promise<void> {
-    const stmt = this.db.prepare('DELETE FROM tasks WHERE id = ? AND isInterrupted = 1');
-    stmt.run(taskId);
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    const filteredTasks = tasks.filter(task => !(task.id === taskId && task.isInterrupted));
+    this.tasksStore.set('tasks', filteredTasks);
   }
 
   async updateInterruptedTask(taskId: string, updates: Partial<Task>): Promise<Task> {
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    const taskIndex = tasks.findIndex(t => t.id === taskId && t.isInterrupted);
+    
+    if (taskIndex === -1) {
+      throw new Error(`Interrupted task with id ${taskId} not found`);
+    }
+
     const now = new Date().toISOString();
-    const updateFields: string[] = [];
-    const params: any[] = [];
+    const updatedTask = {
+      ...tasks[taskIndex],
+      ...updates,
+      updatedAt: now
+    };
 
-    Object.entries(updates).forEach(([key, value]) => {
-      if (key !== 'id' && key !== 'createdAt') {
-        updateFields.push(`${key} = ?`);
-        params.push(value);
-      }
-    });
+    tasks[taskIndex] = updatedTask;
+    this.tasksStore.set('tasks', tasks);
 
-    updateFields.push('updatedAt = ?');
-    params.push(now);
-    params.push(taskId);
-
-    const query = `UPDATE tasks SET ${updateFields.join(', ')} WHERE id = ? AND isInterrupted = 1`;
-    const stmt = this.db.prepare(query);
-    stmt.run(params);
-
-    return this.getTaskById(taskId);
+    return updatedTask;
   }
 } 

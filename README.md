@@ -37,7 +37,7 @@ A modern, feature-rich time tracking desktop application built with Electron, Re
 
 - **Frontend**: React 18, TypeScript, Vite
 - **Backend**: Electron 27, Node.js
-- **Database**: SQLite (better-sqlite3)
+- **Database**: NoSQL (electron-store JSON files)
 - **UI Framework**: Custom CSS with modern design
 - **External APIs**: Notion API
 - **Build Tools**: Electron Builder, Vite
