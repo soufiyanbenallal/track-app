@@ -199,7 +199,51 @@ class TrackApp {
     });
 
     ipcMain.handle('db-create-task', async (_, task) => {
-      return await this.database.createTask(task);
+      const result = await this.database.createTask(task);
+      
+      // Queue Notion sync for background processing
+      try {
+        const settings = await this.database.getSettings();
+        const notionApiKey = process.env.NOTION_TOKEN || settings.notionApiKey;
+        
+        console.log('🔍 Notion sync check:', {
+          autoSyncToNotion: settings.autoSyncToNotion,
+          hasNotionApiKey: !!notionApiKey,
+          hasEnvToken: !!process.env.NOTION_TOKEN,
+          hasSettingsKey: !!settings.notionApiKey,
+          taskProjectId: task.projectId
+        });
+        
+        if (settings.autoSyncToNotion && notionApiKey) {
+          const projects = await this.database.getProjects();
+          const project = projects.find((p: any) => p.id === task.projectId);
+          
+          console.log('🔍 Project found:', {
+            projectName: project?.name,
+            hasNotionDatabaseId: !!project?.notionDatabaseId,
+            notionDatabaseId: project?.notionDatabaseId
+          });
+          
+          if (project && project.notionDatabaseId) {
+            console.log('✅ Queuing Notion sync for task:', task.description);
+            this.queueNotionSync(task, project);
+          } else {
+            console.log('❌ Project not found or no Notion database ID configured');
+            console.log('🔍 Available projects:', projects.map(p => ({
+              id: p.id,
+              name: p.name,
+              hasNotionDatabaseId: !!p.notionDatabaseId,
+              notionDatabaseId: p.notionDatabaseId
+            })));
+          }
+        } else {
+          console.log('❌ Auto-sync disabled or no Notion API key');
+        }
+      } catch (error) {
+        console.error('Error queuing Notion sync for new task:', error);
+      }
+      
+      return result;
     });
 
     ipcMain.handle('db-update-task', async (_, task) => {
