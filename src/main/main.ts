@@ -203,96 +203,19 @@ class TrackApp {
 
     ipcMain.handle('db-create-task', async (_, task) => {
       const result = await this.database.createTask(task);
-      
-              // Queue Notion sync for background processing
-        try {
-          const settings = await this.database.getSettings();
-          const notionApiKey = settings.notionApiKey || '';
-          
-          console.log('🔍 Notion sync check:', {
-            notionApiKey: notionApiKey,
-            autoSyncToNotion: settings.autoSyncToNotion,
-            hasNotionApiKey: !!notionApiKey,
-            hasSettingsKey: !!settings.notionApiKey,
-            taskProjectId: task.projectId
-          });
-        
-        if (settings.autoSyncToNotion && notionApiKey) {
-          const projects = await this.database.getProjects();
-          const project = projects.find((p: any) => p.id === task.projectId);
-          
-          console.log('🔍 Project found:', {
-            projectName: project?.name,
-            hasNotionDatabaseId: !!project?.notionDatabaseId,
-            notionDatabaseId: project?.notionDatabaseId
-          });
-          
-          if (project && project.notionDatabaseId) {
-            console.log('✅ Queuing Notion sync for task:', task.description);
-            this.queueNotionSync(task, project);
-          } else {
-            console.log('❌ Project not found or no Notion database ID configured');
-            console.log('🔍 Available projects:', projects.map(p => ({
-              id: p.id,
-              name: p.name,
-              hasNotionDatabaseId: !!p.notionDatabaseId,
-              notionDatabaseId: p.notionDatabaseId
-            })));
-          }
-        } else {
-          console.log('❌ Auto-sync disabled or no Notion API key');
-        }
-      } catch (error) {
-        console.error('Error queuing Notion sync for new task:', error);
-      }
-      
+      // Note: Notion sync is now manual - use the "Submit to Notion" button on Reports page
       return result;
     });
 
     ipcMain.handle('db-update-task', async (_, task) => {
       const result = await this.database.updateTask(task);
-      
-      // Queue Notion sync for background processing
-      try {
-        const settings = await this.database.getSettings();
-        if (settings.autoSyncToNotion && settings.notionApiKey) {
-          const projects = await this.database.getProjects();
-          const project = projects.find((p: any) => p.id === task.projectId);
-          
-          if (project && project.notionDatabaseId) {
-            this.queueNotionUpdate(task, project, 'description');
-          }
-        }
-      } catch (error) {
-        console.error('Error queuing Notion update:', error);
-      }
-      
+      // Note: Notion sync is now manual - use the "Submit to Notion" button on Reports page
       return result;
     });
 
     ipcMain.handle('db-delete-task', async (_, id) => {
-      // Get the task before deleting it for Notion sync
-      const tasks = await this.database.getTasks({});
-      const task = tasks.find(t => t.id === id);
       const result = await this.database.deleteTask(id);
-      
-      // Queue Notion sync for background processing
-      if (task) {
-        try {
-          const settings = await this.database.getSettings();
-          if (settings.autoSyncToNotion && settings.notionApiKey) {
-            const projects = await this.database.getProjects();
-            const project = projects.find((p: any) => p.id === task.projectId);
-            
-            if (project && project.notionDatabaseId) {
-              this.queueNotionUpdate(task, project, 'deletion');
-            }
-          }
-        } catch (error) {
-          console.error('Error queuing Notion deletion:', error);
-        }
-      }
-      
+      // Note: Notion sync is now manual - use the "Submit to Notion" button on Reports page
       return result;
     });
 
@@ -483,6 +406,55 @@ class TrackApp {
 
     ipcMain.handle('notion-test-connection', async () => {
       return await this.notionService.testConnection();
+    });
+
+    // Bulk Notion sync for all tasks
+    ipcMain.handle('notion-sync-all-tasks', async () => {
+      try {
+        const settings = await this.database.getSettings();
+        if (!settings.notionApiKey) {
+          throw new Error('Notion API key not configured');
+        }
+
+        const tasks = await this.database.getTasks({ isCompleted: true });
+        const projects = await this.database.getProjects();
+        
+        let successCount = 0;
+        let errorCount = 0;
+        const errors: string[] = [];
+
+        for (const task of tasks) {
+          try {
+            const project = projects.find((p: any) => p.id === task.projectId);
+            if (project && project.notionDatabaseId) {
+              await this.notionService.syncTask(task, project);
+              successCount++;
+              console.log(`✅ Synced task to Notion: ${task.description}`);
+            } else {
+              errorCount++;
+              errors.push(`Project not found or no Notion database linked for task: ${task.description}`);
+            }
+          } catch (error) {
+            errorCount++;
+            const errorMsg = `Failed to sync task "${task.description}": ${error}`;
+            errors.push(errorMsg);
+            console.error(errorMsg);
+          }
+          
+          // Add a small delay to avoid overwhelming the Notion API
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        return {
+          successCount,
+          errorCount,
+          errors,
+          totalTasks: tasks.length
+        };
+      } catch (error) {
+        console.error('Error in bulk Notion sync:', error);
+        throw error;
+      }
     });
 
     // Settings

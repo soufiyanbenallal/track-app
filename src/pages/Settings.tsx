@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,7 +28,6 @@ const Settings: React.FC = () => {
   const [notionApiKey, setNotionApiKey] = useState(settings.notionApiKey || '');
   const [notionWorkspaceId, setNotionWorkspaceId] = useState(settings.notionWorkspaceId || '');
   const [idleTimeout, setIdleTimeout] = useState(settings.idleTimeoutMinutes);
-  const [autoSync, setAutoSync] = useState(settings.autoSyncToNotion);
   const [notionDatabases, setNotionDatabases] = useState<any[]>([]);
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -44,7 +43,6 @@ const Settings: React.FC = () => {
     setNotionApiKey(settings.notionApiKey || '');
     setNotionWorkspaceId(settings.notionWorkspaceId || '');
     setIdleTimeout(settings.idleTimeoutMinutes || 5);
-    setAutoSync(settings.autoSyncToNotion || false);
   }, [settings]);
 
   const handleSaveSettings = async () => {
@@ -53,7 +51,7 @@ const Settings: React.FC = () => {
         notionApiKey,
         notionWorkspaceId,
         idleTimeoutMinutes: idleTimeout,
-        autoSyncToNotion: autoSync,
+        autoSyncToNotion: false, // Always false since auto-sync is disabled
       });
       alert('Settings saved successfully');
     } catch (error) {
@@ -149,19 +147,15 @@ const Settings: React.FC = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-muted-foreground" />
-                <Label className="text-base font-medium">Auto Sync</Label>
+                <Label className="text-base font-medium">Manual Sync</Label>
               </div>
               <p className="text-sm text-muted-foreground">
-                Automatically sync completed tasks with Notion
+                Notion sync is now manual. Use the "Submit to Notion" button on the Reports page to sync all completed tasks.
               </p>
               <div className="flex items-center gap-3">
-                <Switch
-                  checked={autoSync}
-                  onCheckedChange={setAutoSync}
-                />
-                <span className="text-sm text-muted-foreground">
-                  {autoSync ? 'Enabled' : 'Disabled'}
-                </span>
+                <Badge variant="secondary" className="text-xs">
+                  Manual Only
+                </Badge>
               </div>
             </div>
           </div>
@@ -172,7 +166,7 @@ const Settings: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>Notion Integration</CardTitle>
-          <CardDescription>Connect your application to Notion to sync your data</CardDescription>
+          <CardDescription>Connect your application to Notion for manual data synchronization</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -235,6 +229,18 @@ const Settings: React.FC = () => {
                 {getConnectionStatusText()}
               </span>
             </div>
+          </div>
+
+          <Separator />
+          
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-blue-500" />
+              <Label className="text-base font-medium">Manual Sync</Label>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              After configuring your Notion API key, use the "Submit to Notion" button on the Reports page to manually sync all completed tasks to your Notion database.
+            </p>
           </div>
 
           {notionDatabases.length > 0 && (

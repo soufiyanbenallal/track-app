@@ -179,28 +179,9 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
             isInterrupted: false
           };
           
-          const savedTask = await window.electronAPI.createTask(taskData);
+          await window.electronAPI.createTask(taskData);
           
-          // Queue Notion sync for background processing (non-blocking)
-          const settings = await window.electronAPI.getSettings();
-          if (settings.autoSyncToNotion && settings.notionApiKey) {
-            // Get project information for Notion sync
-            const projects = await window.electronAPI.getProjects();
-            const project = projects.find((p: any) => p.id === state.currentTask?.projectId);
-            
-            if (project && project.notionDatabaseId) {
-              // Queue for background sync - don't wait for completion
-              window.electronAPI.queueNotionSync(savedTask, project).then(() => {
-                console.log('✅ Task queued for Notion sync:', project.name);
-              }).catch((error: any) => {
-                console.error('Background Notion sync failed:', error);
-              });
-            } else if (project && !project.notionDatabaseId) {
-              console.log('⚠️  Project found but no Notion database linked. Configure Notion database in project settings to enable sync:', project.name);
-            } else {
-              console.log('❌ Project not found for sync. Project ID:', state.currentTask?.projectId);
-            }
-          }
+          // Note: Notion sync is now manual - use the "Submit to Notion" button on Reports page
         }
       }
       

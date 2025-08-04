@@ -9,8 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Edit, Trash2, CheckCircle, XCircle, Tag, Plus, Archive, FileText, AlertTriangle } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search, Edit, Trash2, CheckCircle, XCircle, Tag, Plus, Archive, FileText, AlertTriangle, Upload } from 'lucide-react';
 import { Loading } from '@/components/ui/loading';
 import CustomerModal from '@/components/CustomerModal';
 import TagModal from '@/components/TagModal';
@@ -70,6 +70,7 @@ const Reports: React.FC = () => {
   const [selectAll, setSelectAll] = useState(false);
   const [draftTasks, setDraftTasks] = useState<Task[]>([]);
   const [activeTab, setActiveTab] = useState<'tasks' | 'archived' | 'drafted'>('tasks');
+  const [isSyncingToNotion, setIsSyncingToNotion] = useState(false);
 
   // Toast utility function
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -602,6 +603,37 @@ const Reports: React.FC = () => {
     }
   }, [loadData, showToast]);
 
+  const handleSyncAllTasksToNotion = useCallback(async () => {
+    if (!confirm('Are you sure you want to sync all completed tasks to Notion? This may take a while.')) {
+      return;
+    }
+
+    setIsSyncingToNotion(true);
+    try {
+      if (window.electronAPI) {
+        const result = await window.electronAPI.syncAllTasksToNotion();
+        
+        if (result.successCount > 0) {
+          showToast(`Successfully synced ${result.successCount} tasks to Notion`, 'success');
+        }
+        
+        if (result.errorCount > 0) {
+          showToast(`${result.errorCount} tasks failed to sync. Check console for details.`, 'error');
+          console.error('Notion sync errors:', result.errors);
+        }
+        
+        if (result.totalTasks === 0) {
+          showToast('No completed tasks found to sync', 'info');
+        }
+      }
+    } catch (error) {
+      console.error('Error syncing tasks to Notion:', error);
+      showToast('Failed to sync tasks to Notion', 'error');
+    } finally {
+      setIsSyncingToNotion(false);
+    }
+  }, [showToast]);
+
   // Memoized filtered tasks for performance
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
@@ -789,6 +821,19 @@ const Reports: React.FC = () => {
           </ul>
         )}
 
+        {/* Notion Sync Notice */}
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="text-blue-800 flex items-center gap-2">
+              <Upload className="w-5 h-5" />
+              Manual Notion Sync
+            </CardTitle>
+            <CardDescription>
+              Notion sync is now manual. Use the "Submit to Notion" button below to sync all completed tasks to your Notion database.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
         {/* Draft Tasks Recovery Card */}
         {draftTasks.length > 0 && (
           <Card className="mb-6 border-orange-200 bg-orange-50">
@@ -884,8 +929,7 @@ const Reports: React.FC = () => {
                   className="text-xs sm:text-sm"
                 >
                   <CheckCircle className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Mark as paid</span>
-                  <span className="sm:hidden">Paid</span>
+                  Paid
                 </Button>
                 <Button
                   variant="secondary"
@@ -895,8 +939,7 @@ const Reports: React.FC = () => {
                   className="text-xs sm:text-sm"
                 >
                   <XCircle className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Mark as unpaid</span>
-                  <span className="sm:hidden">Unpaid</span>
+                  Unpaid
                 </Button>
                 <Button
                   variant="secondary"
@@ -905,8 +948,7 @@ const Reports: React.FC = () => {
                   className="text-xs sm:text-sm"
                 >
                   <Archive className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Archive paid</span>
-                  <span className="sm:hidden">Archive</span>
+                  Archive
                 </Button>
                 <Button
                   variant="destructive"
@@ -916,8 +958,7 @@ const Reports: React.FC = () => {
                   className="text-xs sm:text-sm"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Delete selected</span>
-                  <span className="sm:hidden">Delete</span>
+                  Delete
                 </Button>
                 <Button
                   variant="secondary"
@@ -926,8 +967,17 @@ const Reports: React.FC = () => {
                   className="text-xs sm:text-sm"
                 >
                   <FileText className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Export PDF</span>
-                  <span className="sm:hidden">PDF</span>
+                  PDF
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleSyncAllTasksToNotion}
+                  disabled={isSyncingToNotion}
+                  className="text-xs sm:text-sm"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {isSyncingToNotion ? '...' : 'Notion'}
                 </Button>
               </div>
             </div>
