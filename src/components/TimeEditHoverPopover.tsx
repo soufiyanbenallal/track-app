@@ -89,7 +89,7 @@ const TimeEditHoverPopover: React.FC<TimeEditHoverPopoverProps> = ({
       </PopoverTrigger>
       
       <PopoverContent 
-        className="w-80 p-4 bg-slate-800/95 backdrop-blur-sm border-slate-600 shadow-xl"
+        className="w-80 p-4 bg-slate-800/95 backdrop-blur-sm border-slate-600 shadow"
         align="center"
         sideOffset={0}
       

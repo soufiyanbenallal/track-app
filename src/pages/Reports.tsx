@@ -673,7 +673,7 @@ const Reports: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
       <div className="max-w-7xl mx-auto p-6 space-y-8">
-        <ul className="bg-white/80 shadow-xl rounded-xl flex flex-wrap gap-4 p-4">
+        <ul className="bg-white/80 shadow rounded-xl flex flex-wrap gap-4 p-4">
                 
               <li className="space-y-1">
                 <Label htmlFor="project">Project</Label>
@@ -843,20 +843,6 @@ const Reports: React.FC = () => {
             </li>
           </ul>
         )}
-
-        {/* Notion Sync Notice */}
-        <Card className="mb-6 border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="text-blue-800 flex items-center gap-2">
-              <Upload className="w-5 h-5" />
-              Manual Notion Sync
-            </CardTitle>
-            <CardDescription>
-              Notion sync is now manual. Use the "Submit to Notion" button below to sync the currently filtered tasks to your Notion database. Successfully synced tasks will be automatically archived.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-
         {/* Draft Tasks Recovery Card */}
         {draftTasks.length > 0 && (
           <Card className="mb-6 border-orange-200 bg-orange-50">
@@ -901,31 +887,36 @@ const Reports: React.FC = () => {
         )}
 
         {/* Tasks List */}
-        <div className="bg-white/80 rounded-xl shadow-xl">
+        <div className="bg-white rounded-xl shadow">
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'tasks' | 'archived' | 'drafted')} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-slate-800 rounded-t-xl h-12 border-b border-white/10">
-              <TabsTrigger value="tasks" className="text-white data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-                Tasks
-              </TabsTrigger>
-              <TabsTrigger value="archived" className="text-white data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-                Archived
-              </TabsTrigger>
-              <TabsTrigger value="drafted" className="text-white data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-                Drafted
-              </TabsTrigger>
-            </TabsList>
-            
-            <div className="relative border-b border-white/10 bg-slate-900 h-10">
+          <div className="flex">
+            <TabsList className="flex bg-white rounded-t-xl border-b border-gray-200 ">
+                <TabsTrigger value="tasks" className="data-[state=active]:bg-slate-200">
+                  Tasks
+                </TabsTrigger>
+                <TabsTrigger value="archived" className="data-[state=active]:bg-slate-200">
+                  Archived
+                </TabsTrigger>
+                <TabsTrigger value="drafted" className="data-[state=active]:bg-slate-200">
+                  Drafted
+                </TabsTrigger>
+              </TabsList>
+            <div className="relative flex-1 h-10">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <input
                 id="search"
                 placeholder="Search..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange({ search: e.target.value })}
-                className="pl-10 h-10 bg-transparent border-none w-full text-white focus:outline-none"
+                className="pl-10 h-10 bg-transparent border-none w-full  focus:outline-none"
                 aria-label="Search in tasks"
               />
             </div>
+
+            <Search className="w-7 h-7 text-muted-foreground" />
+          </div>
+            
+ 
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-1 px-2 border-b bg-slate-900  text-white">
               <div className="flex items-center gap-4">

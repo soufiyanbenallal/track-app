@@ -103,7 +103,7 @@ const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
         <TriggerButton />
       </PopoverTrigger>
       <PopoverContent 
-        className="w-80 p-0 bg-slate-900 border-slate-700 shadow-xl"
+        className="w-80 p-0 bg-slate-900 border-slate-700 shadow"
         align="start"
         sideOffset={8}
       >
