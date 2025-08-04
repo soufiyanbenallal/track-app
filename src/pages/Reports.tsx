@@ -17,6 +17,8 @@ import CustomerModal from '@/components/CustomerModal';
 import TagModal from '@/components/TagModal';
 import ProjectDropdown from '@/components/ProjectDropdown';
 import CustomerDropdown from '@/components/CustomerDropdown';
+import TaskEditModal from '@/components/TaskEditModal';
+import ProjectCreateModal from '@/components/ProjectCreateModal';
 import { formatDuration, formatHours, formatDate } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -73,6 +75,7 @@ const Reports: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showTagModal, setShowTagModal] = useState(false);
+  const [showProjectCreateModal, setShowProjectCreateModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
@@ -81,8 +84,6 @@ const Reports: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'tasks' | 'archived' | 'drafted'>('tasks');
   const [isSyncingToNotion, setIsSyncingToNotion] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
-  const [editingSelectedProject, setEditingSelectedProject] = useState<Project | null>(null);
-  const [editingSelectedCustomer, setEditingSelectedCustomer] = useState<Customer | null>(null);
 
   // Toast utility function
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -108,15 +109,7 @@ const Reports: React.FC = () => {
     endDate: new Date().toISOString().split('T')[0],
   });
 
-  const [editForm, setEditForm] = useState({
-    description: '',
-    projectId: '',
-    customerId: '',
-    tags: '',
-    isPaid: false,
-    isCompleted: true,
-    isArchived: false,
-  });
+
 
   const [settings, setSettings] = useState({
     hourlyRate: 100,
@@ -469,53 +462,15 @@ const Reports: React.FC = () => {
 
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
-    
-    // Find the project and customer for the task
-    const project = projects.find(p => p.id === task.projectId);
-    const customer = customers.find(c => c.id === task.customerId);
-    
-    setEditingSelectedProject(project || null);
-    setEditingSelectedCustomer(customer || null);
-    
-    setEditForm({
-      description: task.description,
-      projectId: task.projectId || '',
-      customerId: task.customerId || '',
-      tags: task.tags || '',
-      isPaid: task.isPaid,
-      isCompleted: task.isCompleted,
-      isArchived: task.isArchived,
-    });
     setShowEditModal(true);
   };
 
-  const handleUpdateTask = useCallback(async () => {
-    if (!editingTask) return;
-
+  const handleUpdateTask = useCallback(async (updatedTask: Partial<Task> & { id: string }) => {
     try {
       if (window.electronAPI) {
-        // Get project and customer names for the update
-        const selectedProject = projects.find(p => p.id === editForm.projectId);
-        const selectedCustomer = customers.find(c => c.id === editForm.customerId);
-        
-        // Update task with boolean values (electron-store handles booleans correctly)
-        await window.electronAPI.updateTask({
-          id: editingTask.id,
-          description: editForm.description,
-          projectId: editForm.projectId,
-          projectName: selectedProject?.name || '',
-          projectColor: selectedProject?.color,
-          customerId: editForm.customerId || undefined,
-          customerName: selectedCustomer?.name,
-          tags: editForm.tags,
-          isPaid: editForm.isPaid,
-          isCompleted: editForm.isCompleted,
-          isArchived: editForm.isArchived,
-        });
+        await window.electronAPI.updateTask(updatedTask);
         setShowEditModal(false);
         setEditingTask(null);
-        setEditingSelectedProject(null);
-        setEditingSelectedCustomer(null);
         showToast('Task updated successfully', 'success');
         loadData();
       }
@@ -523,7 +478,7 @@ const Reports: React.FC = () => {
       console.error('Error updating task:', error);
       showToast('Error updating task', 'error');
     }
-  }, [editingTask, editForm, projects, customers, loadData, showToast]);
+  }, [loadData, showToast]);
 
   const handleDeleteTask = useCallback(async (taskId: string) => {
     if (confirm('Are you sure you want to delete this task?')) {
@@ -651,45 +606,11 @@ const Reports: React.FC = () => {
     }
   };
 
-  const handleEditProjectSelect = (project: Project | null) => {
-    setEditingSelectedProject(project);
-    setEditForm(prev => ({
-      ...prev,
-      projectId: project?.id || '',
-      customerId: project?.customerId || prev.customerId
-    }));
-  };
 
-  const handleEditCustomerSelect = (customer: Customer | null) => {
-    setEditingSelectedCustomer(customer);
-    setEditForm(prev => ({
-      ...prev,
-      customerId: customer?.id || ''
-    }));
-  };
-
-  const handleEditTagToggle = (tagName: string) => {
-    const currentTags = editForm.tags ? editForm.tags.split(',').map(t => t.trim()) : [];
-    const tagIndex = currentTags.indexOf(tagName);
-    
-    if (tagIndex > -1) {
-      // Remove tag
-      currentTags.splice(tagIndex, 1);
-    } else {
-      // Add tag
-      currentTags.push(tagName);
-    }
-    
-    setEditForm(prev => ({
-      ...prev,
-      tags: currentTags.join(', ')
-    }));
-  };
 
   const handleCreateProject = () => {
     setShowEditModal(false);
-    // You can add project creation modal logic here
-    showToast('Project creation feature coming soon', 'info');
+    setShowProjectCreateModal(true);
   };
 
   const handleCreateCustomer = () => {
@@ -1040,10 +961,11 @@ const Reports: React.FC = () => {
               <div className="flex items-center gap-4">
                 <div className="flex items-center space-x-2 h-9">
                   <Checkbox
+                    id="select-all-checkbox"
                     checked={selectAll}
                     onCheckedChange={handleSelectAll}
                   />
-                  <Label>Select all</Label>
+                  <Label htmlFor="select-all-checkbox" className='cursor-pointer'>Select all</Label>
                 </div>
                 {selectedTasks.length > 0 && (
                   <Badge variant="secondary">
@@ -1223,130 +1145,23 @@ const Reports: React.FC = () => {
           </Tabs>
         </div>
 
-        {/* Edit Task Dialog */}
-        <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit task</DialogTitle>
-   
-            </DialogHeader>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="editDescription">Description</Label>
-                <Textarea
-                  id="editDescription"
-                  value={editForm.description}
-                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  rows={3}
-                />
-              </div>
-
-              {/* Project Selection */}
-              <div className="space-y-2">
-                <Label>Project</Label>
-                <ProjectDropdown
-                  selectedProject={editingSelectedProject}
-                  onProjectSelect={handleEditProjectSelect}
-                  projects={projects.filter(p => !p.isArchived)}
-                  onCreateProject={handleCreateProject}
-                  onCustomerChange={(customerId) => {
-                    const customer = customers.find(c => c.id === customerId);
-                    setEditingSelectedCustomer(customer || null);
-                    setEditForm(prev => ({ ...prev, customerId: customerId || '' }));
-                  }}
-                />
-              </div>
-
-              {/* Customer Selection */}
-              <div className="space-y-2">
-                <Label>Customer</Label>
-                <CustomerDropdown
-                  selectedCustomer={editingSelectedCustomer}
-                  onCustomerSelect={handleEditCustomerSelect}
-                  customers={customers.filter(c => !c.isArchived)}
-                  onCreateCustomer={handleCreateCustomer}
-                />
-              </div>
-
-              {/* Tags Selection */}
-              <div className="space-y-2">
-                <Label>Tags</Label>
-                <div className="flex flex-wrap gap-2 p-3 border rounded-md min-h-[60px]">
-                  {tags.filter(tag => !tag.isArchived).map((tag) => {
-                    const isSelected = editForm.tags
-                      ? editForm.tags.split(',').map(t => t.trim()).includes(tag.name)
-                      : false;
-                    
-                    return (
-                      <Badge
-                        key={tag.id}
-                        variant={isSelected ? "default" : "outline"}
-                        className="cursor-pointer hover:scale-105 transition-transform"
-                        style={{
-                          backgroundColor: isSelected ? tag.color : undefined,
-                          color: isSelected ? 'white' : undefined,
-                          borderColor: tag.color
-                        }}
-                        onClick={() => handleEditTagToggle(tag.name)}
-                      >
-                        {tag.name}
-                      </Badge>
-                    );
-                  })}
-                  {tags.filter(tag => !tag.isArchived).length === 0 && (
-                    <span className="text-sm text-gray-500">No tags available</span>
-                  )}
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-500">
-                    Click tags to toggle selection
-                  </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setShowEditModal(false);
-                      setEditingTag(null);
-                      setShowTagModal(true);
-                    }}
-                  >
-                    <Plus className="w-3 h-3 mr-1" />
-                    Add Tag
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="editPaid"
-                  checked={editForm.isPaid}
-                  onCheckedChange={(checked) => setEditForm({ ...editForm, isPaid: checked })}
-                />
-                <Label htmlFor="editPaid">Paid</Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="editArchived"
-                  checked={editForm.isArchived}
-                  onCheckedChange={(checked) => setEditForm({ ...editForm, isArchived: checked })}
-                />
-                <Label htmlFor="editArchived">Archived</Label>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowEditModal(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleUpdateTask}>
-                Save
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* Global Task Edit Modal */}
+        <TaskEditModal
+          task={editingTask}
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleUpdateTask}
+          onDelete={handleDeleteTask}
+          projects={projects}
+          tags={tags}
+          onCreateProject={handleCreateProject}
+          onCreateTag={() => {
+            setShowEditModal(false);
+            setEditingTag(null);
+            setShowTagModal(true);
+          }}
+          onTagSave={handleTagSave}
+        />
 
         {/* Customer Modal */}
         <CustomerModal
@@ -1362,6 +1177,31 @@ const Reports: React.FC = () => {
           onOpenChange={setShowTagModal}
           tag={editingTag}
           onSave={handleTagSave}
+        />
+
+        {/* Project Create Modal */}
+        <ProjectCreateModal
+          isOpen={showProjectCreateModal}
+          onClose={() => setShowProjectCreateModal(false)}
+          onCreateProject={async (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => {
+            try {
+              if (window.electronAPI) {
+                await window.electronAPI.createProject(projectData);
+                loadData();
+                setShowProjectCreateModal(false);
+                showToast('Project created successfully', 'success');
+              }
+            } catch (error) {
+              console.error('Error creating project:', error);
+              showToast('Error creating project', 'error');
+            }
+          }}
+          customers={customers}
+          onCreateCustomer={() => {
+            setShowProjectCreateModal(false);
+            setEditingCustomer(null);
+            setShowCustomerModal(true);
+          }}
         />
       </div>
     </div>

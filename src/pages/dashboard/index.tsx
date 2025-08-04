@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useTracking } from '../../contexts/TrackingContext';
 import { Button } from '@/components/ui/button';
 import TaskEditModal from '../../components/TaskEditModal';
-
 import ProjectCreateModal from '../../components/ProjectCreateModal';
 import CustomerModal from '../../components/CustomerModal';
+import TagModal from '../../components/TagModal';
 import StatsGrid from './components/StatsGrid';
 import WorkspaceCard from './components/WorkspaceCard';
 import RecentTasksCard from './components/RecentTasksCard';
@@ -34,6 +34,15 @@ interface Customer {
   updatedAt: string;
 }
 
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 
 
 const Dashboard: React.FC = () => {
@@ -48,6 +57,9 @@ const Dashboard: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [inlineEditingTask, setInlineEditingTask] = useState<string | null>(null);
   const [inlineEditValue, setInlineEditValue] = useState('');
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [showTagModal, setShowTagModal] = useState(false);
+  const [editingTag, setEditingTag] = useState<Tag | null>(null);
 
   const [isProjectCreateModalOpen, setIsProjectCreateModalOpen] = useState(false);
   const [isCustomerCreateModalOpen, setIsCustomerCreateModalOpen] = useState(false);
@@ -77,6 +89,7 @@ const Dashboard: React.FC = () => {
           loadRecentTasks(),
           loadProjects(),
           loadCustomers(),
+          loadTags(),
           loadInterruptedTasks()
         ]);
       } catch (error) {
@@ -198,6 +211,32 @@ const Dashboard: React.FC = () => {
     } catch (error) {
       console.error('Error creating customer:', error);
       alert('Error creating customer');
+    }
+  };
+
+  const loadTags = async () => {
+    try {
+      if (window.electronAPI) {
+        const tagList = await window.electronAPI.getTags();
+        setTags(tagList);
+      }
+    } catch (error) {
+      console.error('Error loading tags:', error);
+    }
+  };
+
+  const handleTagSave = async (tagData: Omit<Tag, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      if (window.electronAPI) {
+        if (editingTag) {
+          await window.electronAPI.updateTag({ ...tagData, id: editingTag.id });
+        } else {
+          await window.electronAPI.createTag(tagData);
+        }
+        await loadTags();
+      }
+    } catch (error) {
+      console.error('Error saving tag:', error);
     }
   };
 
@@ -441,6 +480,15 @@ const Dashboard: React.FC = () => {
           }}
           onSave={handleSaveTask}
           onDelete={handleDeleteTask}
+          projects={projects}
+          tags={tags}
+          onCreateProject={handleCreateProject}
+          onCreateTag={() => {
+            setIsEditModalOpen(false);
+            setEditingTag(null);
+            setShowTagModal(true);
+          }}
+          onTagSave={handleTagSave}
         />
 
 
@@ -459,6 +507,14 @@ const Dashboard: React.FC = () => {
           open={isCustomerCreateModalOpen}
           onOpenChange={setIsCustomerCreateModalOpen}
           onSave={handleCustomerCreate}
+        />
+
+        {/* Tag Modal */}
+        <TagModal
+          open={showTagModal}
+          onOpenChange={setShowTagModal}
+          tag={editingTag}
+          onSave={handleTagSave}
         />
       </div>
     </div>

@@ -18,6 +18,7 @@ interface Project {
 
 interface ProjectDropdownProps {
   selectedProject: Project | null;
+  className?: string;
   onProjectSelect: (project: Project | null) => void;
   projects: Project[];
   onCreateProject: () => void;
@@ -27,6 +28,7 @@ interface ProjectDropdownProps {
 const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
   selectedProject,
   onProjectSelect,
+  className,
   projects,
   onCreateProject,
   onCustomerChange
@@ -69,7 +71,7 @@ const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
     ({ className, ...props }, ref) => (
       <button
         ref={ref}
-        className="flex items-center justify-between border-0 bg-transparent p-2 min-w-60"
+        className={`flex items-center justify-between border-0 bg-transparent p-2 min-w-60 ${className}`}
         {...props}
       >
         <div className="flex items-center gap-2">
@@ -100,7 +102,7 @@ const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <TriggerButton />
+        <TriggerButton className={className || ''} />
       </PopoverTrigger>
       <PopoverContent 
         className="w-80 p-0 bg-slate-900 border-slate-700 shadow"

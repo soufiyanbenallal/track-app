@@ -10,31 +10,31 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-400/20",
+          "",
         secondary:
-          "bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border-gray-200/50",
+          "bg-gradient-to-tr from-gray-50 to-gray-100 text-gray-700 border-gray-200/50",
         success:
-          "bg-gradient-to-r from-emerald-500 to-green-600 text-white border-emerald-400/20",
+          "bg-gradient-to-tr from-emerald-500 to-green-600 text-white border-emerald-400/20",
         destructive:
-          "bg-gradient-to-r from-red-500 to-red-600 text-white border-red-400/20",
+          "bg-gradient-to-tr from-red-500 to-red-600 text-white border-red-400/20",
         warning:
-          "bg-gradient-to-r from-amber-500 to-orange-600 text-white border-amber-400/20",
+          "bg-gradient-to-tr from-amber-500 to-orange-600 text-white border-amber-400/20",
         info:
-          "bg-gradient-to-r from-cyan-500 to-blue-600 text-white border-cyan-400/20",
+          "bg-gradient-to-tr from-cyan-500 to-blue-600 text-white border-cyan-400/20",
         purple:
-          "bg-gradient-to-r from-purple-500 to-violet-600 text-white border-purple-400/20",
+          "bg-gradient-to-tr from-purple-500 to-violet-600 text-white border-purple-400/20",
         outline:
           "bg-transparent text-gray-700 border-2 border-gray-300",
         ghost:
           "bg-transparent text-gray-600 border-transparent",
         premium:
-          "bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-300 text-black  border-amber-500",
+          "bg-gradient-to-tr from-green-600 via-emerald-500 to-teal-400 text-white  border-green-500",
         subtle:
           "bg-gray-50/80 text-gray-600 border-gray-200/50 backdrop-blur-sm ",
       },
       size: {
         sm: "px-2 text-[10px] rounded-full py-px [&>svg]:size-3 gap-1",
-        md: "px-3 py-0.5 text-[10px] [&>svg]:size-3.5 gap-1.5",
+        md: "px-3 py-0.5 text-[12px] [&>svg]:size-3.5 gap-1.5",
         lg: "px-4 py-1 text-sm [&>svg]:size-4 gap-2",
       },
     },
