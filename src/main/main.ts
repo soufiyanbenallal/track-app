@@ -416,8 +416,17 @@ class TrackApp {
           throw new Error('Notion API key not configured');
         }
 
-        // Apply the same filters that are used in the Reports page
-        const filteredTasks = await this.database.getTasks(filters);
+        let tasksToSync;
+        
+        // If taskIds are provided, sync only those specific tasks
+        if (filters.taskIds && Array.isArray(filters.taskIds) && filters.taskIds.length > 0) {
+          const allTasks = await this.database.getTasks();
+          tasksToSync = allTasks.filter(task => filters.taskIds.includes(task.id));
+        } else {
+          // Apply the same filters that are used in the Reports page
+          tasksToSync = await this.database.getTasks(filters);
+        }
+        
         const projects = await this.database.getProjects();
         
         let successCount = 0;
@@ -426,7 +435,7 @@ class TrackApp {
         const errors: string[] = [];
         const successfullySyncedTaskIds: string[] = [];
 
-        for (const task of filteredTasks) {
+        for (const task of tasksToSync) {
           try {
             const project = projects.find((p: any) => p.id === task.projectId);
             if (project && project.notionDatabaseId) {
@@ -466,7 +475,7 @@ class TrackApp {
           errorCount,
           archivedCount,
           errors,
-          totalTasks: filteredTasks.length
+          totalTasks: tasksToSync.length
         };
       } catch (error) {
         console.error('Error in bulk Notion sync:', error);

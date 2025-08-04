@@ -114,11 +114,40 @@ const Reports: React.FC = () => {
     loadSettings();
   }, [filters, activeTab]);
 
+  // Clear selected tasks when tab changes
+  useEffect(() => {
+    setSelectedTasks([]);
+    setSelectAll(false);
+  }, [activeTab]);
+
   useEffect(() => {
     generateStats();
   }, [tasks, dateRange]);
 
+  // Memoized filtered tasks for performance
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(task => {
+      if (filters.search && !task.description.toLowerCase().includes(filters.search.toLowerCase())) {
+        return false;
+      }
+      if (task.duration && task.duration < filters.minDuration) {
+        return false;
+      }
+      return true;
+    });
+  }, [tasks, filters.search, filters.minDuration]);
+
   const exportToPDF = useCallback(() => {
+    // Use selected tasks for PDF export, fallback to filtered tasks if none selected
+    const tasksToExport = selectedTasks.length > 0
+      ? tasks.filter(task => selectedTasks.includes(task.id))
+      : filteredTasks;
+
+    if (tasksToExport.length === 0) {
+      showToast('No tasks to export', 'info');
+      return;
+    }
+
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const currentDate = new Date().toLocaleDateString('en-GB');
@@ -161,7 +190,7 @@ const Reports: React.FC = () => {
     }
 
     // Calculate totals for completed tasks only
-    const completedTasks = tasks.filter(task =>
+    const completedTasks = tasksToExport.filter(task =>
       task.isCompleted &&
       task.duration &&
       task.duration >= filters.minDuration
@@ -250,7 +279,7 @@ const Reports: React.FC = () => {
 
     // Save with invoice number
     doc.save(`invoice-${invoiceNumber}-${dateRange.startDate}-${dateRange.endDate}.pdf`);
-  }, [dateRange.startDate, dateRange.endDate, stats, tasks, settings.hourlyRate, filters.customerId, customers, filters.minDuration]);
+  }, [dateRange.startDate, dateRange.endDate, stats, tasks, settings.hourlyRate, filters.customerId, customers, filters.minDuration, selectedTasks, filteredTasks, showToast]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -325,11 +354,11 @@ const Reports: React.FC = () => {
     try {
       setLoading(true);
       if (window.electronAPI) {
-        // Create filters based on active tab
+        // Create filters based on active tab and current filters
         const tabFilters = {
           ...filters,
           isArchived: activeTab === 'archived',
-          isCompleted: activeTab === 'drafted' ? false : undefined
+          isCompleted: activeTab === 'drafted' ? false : (activeTab === 'tasks' ? true : undefined)
         };
 
         const [taskList, projectList, customerList, tagList] = await Promise.all([
@@ -488,11 +517,19 @@ const Reports: React.FC = () => {
   };
 
   const handleBulkArchivePaid = async () => {
-    if (confirm('Are you sure you want to archive all paid tasks?')) {
+    if (selectedTasks.length === 0) {
+      showToast('Please select tasks to archive', 'info');
+      return;
+    }
+
+    if (confirm(`Are you sure you want to archive ${selectedTasks.length} selected task${selectedTasks.length > 1 ? 's' : ''}?`)) {
       try {
         if (window.electronAPI) {
-          await window.electronAPI.bulkArchivePaidTasks();
-          showToast('Paid tasks archived successfully', 'success');
+          // Archive only selected tasks
+          await window.electronAPI.bulkUpdateTaskStatus(selectedTasks, { isArchived: 1 });
+          setSelectedTasks([]);
+          setSelectAll(false);
+          showToast('Selected tasks archived successfully', 'success');
           loadData();
         }
       } catch (error) {
@@ -605,33 +642,29 @@ const Reports: React.FC = () => {
   }, [loadData, showToast]);
 
   const handleSyncFilteredTasksToNotion = useCallback(async () => {
-    // Create filters object that matches what's currently applied
-    const currentFilters = {
-      ...filters,
-      isArchived: activeTab === 'archived',
-      isCompleted: activeTab === 'drafted' ? false : undefined
-    };
+    // Only sync selected tasks, not filtered tasks
+    if (selectedTasks.length === 0) {
+      showToast('Please select tasks to sync to Notion', 'info');
+      return;
+    }
 
-    // Get the current filtered tasks count
-    const currentFilteredTasks = tasks.filter(task => {
-      if (filters.search && !task.description.toLowerCase().includes(filters.search.toLowerCase())) {
-        return false;
-      }
-      if (task.duration && task.duration < filters.minDuration) {
-        return false;
-      }
-      return true;
-    });
-
-    const taskCount = currentFilteredTasks.length;
-    if (!confirm(`Are you sure you want to sync ${taskCount} filtered task${taskCount !== 1 ? 's' : ''} to Notion? Successfully synced tasks will be automatically archived. This may take a while.`)) {
+    const taskCount = selectedTasks.length;
+    if (!confirm(`Are you sure you want to sync ${taskCount} selected task${taskCount !== 1 ? 's' : ''} to Notion? Successfully synced tasks will be automatically archived. This may take a while.`)) {
       return;
     }
 
     setIsSyncingToNotion(true);
     try {
       if (window.electronAPI) {
-        const result = await window.electronAPI.syncFilteredTasksToNotion(currentFilters);
+        // Create filters that include the selected task IDs
+        const syncFilters = {
+          ...filters,
+          isArchived: activeTab === 'archived',
+          isCompleted: activeTab === 'drafted' ? false : (activeTab === 'tasks' ? true : undefined),
+          taskIds: selectedTasks // Add selected task IDs to filters
+        };
+
+        const result = await window.electronAPI.syncFilteredTasksToNotion(syncFilters);
 
         if (result.successCount > 0) {
           if (result.archivedCount > 0) {
@@ -639,6 +672,9 @@ const Reports: React.FC = () => {
           } else {
             showToast(`Successfully synced ${result.successCount} tasks to Notion`, 'success');
           }
+          // Clear selected tasks after successful sync
+          setSelectedTasks([]);
+          setSelectAll(false);
         }
 
         if (result.errorCount > 0) {
@@ -647,7 +683,7 @@ const Reports: React.FC = () => {
         }
 
         if (result.totalTasks === 0) {
-          showToast('No tasks found to sync with current filters', 'info');
+          showToast('No tasks found to sync with current selection', 'info');
         }
       }
     } catch (error) {
@@ -656,20 +692,7 @@ const Reports: React.FC = () => {
     } finally {
       setIsSyncingToNotion(false);
     }
-  }, [filters, activeTab, tasks, showToast]);
-
-  // Memoized filtered tasks for performance
-  const filteredTasks = useMemo(() => {
-    return tasks.filter(task => {
-      if (filters.search && !task.description.toLowerCase().includes(filters.search.toLowerCase())) {
-        return false;
-      }
-      if (task.duration && task.duration < filters.minDuration) {
-        return false;
-      }
-      return true;
-    });
-  }, [tasks, filters.search, filters.minDuration]);
+  }, [filters, activeTab, selectedTasks, showToast]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
@@ -940,73 +963,71 @@ const Reports: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-2">
 
 
-  
-                {
-                  selectedTasks.length !== 0 && (
-                    <>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleBulkArchivePaid}
-                    className="text-xs sm:text-sm"
-                  >
-                    <Archive className="w-4 h-4 mr-2" />
-                    Archive
-                  </Button>
 
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={exportToPDF}
-                    className="text-xs sm:text-sm"
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    PDF
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleSyncFilteredTasksToNotion}
-                    disabled={isSyncingToNotion}
-                    className="text-xs sm:text-sm"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {isSyncingToNotion ? '...' : 'Notion'}
-                  </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleBulkUpdateStatus({ isPaid: true })}
-                        className="text-xs sm:text-sm"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Paid
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleBulkUpdateStatus({ isPaid: false })}
-                        className="text-xs sm:text-sm"
-                      >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Unpaid
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={handleBulkDelete}
-                        className="text-xs sm:text-sm"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </Button>
-                    </>
-                  )
-                }
-              </div>
+              {
+                selectedTasks.length !== 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleBulkArchivePaid}
+                      className="text-xs sm:text-sm"
+                    >
+                      <Archive className="w-4 h-4 mr-2" />
+                      Archive
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={exportToPDF}
+                      className="text-xs sm:text-sm"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      PDF
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleSyncFilteredTasksToNotion}
+                      disabled={isSyncingToNotion}
+                      className="text-xs sm:text-sm"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {isSyncingToNotion ? '...' : 'Notion'}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleBulkUpdateStatus({ isPaid: true })}
+                      className="text-xs sm:text-sm"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Paid
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleBulkUpdateStatus({ isPaid: false })}
+                      className="text-xs sm:text-sm"
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Unpaid
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleBulkDelete}
+                      className="text-xs sm:text-sm"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
+                )
+              }
             </div>
 
             {loading ? (

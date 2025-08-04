@@ -114,7 +114,12 @@ export class DatabaseService {
     }
 
     if (filters?.customerId) {
-      filteredTasks = filteredTasks.filter(task => task.customerId === filters.customerId);
+      // Filter by customer ID directly on task, or by project's customer
+      const projects = await this.getProjects();
+      const customerProjects = projects.filter(p => p.customerId === filters.customerId).map(p => p.id);
+      filteredTasks = filteredTasks.filter(task => 
+        task.customerId === filters.customerId || customerProjects.includes(task.projectId)
+      );
     }
 
     if (filters?.tags) {
@@ -124,11 +129,15 @@ export class DatabaseService {
     }
 
     if (filters?.startDate) {
-      filteredTasks = filteredTasks.filter(task => task.startTime >= filters.startDate!);
+      const startDate = new Date(filters.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      filteredTasks = filteredTasks.filter(task => new Date(task.startTime) >= startDate);
     }
 
     if (filters?.endDate) {
-      filteredTasks = filteredTasks.filter(task => task.startTime <= filters.endDate!);
+      const endDate = new Date(filters.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      filteredTasks = filteredTasks.filter(task => new Date(task.startTime) <= endDate);
     }
 
     if (filters?.isPaid !== undefined) {
