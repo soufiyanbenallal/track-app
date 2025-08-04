@@ -79,7 +79,7 @@ const Reports: React.FC = () => {
       (window as any).showToast(message, type);
     }
   }, []);
-  
+
   const [filters, setFilters] = useState({
     projectId: '',
     customerId: '',
@@ -123,35 +123,35 @@ const Reports: React.FC = () => {
     const pageWidth = doc.internal.pageSize.width;
     const currentDate = new Date().toLocaleDateString('en-GB');
     const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
-    
+
     // Header - Entrepreneur Info
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
     doc.text('INVOICE', pageWidth - 50, 25);
-    
+
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text('Benallal Soufiyan', 20, 25);
-    
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('Entrepreneur - Software Development', 20, 35);
     doc.text('Email: contact@soufiyan.dev', 20, 45);
     doc.text('Phone: +212 XXX XXX XXX', 20, 55);
-    
+
     // Invoice details (right side)
     doc.setFontSize(10);
     doc.text(`Invoice #: ${invoiceNumber}`, pageWidth - 70, 45);
     doc.text(`Date: ${currentDate}`, pageWidth - 70, 55);
     doc.text(`Period: ${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`, pageWidth - 70, 65);
-    
+
     // Customer info (if single customer selected)
     const selectedCustomer = filters.customerId ? customers.find(c => c.id === filters.customerId) : null;
     if (selectedCustomer) {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.text('Bill To:', 20, 80);
-      
+
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.text(selectedCustomer.name, 20, 90);
@@ -159,23 +159,23 @@ const Reports: React.FC = () => {
       if (selectedCustomer.phone) doc.text(selectedCustomer.phone, 20, 110);
       if (selectedCustomer.address) doc.text(selectedCustomer.address, 20, 120);
     }
-    
+
     // Calculate totals for completed tasks only
-    const completedTasks = tasks.filter(task => 
-      task.isCompleted && 
-      task.duration && 
+    const completedTasks = tasks.filter(task =>
+      task.isCompleted &&
+      task.duration &&
       task.duration >= filters.minDuration
     );
     let subtotal = 0;
     let totalHours = 0;
-    
+
     // Prepare table data with rates
     const tableData = completedTasks.map(task => {
       const hours = task.duration ? task.duration / 3600 : 0;
       const amount = hours * settings.hourlyRate;
       totalHours += hours;
       subtotal += amount;
-      
+
       return [
         formatDate(task.startTime),
         task.projectName,
@@ -185,69 +185,69 @@ const Reports: React.FC = () => {
         `${amount.toFixed(2)} MAD`
       ];
     });
-    
+
     // Tasks table
     try {
-              autoTable(doc, {
-          startY: selectedCustomer ? 140 : 100,
-          head: [['Date', 'Project', 'Description', 'Hours', 'Rate', 'Amount']],
-          body: tableData,
-          theme: 'striped',
-          headStyles: { 
-            fillColor: [30, 41, 59], // slate-800
-            textColor: 255,
-            fontSize: 10,
-            fontStyle: 'bold'
-          },
-          bodyStyles: {
-            fontSize: 9
-          },
-          margin: { left: 20, right: 20 }
-        });
+      autoTable(doc, {
+        startY: selectedCustomer ? 140 : 100,
+        head: [['Date', 'Project', 'Description', 'Hours', 'Rate', 'Amount']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: {
+          fillColor: [30, 41, 59], // slate-800
+          textColor: 255,
+          fontSize: 10,
+          fontStyle: 'bold'
+        },
+        bodyStyles: {
+          fontSize: 9
+        },
+        margin: { left: 20, right: 20 }
+      });
     } catch (error) {
       console.error('Error creating autoTable:', error);
     }
-    
+
     // Get final Y position after table
     const finalY = (doc as any).lastAutoTable?.finalY || 200;
-    
+
     // Summary section
     const summaryStartY = finalY + 20;
     const summaryX = pageWidth - 80;
-    
+
     // Summary box
     doc.setDrawColor(200, 200, 200);
     doc.rect(summaryX - 10, summaryStartY - 10, 70, 60);
-    
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Total Hours: ${formatHours(totalHours)}`, summaryX, summaryStartY);
     doc.text(`Hourly Rate: ${settings.hourlyRate} MAD`, summaryX, summaryStartY + 10);
     doc.text(`Subtotal: ${subtotal.toFixed(2)} MAD`, summaryX, summaryStartY + 20);
-    
+
     // Tax calculation (20% TVA for Morocco)
     const taxRate = 0.20;
     const taxAmount = subtotal * taxRate;
     const totalAmount = subtotal + taxAmount;
-    
+
     doc.text(`TVA (20%): ${taxAmount.toFixed(2)} MAD`, summaryX, summaryStartY + 30);
-    
+
     // Total line (bold)
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.text(`TOTAL: ${totalAmount.toFixed(2)} MAD`, summaryX, summaryStartY + 45);
-    
+
     // Payment terms
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.text('Payment Terms: Net 30 days', 20, finalY + 50);
     doc.text('Thank you for your business!', 20, finalY + 60);
-    
+
     // Footer
     doc.setFontSize(8);
     doc.setTextColor(128, 128, 128);
     doc.text(`Generated on ${currentDate}`, 20, doc.internal.pageSize.height - 20);
-    
+
     // Save with invoice number
     doc.save(`invoice-${invoiceNumber}-${dateRange.startDate}-${dateRange.endDate}.pdf`);
   }, [dateRange.startDate, dateRange.endDate, stats, tasks, settings.hourlyRate, filters.customerId, customers, filters.minDuration]);
@@ -263,16 +263,16 @@ const Reports: React.FC = () => {
           searchInput.focus();
         }
       }
-      
+
       // Ctrl/Cmd + E for export
       if ((event.ctrlKey || event.metaKey) && event.key === 'e') {
         event.preventDefault();
         exportToPDF();
       }
-      
+
       // Ctrl/Cmd + A for select all (when not in input)
-      if ((event.ctrlKey || event.metaKey) && event.key === 'a' && 
-          !(event.target as HTMLElement).matches('input, textarea')) {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'a' &&
+        !(event.target as HTMLElement).matches('input, textarea')) {
         event.preventDefault();
         setSelectAll(true);
         setSelectedTasks(tasks.map(task => task.id));
@@ -331,7 +331,7 @@ const Reports: React.FC = () => {
           isArchived: activeTab === 'archived',
           isCompleted: activeTab === 'drafted' ? false : undefined
         };
-        
+
         const [taskList, projectList, customerList, tagList] = await Promise.all([
           window.electronAPI.getTasks(tabFilters),
           window.electronAPI.getProjects(),
@@ -354,11 +354,11 @@ const Reports: React.FC = () => {
   const generateStats = useCallback(() => {
     const filteredTasks = tasks.filter(task => {
       const taskDate = new Date(task.startTime).toISOString().split('T')[0];
-      return taskDate >= dateRange.startDate && 
-             taskDate <= dateRange.endDate && 
-             task.isCompleted &&
-             task.duration &&
-             task.duration >= filters.minDuration;
+      return taskDate >= dateRange.startDate &&
+        taskDate <= dateRange.endDate &&
+        task.isCompleted &&
+        task.duration &&
+        task.duration >= filters.minDuration;
     });
 
     let totalSeconds = 0;
@@ -378,12 +378,12 @@ const Reports: React.FC = () => {
 
     const totalHours = totalSeconds / 3600;
     const unpaidHours = unpaidSeconds / 3600;
-    
+
     // Calculate total days in the selected range
     const startDate = new Date(dateRange.startDate);
     const endDate = new Date(dateRange.endDate);
     const totalDaysInRange = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-    
+
     const averageHoursPerDay = totalHours / totalDaysInRange;
     const totalAmount = totalHours * settings.hourlyRate;
     const unpaidAmount = unpaidHours * settings.hourlyRate;
@@ -504,7 +504,7 @@ const Reports: React.FC = () => {
 
   const handleBulkDelete = async () => {
     if (selectedTasks.length === 0) return;
-    
+
     const taskCount = selectedTasks.length;
     if (confirm(`Are you sure you want to delete ${taskCount} selected task${taskCount > 1 ? 's' : ''}? This action cannot be undone.`)) {
       try {
@@ -632,7 +632,7 @@ const Reports: React.FC = () => {
     try {
       if (window.electronAPI) {
         const result = await window.electronAPI.syncFilteredTasksToNotion(currentFilters);
-        
+
         if (result.successCount > 0) {
           if (result.archivedCount > 0) {
             showToast(`Successfully synced ${result.successCount} tasks to Notion and archived ${result.archivedCount} tasks`, 'success');
@@ -640,12 +640,12 @@ const Reports: React.FC = () => {
             showToast(`Successfully synced ${result.successCount} tasks to Notion`, 'success');
           }
         }
-        
+
         if (result.errorCount > 0) {
           showToast(`${result.errorCount} tasks failed to sync. Check console for details.`, 'error');
           console.error('Notion sync errors:', result.errors);
         }
-        
+
         if (result.totalTasks === 0) {
           showToast('No tasks found to sync with current filters', 'info');
         }
@@ -675,172 +675,155 @@ const Reports: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
       <div className="max-w-7xl mx-auto p-6 space-y-8">
         <ul className="bg-white/80 shadow rounded-xl flex flex-wrap gap-4 p-4">
-                
-              <li className="space-y-1">
-                <Label htmlFor="project">Project</Label>
-              <Select value={filters.projectId || "all"} onValueChange={(value) => handleFilterChange({ projectId: value === "all" ? "" : value })}>
-                  <SelectTrigger aria-label="Select a project">
-                    <SelectValue placeholder="All projects" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All projects</SelectItem>
-                    {projects.map(project => (
-                      <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </li>
 
-            <li className="space-y-1">
-              <Label htmlFor="customer">Customer</Label>
-              <div className="flex gap-2">
-                <Select value={filters.customerId || "all"} onValueChange={(value) => handleFilterChange({ customerId: value === "all" ? "" : value })}>
-                  <SelectTrigger className="flex-1" aria-label="Select a customer">
-                    <SelectValue placeholder="All customers" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All customers</SelectItem>
-                    {customers.map(customer => (
-                      <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setEditingCustomer(null);
-                    setShowCustomerModal(true);
-                  }}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-            </li>
+          <li className="space-y-1">
+            <Label htmlFor="project">Project</Label>
+            <Select value={filters.projectId || "all"} onValueChange={(value) => handleFilterChange({ projectId: value === "all" ? "" : value })}>
+              <SelectTrigger aria-label="Select a project">
+                <SelectValue placeholder="All projects" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All projects</SelectItem>
+                {projects.map(project => (
+                  <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </li>
 
-            <li className="space-y-1">
-              <Label htmlFor="tags">Tags</Label>
-              <div className="flex gap-2">
-                <Select value={filters.tags || "all"} onValueChange={(value) => handleFilterChange({ tags: value === "all" ? "" : value })}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="All tags" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All tags</SelectItem>
-                    {tags.map(tag => (
-                      <SelectItem key={tag.id} value={tag.name}>{tag.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setEditingTag(null);
-                    setShowTagModal(true);
-                  }}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-            </li>
+          <li className="space-y-1">
+            <Label htmlFor="customer">Customer</Label>
+            <div className="flex gap-2">
+              <Select value={filters.customerId || "all"} onValueChange={(value) => handleFilterChange({ customerId: value === "all" ? "" : value })}>
+                <SelectTrigger className="flex-1" aria-label="Select a customer">
+                  <SelectValue placeholder="All customers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All customers</SelectItem>
+                  {customers.map(customer => (
+                    <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEditingCustomer(null);
+                  setShowCustomerModal(true);
+                }}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+          </li>
 
-              <li className="space-y-1">
-                <Label htmlFor="startDate">Start date</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                value={dateRange.startDate}
-                onChange={(e) => handleDateRangeChange({ startDate: e.target.value })}
-                />
-              </li>
+          <li className="space-y-1">
+            <Label htmlFor="tags">Tags</Label>
+            <div className="flex gap-2">
+              <Select value={filters.tags || "all"} onValueChange={(value) => handleFilterChange({ tags: value === "all" ? "" : value })}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="All tags" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All tags</SelectItem>
+                  {tags.map(tag => (
+                    <SelectItem key={tag.id} value={tag.name}>{tag.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEditingTag(null);
+                  setShowTagModal(true);
+                }}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+          </li>
 
-              <li className="space-y-1">
-                <Label htmlFor="endDate">End date</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                value={dateRange.endDate}
-                onChange={(e) => handleDateRangeChange({ endDate: e.target.value })}
-                />
-              </li>
+          <li className="space-y-1">
+            <Label htmlFor="startDate">Start date</Label>
+            <Input
+              id="startDate"
+              type="date"
+              value={dateRange.startDate}
+              onChange={(e) => handleDateRangeChange({ startDate: e.target.value })}
+            />
+          </li>
 
-              <li className="space-y-1">
-                <Label htmlFor="paymentStatus">Payment </Label>
-                <Select 
-                  value={filters.isPaid === undefined ? 'all' : filters.isPaid.toString()} 
-                onValueChange={(value) => handleFilterChange({ 
-                    isPaid: value === 'all' ? undefined : value === 'true' 
-                  })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="true">Paid</SelectItem>
-                    <SelectItem value="false">Unpaid</SelectItem>
-                  </SelectContent>
-                </Select>
-              </li>
+          <li className="space-y-1">
+            <Label htmlFor="endDate">End date</Label>
+            <Input
+              id="endDate"
+              type="date"
+              value={dateRange.endDate}
+              onChange={(e) => handleDateRangeChange({ endDate: e.target.value })}
+            />
+          </li>
 
-              <li className="space-y-1">
-                <Label htmlFor="completionStatus">Completion</Label>
-                <Select 
-                  value={filters.isCompleted === undefined ? 'all' : filters.isCompleted.toString()} 
-                onValueChange={(value) => handleFilterChange({ 
-                    isCompleted: value === 'all' ? undefined : value === 'true' 
-                  })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="true">Completed</SelectItem>
-                    <SelectItem value="false">In Progress</SelectItem>
-                  </SelectContent>
-                </Select>
-              </li>
+          <li className="space-y-1">
+            <Label htmlFor="paymentStatus">Payment </Label>
+            <Select
+              value={filters.isPaid === undefined ? 'all' : filters.isPaid.toString()}
+              onValueChange={(value) => handleFilterChange({
+                isPaid: value === 'all' ? undefined : value === 'true'
+              })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="true">Paid</SelectItem>
+                <SelectItem value="false">Unpaid</SelectItem>
+              </SelectContent>
+            </Select>
+          </li>
 
-              <li className="space-y-1">
-                <Label htmlFor="minDuration">Min</Label>
-                <Input
-                  id="minDuration"
-                  type="number"
-                  min="0"
-                  step="1"
-                  className='max-w-16'
-                  value={filters.minDuration / 60}
-                  onChange={(e) => handleFilterChange({ minDuration: Math.max(0, parseFloat(e.target.value) || 0) * 60 })}
-                  placeholder="5"
-                />
-              </li>
+
+
+          <li className="space-y-1">
+            <Label htmlFor="minDuration">Min</Label>
+            <Input
+              id="minDuration"
+              type="number"
+              min="0"
+              step="1"
+              className='max-w-16'
+              value={filters.minDuration / 60}
+              onChange={(e) => handleFilterChange({ minDuration: Math.max(0, parseFloat(e.target.value) || 0) * 60 })}
+              placeholder="5"
+            />
+          </li>
         </ul>
 
         {/* Stats Cards */}
         {stats && (
           <ul className="flex items-center text-white bg-gray-950 rounded-lg">
             <li className='p-3 flex-1'>
-                <p className="text-xs">Total hours</p>
-                <div className="text-2xl font-bold">{formatHours(stats.totalHours)}</div>
+              <p className="text-xs">Total hours</p>
+              <div className="text-2xl font-bold">{formatHours(stats.totalHours)}</div>
             </li>
             <li className='p-3 flex-1'>
-                <p className="text-xs">Unpaid hours</p>
-                <div className="text-2xl font-bold text-red-600">{formatHours(stats.unpaidHours)}</div>
+              <p className="text-xs">Unpaid hours</p>
+              <div className="text-2xl font-bold text-red-600">{formatHours(stats.unpaidHours)}</div>
             </li>
             <li className='p-3 flex-1'>
-                <p className="text-xs">Average hours per day</p>
-                <div className="text-2xl font-bold text-blue-600">{formatHours(stats.averageHoursPerDay)}</div>
+              <p className="text-xs">Average hours per day</p>
+              <div className="text-2xl font-bold text-blue-600">{formatHours(stats.averageHoursPerDay)}</div>
             </li>
             <li className='p-3 flex-1'>
-   
-                <p className="text-xs">Total amount</p>
-                <div className="text-2xl font-bold text-green-600">{stats.totalAmount.toFixed(2)} MAD</div>
+
+              <p className="text-xs">Total amount</p>
+              <div className="text-2xl font-bold text-green-600">{stats.totalAmount.toFixed(2)} MAD</div>
             </li>
             <li className='p-3 flex-1'>
-                <p className="text-xs">Unpaid amount</p>
-                <div className="text-2xl font-bold text-red-600">{stats.unpaidAmount.toFixed(2)} MAD</div>
+              <p className="text-xs">Unpaid amount</p>
+              <div className="text-2xl font-bold text-red-600">{stats.unpaidAmount.toFixed(2)} MAD</div>
             </li>
           </ul>
         )}
@@ -862,19 +845,19 @@ const Reports: React.FC = () => {
                   <div>
                     <p className="font-medium">{task.description}</p>
                     <p className="text-sm text-muted-foreground">
-                      Started: {formatDate(task.startTime)} • 
+                      Started: {formatDate(task.startTime)} •
                       Duration: {task.duration ? formatDuration(task.duration) : 'Unknown'}
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       onClick={() => handleCompleteDraft(task)}
                     >
                       Complete
                     </Button>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={() => handleDeleteDraft(task.id)}
                     >
@@ -890,56 +873,56 @@ const Reports: React.FC = () => {
         {/* Tasks List */}
         <div className="bg-white rounded-xl shadow">
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'tasks' | 'archived' | 'drafted')} className="w-full">
-          <div className="flex items-center justify-between  pr-1">
-            {showSearch ? (
-              <div className="relative flex-1 h-8">
-                <Search className="absolute left-3 top-2 h-4 w-4 text-muted-foreground" />
-                <input
-                  id="search"
-                  placeholder="Search..."
-                  value={filters.search}
-                  onChange={(e) => handleFilterChange({ search: e.target.value })}
-                  className="pl-10 h-8 bg-transparent border-none w-full focus:outline-none"
-                  aria-label="Search in tasks"
-                  autoFocus
-                />
-              </div>
-            ) : (
-              <TabsList className="flex bg-white rounded-lg h-8">
-                <TabsTrigger value="tasks" className="data-[state=active]:bg-slate-200 min-w-40">
-                  Tasks
-                </TabsTrigger>
-                <TabsTrigger value="archived" className="data-[state=active]:bg-slate-200 min-w-40">
-                  Archived
-                </TabsTrigger>
-                <TabsTrigger value="drafted" className="data-[state=active]:bg-slate-200 min-w-40">
-                  Drafted
-                </TabsTrigger>
-              </TabsList>
-            )}
-            
-            <Button
-              variant="link"
-              size="sm"
-              onClick={() => {
-                setShowSearch(!showSearch);
-                if (!showSearch) {
-                  // Clear search when switching to tabs
-                  handleFilterChange({ search: '' });
-                }
-              }}
-              className="ml-2 h-7 w-7 p-0"
-              aria-label={showSearch ? "Switch to tabs" : "Switch to search"}
-            >
+            <div className="flex items-center justify-between  pr-1">
               {showSearch ? (
-                <FileText className="h-4 w-4" />
+                <div className="relative flex-1 h-8">
+                  <Search className="absolute left-3 top-2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    id="search"
+                    placeholder="Search..."
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange({ search: e.target.value })}
+                    className="pl-10 h-8 bg-transparent border-none w-full focus:outline-none"
+                    aria-label="Search in tasks"
+                    autoFocus
+                  />
+                </div>
               ) : (
-                <Search className="h-4 w-4" />
+                <TabsList className="flex bg-white rounded-lg h-8">
+                  <TabsTrigger value="tasks" className="data-[state=active]:bg-slate-200 min-w-40">
+                    Tasks
+                  </TabsTrigger>
+                  <TabsTrigger value="archived" className="data-[state=active]:bg-slate-200 min-w-40">
+                    Archived
+                  </TabsTrigger>
+                  <TabsTrigger value="drafted" className="data-[state=active]:bg-slate-200 min-w-40">
+                    Drafted
+                  </TabsTrigger>
+                </TabsList>
               )}
-            </Button>
-          </div>
-            
- 
+
+              <Button
+                variant="link"
+                size="sm"
+                onClick={() => {
+                  setShowSearch(!showSearch);
+                  if (!showSearch) {
+                    // Clear search when switching to tabs
+                    handleFilterChange({ search: '' });
+                  }
+                }}
+                className="ml-2 h-7 w-7 p-0"
+                aria-label={showSearch ? "Switch to tabs" : "Switch to search"}
+              >
+                {showSearch ? (
+                  <FileText className="h-4 w-4" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+
+
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-1 px-2 border-b bg-slate-900  text-white">
               <div className="flex items-center gap-4">
@@ -956,66 +939,73 @@ const Reports: React.FC = () => {
                   </Badge>
                 )}
               </div>
-              
+
               <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => handleBulkUpdateStatus({ isPaid: true })}
-                  disabled={selectedTasks.length === 0}
-                  className="text-xs sm:text-sm"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Paid
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => handleBulkUpdateStatus({ isPaid: false })}
-                  disabled={selectedTasks.length === 0}
-                  className="text-xs sm:text-sm"
-                >
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Unpaid
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleBulkArchivePaid}
-                  className="text-xs sm:text-sm"
-                >
-                  <Archive className="w-4 h-4 mr-2" />
-                  Archive
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleBulkDelete}
-                  disabled={selectedTasks.length === 0}
-                  className="text-xs sm:text-sm"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={exportToPDF}
-                  className="text-xs sm:text-sm"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  PDF
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleSyncFilteredTasksToNotion}
-                  disabled={isSyncingToNotion}
-                  className="text-xs sm:text-sm"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  {isSyncingToNotion ? '...' : 'Notion'}
-                </Button>
+
+
+  
+                {
+                  selectedTasks.length !== 0 && (
+                    <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleBulkArchivePaid}
+                    className="text-xs sm:text-sm"
+                  >
+                    <Archive className="w-4 h-4 mr-2" />
+                    Archive
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={exportToPDF}
+                    className="text-xs sm:text-sm"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    PDF
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleSyncFilteredTasksToNotion}
+                    disabled={isSyncingToNotion}
+                    className="text-xs sm:text-sm"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {isSyncingToNotion ? '...' : 'Notion'}
+                  </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleBulkUpdateStatus({ isPaid: true })}
+                        className="text-xs sm:text-sm"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Paid
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleBulkUpdateStatus({ isPaid: false })}
+                        className="text-xs sm:text-sm"
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Unpaid
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleBulkDelete}
+                        className="text-xs sm:text-sm"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </Button>
+                    </>
+                  )
+                }
               </div>
             </div>
 
@@ -1028,150 +1018,150 @@ const Reports: React.FC = () => {
                 <div className="text-muted-foreground">No tasks found</div>
               </div>
             ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full" role="table" aria-label="Task list">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-1 px-2 font-medium" scope="col">
-                    
-                    </th>
-                    <th className="text-left py-1 px-2 font-medium" scope="col">Project</th>
-                    <th className="text-left py-1 px-2 font-medium" scope="col">Date</th>
-                    <th className="text-left py-1 px-2 font-medium" scope="col">Duration</th>
-                    <th className="text-left py-1 px-2 font-medium" scope="col">Status</th>
-                    <th className="text-left py-1 px-2 font-medium max-w-20" scope="col"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                {filteredTasks.map((task) => (
-                    <tr key={task.id} className="border-b hover:bg-muted/50">
-                      <td className="py-1 pl-4 relative">
-                      <div 
-                              className="w-1 rounded-full absolute left-1 inset-y-2"
-                              style={{ backgroundColor: task.projectColor }}
-                            />
-                        <Checkbox
-                          checked={selectedTasks.includes(task.id)}
-                          onCheckedChange={(checked) => handleSelectTask(task.id, checked as boolean)}
-                          aria-label={`Select task ${task.description}`}
-                        />
-                      </td>
-                      <td className="py-1 px-2">
+              <div className="overflow-x-auto">
+                <table className="w-full" role="table" aria-label="Task list">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-1 px-2 font-medium" scope="col">
 
-                        <div className="flex items-center gap-2">
-                          <span className={!task.customerName ? 'text-gray-400' :"text-blue-500"}>{task.customerName || 'No customer'}</span> -
-                          <span>{task.projectName}</span>
-                        </div>
-                        <p className="max-w-xs truncate text-xs">{task.description}</p>
+                      </th>
+                      <th className="text-left py-1 px-2 font-medium" scope="col">Project</th>
+                      <th className="text-left py-1 px-2 font-medium" scope="col">Date</th>
+                      <th className="text-left py-1 px-2 font-medium" scope="col">Duration</th>
+                      <th className="text-left py-1 px-2 font-medium" scope="col">Status</th>
+                      <th className="text-left py-1 px-2 font-medium max-w-20" scope="col"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTasks.map((task) => (
+                      <tr key={task.id} className="border-b hover:bg-muted/50">
+                        <td className="py-1 pl-4 relative">
+                          <div
+                            className="w-1 rounded-full absolute left-1 inset-y-2"
+                            style={{ backgroundColor: task.projectColor }}
+                          />
+                          <Checkbox
+                            checked={selectedTasks.includes(task.id)}
+                            onCheckedChange={(checked) => handleSelectTask(task.id, checked as boolean)}
+                            aria-label={`Select task ${task.description}`}
+                          />
+                        </td>
+                        <td className="py-1 px-2">
 
-                      </td>
-                      <td className="py-1 px-2">{formatDate(task.startTime)}</td>
-                      <td className="py-1 px-2">{task.duration ? formatDuration(task.duration) : '-'}</td>
-                      <td className="py-1 px-2">
-                            <div className="flex gap-2">
-                              <Badge variant={task.isPaid ? "default" : "secondary"}>
-                            {task.isPaid ? "Paid" : "Unpaid"}
-                              </Badge>
-                         
-                            </div>
-                      </td>
-                      <td className="py-1 px-2">
-                        <div className="flex gap-2">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleEditTask(task)}
-                            aria-label={`Edit task ${task.description}`}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteTask(task.id)}
-                            aria-label={`Delete task ${task.description}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
+                          <div className="flex items-center gap-2">
+                            <span className={!task.customerName ? 'text-gray-400' : "text-blue-500"}>{task.customerName || 'No customer'}</span> -
+                            <span>{task.projectName}</span>
+                          </div>
+                          <p className="max-w-xs truncate text-xs">{task.description}</p>
+
+                        </td>
+                        <td className="py-1 px-2">{formatDate(task.startTime)}</td>
+                        <td className="py-1 px-2">{task.duration ? formatDuration(task.duration) : '-'}</td>
+                        <td className="py-1 px-2">
+                          <div className="flex gap-2">
+                            <Badge variant={task.isPaid ? "default" : "secondary"}>
+                              {task.isPaid ? "Paid" : "Unpaid"}
+                            </Badge>
+
+                          </div>
+                        </td>
+                        <td className="py-1 px-2">
+                          <div className="flex gap-2">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleEditTask(task)}
+                              aria-label={`Edit task ${task.description}`}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteTask(task.id)}
+                              aria-label={`Delete task ${task.description}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-          )}
+            )}
           </Tabs>
         </div>
 
-      {/* Edit Task Dialog */}
-      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit task</DialogTitle>
-            <DialogDescription>
-              Edit the details of this task
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="editDescription">Description</Label>
-              <Textarea
-                id="editDescription"
-                value={editForm.description}
-                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                rows={3}
-              />
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="editPaid"
-                checked={editForm.isPaid}
-                onCheckedChange={(checked) => setEditForm({ ...editForm, isPaid: checked })}
-              />
-              <Label htmlFor="editPaid">Paid</Label>
-            </div>
-            
-     
-            
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="editArchived"
-                checked={editForm.isArchived}
-                onCheckedChange={(checked) => setEditForm({ ...editForm, isArchived: checked })}
-              />
-              <Label htmlFor="editArchived">Archived</Label>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateTask}>
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {/* Edit Task Dialog */}
+        <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit task</DialogTitle>
+              <DialogDescription>
+                Edit the details of this task
+              </DialogDescription>
+            </DialogHeader>
 
-      {/* Customer Modal */}
-      <CustomerModal
-        open={showCustomerModal}
-        onOpenChange={setShowCustomerModal}
-        customer={editingCustomer}
-        onSave={handleCustomerSave}
-      />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="editDescription">Description</Label>
+                <Textarea
+                  id="editDescription"
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
 
-      {/* Tag Modal */}
-      <TagModal
-        open={showTagModal}
-        onOpenChange={setShowTagModal}
-        tag={editingTag}
-        onSave={handleTagSave}
-      />
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="editPaid"
+                  checked={editForm.isPaid}
+                  onCheckedChange={(checked) => setEditForm({ ...editForm, isPaid: checked })}
+                />
+                <Label htmlFor="editPaid">Paid</Label>
+              </div>
+
+
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="editArchived"
+                  checked={editForm.isArchived}
+                  onCheckedChange={(checked) => setEditForm({ ...editForm, isArchived: checked })}
+                />
+                <Label htmlFor="editArchived">Archived</Label>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEditModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateTask}>
+                Save
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Customer Modal */}
+        <CustomerModal
+          open={showCustomerModal}
+          onOpenChange={setShowCustomerModal}
+          customer={editingCustomer}
+          onSave={handleCustomerSave}
+        />
+
+        {/* Tag Modal */}
+        <TagModal
+          open={showTagModal}
+          onOpenChange={setShowTagModal}
+          tag={editingTag}
+          onSave={handleTagSave}
+        />
       </div>
     </div>
   );
