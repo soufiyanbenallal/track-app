@@ -1,6 +1,6 @@
 {
   "name": "track-app",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Time tracking desktop app for developers with Notion integration",
   "main": "dist/main.js",
   "homepage": "./",

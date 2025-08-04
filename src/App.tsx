@@ -2,7 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { TrackingProvider } from './contexts/TrackingContext';
 import { SettingsProvider } from './contexts/SettingsContext';
-import BottomNavigation from './components/BottomNavigation';
+import SidebarNavigation from './components/SidebarNavigation';
 import Dashboard from './pages/dashboard';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
@@ -11,10 +11,9 @@ function App() {
   return (
     <TrackingProvider>
       <SettingsProvider>
-        <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
-      
-          
-          <main className="flex-1 overflow-auto pb-16">
+        <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+          <SidebarNavigation />
+          <main className="flex-1 overflow-auto md:ml-0">
             <Routes>
               <Route index element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
@@ -23,7 +22,6 @@ function App() {
               <Route path="*" element={<Dashboard />} />
             </Routes>
           </main>
-          <BottomNavigation />
         </div>
       </SettingsProvider>
     </TrackingProvider>
