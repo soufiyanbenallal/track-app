@@ -8,7 +8,6 @@ import {
 
 const BottomNavigation: React.FC = () => {
   const location = useLocation();
-  console.log(location.pathname);
   
   const isHomeActive = location.pathname === '/' || location.pathname === '/dashboard';
   

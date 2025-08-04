@@ -127,9 +127,11 @@ const Reports: React.FC = () => {
   // Memoized filtered tasks for performance
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
+      // Apply search filter
       if (filters.search && !task.description.toLowerCase().includes(filters.search.toLowerCase())) {
         return false;
       }
+      // Apply minimum duration filter
       if (task.duration && task.duration < filters.minDuration) {
         return false;
       }
@@ -319,7 +321,14 @@ const Reports: React.FC = () => {
     const savedFilters = localStorage.getItem('reportsFilters');
     if (savedFilters) {
       const parsed = JSON.parse(savedFilters);
-      setFilters(prev => ({ ...prev, ...parsed }));
+      // Ensure proper type conversion - convert stored numbers back to booleans
+      setFilters(prev => ({ 
+        ...prev, 
+        ...parsed,
+        isPaid: parsed.isPaid !== undefined ? Boolean(parsed.isPaid) : undefined,
+        isCompleted: parsed.isCompleted !== undefined ? Boolean(parsed.isCompleted) : undefined,
+        minDuration: parsed.minDuration !== undefined ? Number(parsed.minDuration) : 300
+      }));
     }
 
     const savedDateRange = localStorage.getItem('reportsDateRange');
@@ -357,6 +366,8 @@ const Reports: React.FC = () => {
         // Create filters based on active tab and current filters
         const tabFilters = {
           ...filters,
+          // isPaid is already boolean, no conversion needed
+          isPaid: filters.isPaid,
           isArchived: activeTab === 'archived',
           isCompleted: activeTab === 'drafted' ? false : (activeTab === 'tasks' ? true : undefined)
         };
@@ -367,6 +378,7 @@ const Reports: React.FC = () => {
           window.electronAPI.getCustomers(),
           window.electronAPI.getTags()
         ]);
+        
         setTasks(taskList);
         setProjects(projectList);
         setCustomers(customerList);
@@ -428,6 +440,9 @@ const Reports: React.FC = () => {
 
   const handleFilterChange = (newFilters: Partial<typeof filters>) => {
     const updatedFilters = { ...filters, ...newFilters };
+    
+
+    
     setFilters(updatedFilters);
     localStorage.setItem('reportsFilters', JSON.stringify(updatedFilters));
   };
@@ -454,13 +469,13 @@ const Reports: React.FC = () => {
 
     try {
       if (window.electronAPI) {
-        // Convert boolean values to integers for SQLite compatibility
+        // Update task with boolean values (electron-store handles booleans correctly)
         await window.electronAPI.updateTask({
           id: editingTask.id,
           description: editForm.description,
-          isPaid: editForm.isPaid ? 1 : 0,
-          isCompleted: editForm.isCompleted ? 1 : 0,
-          isArchived: editForm.isArchived ? 1 : 0,
+          isPaid: editForm.isPaid,
+          isCompleted: editForm.isCompleted,
+          isArchived: editForm.isArchived,
         });
         setShowEditModal(false);
         setEditingTask(null);
@@ -493,18 +508,8 @@ const Reports: React.FC = () => {
 
     try {
       if (window.electronAPI) {
-        // Convert boolean values to integers for SQLite compatibility
-        const sqliteUpdates = Object.keys(updates).reduce((acc, key) => {
-          const value = updates[key as keyof Task];
-          if (typeof value === 'boolean') {
-            acc[key] = value ? 1 : 0;
-          } else {
-            acc[key] = value;
-          }
-          return acc;
-        }, {} as any);
-
-        await window.electronAPI.bulkUpdateTaskStatus(selectedTasks, sqliteUpdates);
+        // Use boolean values directly (electron-store handles booleans correctly)
+        await window.electronAPI.bulkUpdateTaskStatus(selectedTasks, updates);
         setSelectedTasks([]);
         setSelectAll(false);
         showToast('Tasks updated successfully', 'success');
@@ -526,7 +531,7 @@ const Reports: React.FC = () => {
       try {
         if (window.electronAPI) {
           // Archive only selected tasks
-          await window.electronAPI.bulkUpdateTaskStatus(selectedTasks, { isArchived: 1 });
+          await window.electronAPI.bulkUpdateTaskStatus(selectedTasks, { isArchived: true });
           setSelectedTasks([]);
           setSelectAll(false);
           showToast('Selected tasks archived successfully', 'success');
@@ -791,7 +796,7 @@ const Reports: React.FC = () => {
           <li className="space-y-1">
             <Label htmlFor="paymentStatus">Payment </Label>
             <Select
-              value={filters.isPaid === undefined ? 'all' : filters.isPaid.toString()}
+              value={filters.isPaid === undefined ? 'all' : filters.isPaid ? 'true' : 'false'}
               onValueChange={(value) => handleFilterChange({
                 isPaid: value === 'all' ? undefined : value === 'true'
               })}
@@ -1100,7 +1105,7 @@ const Reports: React.FC = () => {
                         </td>
                         <td className="py-1 px-2">
                           <div className="flex gap-2">
-                            <Badge variant={task.isPaid ? "default" : "secondary"}>
+                            <Badge variant={task.isPaid ? "success" : "destructive"}>
                               {task.isPaid ? "Paid" : "Unpaid"}
                             </Badge>
 

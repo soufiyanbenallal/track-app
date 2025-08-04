@@ -138,7 +138,7 @@ function TrackingProvider({ children }: { children: React.ReactNode }) {
           duration: state.elapsedTime,
         });
         
-        console.log('Task interrupted and saved:', interruptedTask);
+        console.warn('Task interrupted and saved:', interruptedTask);
       } catch (error) {
         console.error('Error saving interrupted task:', error);
       }

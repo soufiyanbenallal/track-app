@@ -69,7 +69,6 @@ const Dashboard: React.FC = () => {
       try {
         // Wait a bit for electronAPI to be available
         if (!window.electronAPI) {
-          console.log('Waiting for electronAPI to be available...');
           await new Promise(resolve => setTimeout(resolve, 100));
         }
         
