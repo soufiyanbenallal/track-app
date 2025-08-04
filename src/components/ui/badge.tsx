@@ -5,23 +5,42 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-blue-500 focus-visible:ring-blue-500/50 focus-visible:ring-[3px] aria-invalid:ring-red-500/20 dark:aria-invalid:ring-red-500/40 aria-invalid:border-red-500 transition-[color,box-shadow] overflow-hidden",
+  "inline-flex items-center justify-center rounded-full border w-fit whitespace-nowrap shrink-0 [&>svg]:size-3.5 gap-1.5 [&>svg]:pointer-events-none transition-all duration-200 ease-in-out overflow-hidden  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
   {
     variants: {
       variant: {
         default:
-          "border-transparent bg-blue-600 text-white [a&]:hover:bg-blue-700",
+          "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-400/20",
         secondary:
-          "border-transparent bg-gray-100 text-gray-900 [a&]:hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700",
-        success: "border-transparent bg-green-600 text-white [a&]:hover:bg-green-700",
+          "bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border-gray-200/50",
+        success:
+          "bg-gradient-to-r from-emerald-500 to-green-600 text-white border-emerald-400/20",
         destructive:
-          "border-transparent bg-red-600 text-white [a&]:hover:bg-red-700 focus-visible:ring-red-500/20 dark:focus-visible:ring-red-500/40",
+          "bg-gradient-to-r from-red-500 to-red-600 text-white border-red-400/20",
+        warning:
+          "bg-gradient-to-r from-amber-500 to-orange-600 text-white border-amber-400/20",
+        info:
+          "bg-gradient-to-r from-cyan-500 to-blue-600 text-white border-cyan-400/20",
+        purple:
+          "bg-gradient-to-r from-purple-500 to-violet-600 text-white border-purple-400/20",
         outline:
-          "text-gray-900 border-gray-300 [a&]:hover:bg-gray-100 [a&]:hover:text-gray-900 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-800",
+          "bg-transparent text-gray-700 border-2 border-gray-300",
+        ghost:
+          "bg-transparent text-gray-600 border-transparent",
+        premium:
+          "bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-300 text-black  border-amber-500",
+        subtle:
+          "bg-gray-50/80 text-gray-600 border-gray-200/50 backdrop-blur-sm ",
+      },
+      size: {
+        sm: "px-2 text-[10px] rounded-full py-px [&>svg]:size-3 gap-1",
+        md: "px-3 py-0.5 text-[10px] [&>svg]:size-3.5 gap-1.5",
+        lg: "px-4 py-1 text-sm [&>svg]:size-4 gap-2",
       },
     },
     defaultVariants: {
       variant: "default",
+      size: "sm",
     },
   }
 )
@@ -29,6 +48,7 @@ const badgeVariants = cva(
 function Badge({
   className,
   variant,
+  size,
   asChild = false,
   ...props
 }: React.ComponentProps<"span"> &
@@ -38,7 +58,7 @@ function Badge({
   return (
     <Comp
       data-slot="badge"
-      className={cn(badgeVariants({ variant }), className)}
+      className={cn(badgeVariants({ variant, size }), className)}
       {...props}
     />
   )
