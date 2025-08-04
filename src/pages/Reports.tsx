@@ -127,24 +127,94 @@ const Reports: React.FC = () => {
     setSelectAll(false);
   }, [activeTab]);
 
-  useEffect(() => {
-    generateStats();
-  }, [tasks, dateRange]);
-
   // Memoized filtered tasks for performance
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
+      // Apply date range filter
+      const taskDate = new Date(task.startTime).toISOString().split('T')[0];
+      if (taskDate < dateRange.startDate || taskDate > dateRange.endDate) {
+        return false;
+      }
+      
       // Apply search filter
       if (filters.search && !task.description.toLowerCase().includes(filters.search.toLowerCase())) {
         return false;
       }
+      
+      // Apply project filter
+      if (filters.projectId && task.projectId !== filters.projectId) {
+        return false;
+      }
+      
+      // Apply customer filter
+      if (filters.customerId && task.customerId !== filters.customerId) {
+        return false;
+      }
+      
+      // Apply tags filter
+      if (filters.tags && task.tags) {
+        const taskTags = task.tags.split(',').map(tag => tag.trim());
+        if (!taskTags.includes(filters.tags)) {
+          return false;
+        }
+      }
+      
+      // Apply payment status filter
+      if (filters.isPaid !== undefined && task.isPaid !== filters.isPaid) {
+        return false;
+      }
+      
       // Apply minimum duration filter
       if (task.duration && task.duration < filters.minDuration) {
         return false;
       }
+      
       return true;
     });
-  }, [tasks, filters.search, filters.minDuration]);
+  }, [tasks, dateRange.startDate, dateRange.endDate, filters.search, filters.projectId, filters.customerId, filters.tags, filters.isPaid, filters.minDuration]);
+
+  const generateStats = useCallback(() => {
+    // Use the filtered tasks directly - they already include all filters
+    const statsTasks = filteredTasks.filter(task => 
+      task.isCompleted && task.duration && task.duration > 0
+    );
+
+    let totalSeconds = 0;
+    let unpaidSeconds = 0;
+
+    statsTasks.forEach(task => {
+      if (task.duration) {
+        totalSeconds += task.duration;
+        if (!task.isPaid) {
+          unpaidSeconds += task.duration;
+        }
+      }
+    });
+
+    const totalHours = totalSeconds / 3600;
+    const unpaidHours = unpaidSeconds / 3600;
+
+    // Calculate total days in the selected range
+    const startDate = new Date(dateRange.startDate);
+    const endDate = new Date(dateRange.endDate);
+    const totalDaysInRange = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+
+    const averageHoursPerDay = totalHours / totalDaysInRange;
+    const totalAmount = totalHours * settings.hourlyRate;
+    const unpaidAmount = unpaidHours * settings.hourlyRate;
+
+    setStats({
+      totalHours,
+      unpaidHours,
+      averageHoursPerDay,
+      totalAmount,
+      unpaidAmount
+    });
+  }, [filteredTasks, dateRange.startDate, dateRange.endDate, settings.hourlyRate]);
+
+  useEffect(() => {
+    generateStats();
+  }, [filteredTasks, dateRange, generateStats]);
 
   const exportToPDF = useCallback(() => {
     // Use selected tasks for PDF export, fallback to filtered tasks if none selected
@@ -398,52 +468,6 @@ const Reports: React.FC = () => {
       setLoading(false);
     }
   }, [filters, activeTab, showToast]);
-
-  const generateStats = useCallback(() => {
-    const filteredTasks = tasks.filter(task => {
-      const taskDate = new Date(task.startTime).toISOString().split('T')[0];
-      return taskDate >= dateRange.startDate &&
-        taskDate <= dateRange.endDate &&
-        task.isCompleted &&
-        task.duration &&
-        task.duration >= filters.minDuration;
-    });
-
-    let totalSeconds = 0;
-    let unpaidSeconds = 0;
-    const daysSet = new Set<string>();
-
-    filteredTasks.forEach(task => {
-      if (task.duration) {
-        totalSeconds += task.duration;
-        if (!task.isPaid) {
-          unpaidSeconds += task.duration;
-        }
-        const taskDate = new Date(task.startTime).toISOString().split('T')[0];
-        daysSet.add(taskDate);
-      }
-    });
-
-    const totalHours = totalSeconds / 3600;
-    const unpaidHours = unpaidSeconds / 3600;
-
-    // Calculate total days in the selected range
-    const startDate = new Date(dateRange.startDate);
-    const endDate = new Date(dateRange.endDate);
-    const totalDaysInRange = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-
-    const averageHoursPerDay = totalHours / totalDaysInRange;
-    const totalAmount = totalHours * settings.hourlyRate;
-    const unpaidAmount = unpaidHours * settings.hourlyRate;
-
-    setStats({
-      totalHours,
-      unpaidHours,
-      averageHoursPerDay,
-      totalAmount,
-      unpaidAmount
-    });
-  }, [tasks, dateRange.startDate, dateRange.endDate, settings.hourlyRate, filters.minDuration]);
 
   const handleFilterChange = (newFilters: Partial<typeof filters>) => {
     const updatedFilters = { ...filters, ...newFilters };
