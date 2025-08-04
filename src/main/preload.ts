@@ -63,7 +63,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getNotionDatabases: () => ipcRenderer.invoke('notion-get-databases'),
   setNotionApiKey: (apiKey: string) => ipcRenderer.invoke('notion-set-api-key', apiKey),
   testNotionConnection: () => ipcRenderer.invoke('notion-test-connection'),
-  syncAllTasksToNotion: () => ipcRenderer.invoke('notion-sync-all-tasks'),
+  syncFilteredTasksToNotion: (filters: any) => ipcRenderer.invoke('notion-sync-filtered-tasks', filters),
   
   // Settings
   getSettings: () => ipcRenderer.invoke('get-settings'),
@@ -143,7 +143,7 @@ declare global {
       getNotionDatabases: () => Promise<any[]>;
       setNotionApiKey: (apiKey: string) => Promise<boolean>;
       testNotionConnection: () => Promise<boolean>;
-      syncAllTasksToNotion: () => Promise<{ successCount: number; errorCount: number; errors: string[]; totalTasks: number }>;
+      syncFilteredTasksToNotion: (filters: any) => Promise<{ successCount: number; errorCount: number; archivedCount: number; errors: string[]; totalTasks: number }>;
       getSettings: () => Promise<any>;
       updateSettings: (settings: any) => Promise<any>;
       onStartTracking: (callback: () => void) => void;

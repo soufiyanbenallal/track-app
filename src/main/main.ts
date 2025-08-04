@@ -408,27 +408,31 @@ class TrackApp {
       return await this.notionService.testConnection();
     });
 
-    // Bulk Notion sync for all tasks
-    ipcMain.handle('notion-sync-all-tasks', async () => {
+    // Bulk Notion sync for filtered tasks
+    ipcMain.handle('notion-sync-filtered-tasks', async (_, filters) => {
       try {
         const settings = await this.database.getSettings();
         if (!settings.notionApiKey) {
           throw new Error('Notion API key not configured');
         }
 
-        const tasks = await this.database.getTasks({ isCompleted: true });
+        // Apply the same filters that are used in the Reports page
+        const filteredTasks = await this.database.getTasks(filters);
         const projects = await this.database.getProjects();
         
         let successCount = 0;
         let errorCount = 0;
+        let archivedCount = 0;
         const errors: string[] = [];
+        const successfullySyncedTaskIds: string[] = [];
 
-        for (const task of tasks) {
+        for (const task of filteredTasks) {
           try {
             const project = projects.find((p: any) => p.id === task.projectId);
             if (project && project.notionDatabaseId) {
               await this.notionService.syncTask(task, project);
               successCount++;
+              successfullySyncedTaskIds.push(task.id);
               console.log(`✅ Synced task to Notion: ${task.description}`);
             } else {
               errorCount++;
@@ -445,11 +449,24 @@ class TrackApp {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
+        // Archive all successfully synced tasks
+        if (successfullySyncedTaskIds.length > 0) {
+          try {
+            await this.database.bulkUpdateTaskStatus(successfullySyncedTaskIds, { isArchived: true });
+            archivedCount = successfullySyncedTaskIds.length;
+            console.log(`✅ Archived ${archivedCount} successfully synced tasks`);
+          } catch (archiveError) {
+            console.error('Error archiving synced tasks:', archiveError);
+            errors.push(`Failed to archive ${successfullySyncedTaskIds.length} synced tasks: ${archiveError}`);
+          }
+        }
+
         return {
           successCount,
           errorCount,
+          archivedCount,
           errors,
-          totalTasks: tasks.length
+          totalTasks: filteredTasks.length
         };
       } catch (error) {
         console.error('Error in bulk Notion sync:', error);

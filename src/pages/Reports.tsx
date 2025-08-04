@@ -603,18 +603,41 @@ const Reports: React.FC = () => {
     }
   }, [loadData, showToast]);
 
-  const handleSyncAllTasksToNotion = useCallback(async () => {
-    if (!confirm('Are you sure you want to sync all completed tasks to Notion? This may take a while.')) {
+  const handleSyncFilteredTasksToNotion = useCallback(async () => {
+    // Create filters object that matches what's currently applied
+    const currentFilters = {
+      ...filters,
+      isArchived: activeTab === 'archived',
+      isCompleted: activeTab === 'drafted' ? false : undefined
+    };
+
+    // Get the current filtered tasks count
+    const currentFilteredTasks = tasks.filter(task => {
+      if (filters.search && !task.description.toLowerCase().includes(filters.search.toLowerCase())) {
+        return false;
+      }
+      if (task.duration && task.duration < filters.minDuration) {
+        return false;
+      }
+      return true;
+    });
+
+    const taskCount = currentFilteredTasks.length;
+    if (!confirm(`Are you sure you want to sync ${taskCount} filtered task${taskCount !== 1 ? 's' : ''} to Notion? Successfully synced tasks will be automatically archived. This may take a while.`)) {
       return;
     }
 
     setIsSyncingToNotion(true);
     try {
       if (window.electronAPI) {
-        const result = await window.electronAPI.syncAllTasksToNotion();
+        const result = await window.electronAPI.syncFilteredTasksToNotion(currentFilters);
         
         if (result.successCount > 0) {
-          showToast(`Successfully synced ${result.successCount} tasks to Notion`, 'success');
+          if (result.archivedCount > 0) {
+            showToast(`Successfully synced ${result.successCount} tasks to Notion and archived ${result.archivedCount} tasks`, 'success');
+          } else {
+            showToast(`Successfully synced ${result.successCount} tasks to Notion`, 'success');
+          }
         }
         
         if (result.errorCount > 0) {
@@ -623,7 +646,7 @@ const Reports: React.FC = () => {
         }
         
         if (result.totalTasks === 0) {
-          showToast('No completed tasks found to sync', 'info');
+          showToast('No tasks found to sync with current filters', 'info');
         }
       }
     } catch (error) {
@@ -632,7 +655,7 @@ const Reports: React.FC = () => {
     } finally {
       setIsSyncingToNotion(false);
     }
-  }, [showToast]);
+  }, [filters, activeTab, tasks, showToast]);
 
   // Memoized filtered tasks for performance
   const filteredTasks = useMemo(() => {
@@ -829,7 +852,7 @@ const Reports: React.FC = () => {
               Manual Notion Sync
             </CardTitle>
             <CardDescription>
-              Notion sync is now manual. Use the "Submit to Notion" button below to sync all completed tasks to your Notion database.
+              Notion sync is now manual. Use the "Submit to Notion" button below to sync the currently filtered tasks to your Notion database. Successfully synced tasks will be automatically archived.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -972,7 +995,7 @@ const Reports: React.FC = () => {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={handleSyncAllTasksToNotion}
+                  onClick={handleSyncFilteredTasksToNotion}
                   disabled={isSyncingToNotion}
                   className="text-xs sm:text-sm"
                 >

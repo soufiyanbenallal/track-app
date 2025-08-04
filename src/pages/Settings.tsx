@@ -149,9 +149,9 @@ const Settings: React.FC = () => {
                 <MessageSquare className="w-5 h-5 text-muted-foreground" />
                 <Label className="text-base font-medium">Manual Sync</Label>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Notion sync is now manual. Use the "Submit to Notion" button on the Reports page to sync all completed tasks.
-              </p>
+                          <p className="text-sm text-muted-foreground">
+              Notion sync is now manual. Use the "Submit to Notion" button on the Reports page to sync filtered tasks. Successfully synced tasks are automatically archived.
+            </p>
               <div className="flex items-center gap-3">
                 <Badge variant="secondary" className="text-xs">
                   Manual Only
@@ -239,7 +239,7 @@ const Settings: React.FC = () => {
               <Label className="text-base font-medium">Manual Sync</Label>
             </div>
             <p className="text-sm text-muted-foreground">
-              After configuring your Notion API key, use the "Submit to Notion" button on the Reports page to manually sync all completed tasks to your Notion database.
+              After configuring your Notion API key, use the "Submit to Notion" button on the Reports page to manually sync filtered tasks to your Notion database. Successfully synced tasks are automatically archived.
             </p>
           </div>
 
