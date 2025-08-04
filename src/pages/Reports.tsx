@@ -947,9 +947,9 @@ const Reports: React.FC = () => {
 
 
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-1 px-2 border-b bg-slate-900  text-white">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-0.5 px-2 border-b bg-slate-900  text-white">
               <div className="flex items-center gap-4">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 h-9">
                   <Checkbox
                     checked={selectAll}
                     onCheckedChange={handleSelectAll}
@@ -962,9 +962,6 @@ const Reports: React.FC = () => {
                   </Badge>
                 )}
               </div>
-
-
-
 
               {
                 selectedTasks.length !== 0 && (
@@ -996,7 +993,7 @@ const Reports: React.FC = () => {
                       className="text-xs sm:text-sm"
                     >
                       <Upload className="w-4 h-4 mr-2" />
-                      {isSyncingToNotion ? '...' : 'Notion'}
+                      {isSyncingToNotion ? 'Uploading...' : 'Notion'}
                     </Button>
                     <Button
                       variant="secondary"
@@ -1049,6 +1046,7 @@ const Reports: React.FC = () => {
                       <th className="text-left py-1 px-2 font-medium" scope="col">Project</th>
                       <th className="text-left py-1 px-2 font-medium" scope="col">Date</th>
                       <th className="text-left py-1 px-2 font-medium" scope="col">Duration</th>
+                      <th className="text-left py-1 px-2 font-medium" scope="col">Tags</th>
                       <th className="text-left py-1 px-2 font-medium" scope="col">Status</th>
                       <th className="text-left py-1 px-2 font-medium max-w-20" scope="col"></th>
                     </tr>
@@ -1078,6 +1076,28 @@ const Reports: React.FC = () => {
                         </td>
                         <td className="py-1 px-2">{formatDate(task.startTime)}</td>
                         <td className="py-1 px-2">{task.duration ? formatDuration(task.duration) : '-'}</td>
+                        <td className="py-1 px-2">
+                          <div className="flex flex-wrap gap-1">
+                            {task.tags ? task.tags.split(',').map((tag, index) => {
+                              const trimmedTag = tag.trim();
+                              const tagData = tags.find(t => t.name === trimmedTag);
+                              return (
+                                <Badge 
+                                  key={index} 
+                                  variant="outline" 
+                                  className="text-xs"
+                                  style={{ 
+                                    backgroundColor: tagData?.color || '#6B7280',
+                                    color: 'white',
+                                    borderColor: tagData?.color || '#6B7280'
+                                  }}
+                                >
+                                  {trimmedTag}
+                                </Badge>
+                              );
+                            }) : null}
+                          </div>
+                        </td>
                         <td className="py-1 px-2">
                           <div className="flex gap-2">
                             <Badge variant={task.isPaid ? "default" : "secondary"}>

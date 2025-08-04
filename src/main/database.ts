@@ -427,6 +427,60 @@ export class DatabaseService {
     this.tagsStore.set('tags', filteredTags);
   }
 
+  // Ensure the "(Notion)" tag exists
+  async ensureNotionTag(): Promise<Tag> {
+    const tags = this.tagsStore.get('tags', []) as Tag[];
+    const notionTag = tags.find(tag => tag.name === '(Notion)');
+    
+    if (notionTag) {
+      return notionTag;
+    }
+
+    // Create the "(Notion)" tag if it doesn't exist
+    const newNotionTag: Tag = {
+      id: this.generateId(),
+      name: '(Notion)',
+      color: '#3B82F6', // Blue color for Notion
+      isArchived: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    tags.push(newNotionTag);
+    this.tagsStore.set('tags', tags);
+    
+    return newNotionTag;
+  }
+
+  // Add tag to task
+  async addTagToTask(taskId: string, tagName: string): Promise<void> {
+    const tasks = this.tasksStore.get('tasks', []) as Task[];
+    const taskIndex = tasks.findIndex(task => task.id === taskId);
+    
+    if (taskIndex === -1) {
+      throw new Error(`Task with id ${taskId} not found`);
+    }
+
+    const task = tasks[taskIndex];
+    const currentTags = task.tags ? task.tags.split(',').map(t => t.trim()) : [];
+    
+    // Add tag if it doesn't already exist
+    if (!currentTags.includes(tagName)) {
+      currentTags.push(tagName);
+      const updatedTags = currentTags.join(', ');
+      
+      const now = new Date().toISOString();
+      const updatedTask = {
+        ...task,
+        tags: updatedTags,
+        updatedAt: now
+      };
+
+      tasks[taskIndex] = updatedTask;
+      this.tasksStore.set('tasks', tasks);
+    }
+  }
+
   // Bulk operations
   async bulkUpdateTaskStatus(taskIds: string[], updates: Partial<Task>): Promise<void> {
     const tasks = this.tasksStore.get('tasks', []) as Task[];

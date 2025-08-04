@@ -378,7 +378,23 @@ class TrackApp {
 
     // Notion operations
     ipcMain.handle('notion-sync-task', async (_, task, project) => {
-      return await this.notionService.syncTask(task, project);
+      try {
+        // Ensure the "(Notion)" tag exists
+        await this.database.ensureNotionTag();
+        
+        // Sync the task to Notion
+        const result = await this.notionService.syncTask(task, project);
+        
+        // Add "(Notion)" tag to successfully synced task
+        await this.database.addTagToTask(task.id, '(Notion)');
+        
+        console.log(`✅ Synced individual task to Notion: ${task.description}`);
+        
+        return result;
+      } catch (error) {
+        console.error(`❌ Failed to sync individual task to Notion: ${task.description}`, error);
+        throw error;
+      }
     });
 
     ipcMain.handle('notion-queue-sync', async (_, task, project) => {
@@ -435,6 +451,9 @@ class TrackApp {
         const errors: string[] = [];
         const successfullySyncedTaskIds: string[] = [];
 
+        // Ensure the "(Notion)" tag exists
+        await this.database.ensureNotionTag();
+
         for (const task of tasksToSync) {
           try {
             const project = projects.find((p: any) => p.id === task.projectId);
@@ -442,6 +461,10 @@ class TrackApp {
               await this.notionService.syncTask(task, project);
               successCount++;
               successfullySyncedTaskIds.push(task.id);
+              
+              // Add "(Notion)" tag to successfully synced task
+              await this.database.addTagToTask(task.id, '(Notion)');
+              
               console.log(`✅ Synced task to Notion: ${task.description}`);
             } else {
               errorCount++;
@@ -538,12 +561,19 @@ class TrackApp {
 
     this.isProcessingQueue = true;
 
+    // Ensure the "(Notion)" tag exists
+    await this.database.ensureNotionTag();
+
     while (this.notionSyncQueue.length > 0) {
       const { task, project, operation, updateType } = this.notionSyncQueue.shift()!;
       
       try {
         if (operation === 'sync') {
           await this.notionService.syncTask(task, project);
+          
+          // Add "(Notion)" tag to successfully synced task
+          await this.database.addTagToTask(task.id, '(Notion)');
+          
           console.log('✅ Background Notion sync completed for task:', task.description);
         } else if (operation === 'update' && updateType) {
           await this.notionService.handleTaskUpdate(task, project, updateType);
