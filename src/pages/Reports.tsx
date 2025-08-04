@@ -102,6 +102,7 @@ const Reports: React.FC = () => {
     isCompleted: undefined as boolean | undefined,
     search: '',
     minDuration: 300, // 5 minutes in seconds (default)
+    maxDuration: 0, // 0 means no maximum limit
   });
 
   const [dateRange, setDateRange] = useState({
@@ -169,20 +170,21 @@ const Reports: React.FC = () => {
         return false;
       }
       
+      // Apply maximum duration filter
+      if (filters.maxDuration > 0 && task.duration && task.duration > filters.maxDuration) {
+        return false;
+      }
+      
       return true;
     });
-  }, [tasks, dateRange.startDate, dateRange.endDate, filters.search, filters.projectId, filters.customerId, filters.tags, filters.isPaid, filters.minDuration]);
+  }, [tasks, dateRange.startDate, dateRange.endDate, filters.search, filters.projectId, filters.customerId, filters.tags, filters.isPaid, filters.minDuration, filters.maxDuration]);
 
   const generateStats = useCallback(() => {
-    // Use the filtered tasks directly - they already include all filters
-    const statsTasks = filteredTasks.filter(task => 
-      task.isCompleted && task.duration && task.duration > 0
-    );
 
     let totalSeconds = 0;
     let unpaidSeconds = 0;
 
-    statsTasks.forEach(task => {
+    filteredTasks.forEach(task => {
       if (task.duration) {
         totalSeconds += task.duration;
         if (!task.isPaid) {
@@ -210,7 +212,7 @@ const Reports: React.FC = () => {
       totalAmount,
       unpaidAmount
     });
-  }, [filteredTasks, dateRange.startDate, dateRange.endDate, settings.hourlyRate]);
+  }, [filteredTasks]);
 
   useEffect(() => {
     generateStats();
@@ -404,7 +406,8 @@ const Reports: React.FC = () => {
         ...parsed,
         isPaid: parsed.isPaid !== undefined ? Boolean(parsed.isPaid) : undefined,
         isCompleted: parsed.isCompleted !== undefined ? Boolean(parsed.isCompleted) : undefined,
-        minDuration: parsed.minDuration !== undefined ? Number(parsed.minDuration) : 300
+        minDuration: parsed.minDuration !== undefined ? Number(parsed.minDuration) : 300,
+        maxDuration: parsed.maxDuration !== undefined ? Number(parsed.maxDuration) : 0
       }));
     }
 
@@ -854,6 +857,20 @@ const Reports: React.FC = () => {
               value={filters.minDuration / 60}
               onChange={(e) => handleFilterChange({ minDuration: Math.max(0, parseFloat(e.target.value) || 0) * 60 })}
               placeholder="5"
+            />
+          </li>
+
+          <li className="space-y-1">
+            <Label htmlFor="maxDuration">Max</Label>
+            <Input
+              id="maxDuration"
+              type="number"
+              min="0"
+              step="1"
+              className='max-w-16'
+              value={filters.maxDuration > 0 ? filters.maxDuration / 60 : ''}
+              onChange={(e) => handleFilterChange({ maxDuration: Math.max(0, parseFloat(e.target.value) || 0) * 60 })}
+              placeholder="∞"
             />
           </li>
         </ul>
