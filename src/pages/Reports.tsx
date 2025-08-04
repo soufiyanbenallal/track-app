@@ -71,6 +71,7 @@ const Reports: React.FC = () => {
   const [draftTasks, setDraftTasks] = useState<Task[]>([]);
   const [activeTab, setActiveTab] = useState<'tasks' | 'archived' | 'drafted'>('tasks');
   const [isSyncingToNotion, setIsSyncingToNotion] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   // Toast utility function
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -889,31 +890,53 @@ const Reports: React.FC = () => {
         {/* Tasks List */}
         <div className="bg-white rounded-xl shadow">
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'tasks' | 'archived' | 'drafted')} className="w-full">
-          <div className="flex">
-            <TabsList className="flex bg-white rounded-t-xl border-b border-gray-200 ">
-                <TabsTrigger value="tasks" className="data-[state=active]:bg-slate-200">
+          <div className="flex items-center justify-between  pr-1">
+            {showSearch ? (
+              <div className="relative flex-1 h-8">
+                <Search className="absolute left-3 top-2 h-4 w-4 text-muted-foreground" />
+                <input
+                  id="search"
+                  placeholder="Search..."
+                  value={filters.search}
+                  onChange={(e) => handleFilterChange({ search: e.target.value })}
+                  className="pl-10 h-8 bg-transparent border-none w-full focus:outline-none"
+                  aria-label="Search in tasks"
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <TabsList className="flex bg-white rounded-lg h-8">
+                <TabsTrigger value="tasks" className="data-[state=active]:bg-slate-200 min-w-40">
                   Tasks
                 </TabsTrigger>
-                <TabsTrigger value="archived" className="data-[state=active]:bg-slate-200">
+                <TabsTrigger value="archived" className="data-[state=active]:bg-slate-200 min-w-40">
                   Archived
                 </TabsTrigger>
-                <TabsTrigger value="drafted" className="data-[state=active]:bg-slate-200">
+                <TabsTrigger value="drafted" className="data-[state=active]:bg-slate-200 min-w-40">
                   Drafted
                 </TabsTrigger>
               </TabsList>
-            <div className="relative flex-1 h-10">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <input
-                id="search"
-                placeholder="Search..."
-                value={filters.search}
-                onChange={(e) => handleFilterChange({ search: e.target.value })}
-                className="pl-10 h-10 bg-transparent border-none w-full  focus:outline-none"
-                aria-label="Search in tasks"
-              />
-            </div>
-
-            <Search className="w-7 h-7 text-muted-foreground" />
+            )}
+            
+            <Button
+              variant="link"
+              size="sm"
+              onClick={() => {
+                setShowSearch(!showSearch);
+                if (!showSearch) {
+                  // Clear search when switching to tabs
+                  handleFilterChange({ search: '' });
+                }
+              }}
+              className="ml-2 h-7 w-7 p-0"
+              aria-label={showSearch ? "Switch to tabs" : "Switch to search"}
+            >
+              {showSearch ? (
+                <FileText className="h-4 w-4" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+            </Button>
           </div>
             
  
